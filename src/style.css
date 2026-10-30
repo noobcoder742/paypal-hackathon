@@ -59,3 +59,5 @@ header{height:62px;background:#fff;border-color:#e8e2d8;padding:0 22px}
 .floating-tools button:disabled{opacity:.4;cursor:not-allowed}
 .warning{background:#fff0e8;color:#9b5143;border-radius:12px}
 .toast{background:#c9b89b;color:#292724;border-radius:999px}
+
+.selected-table-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}.selected-table-heading .selected-name{margin:0}.apply-all{background:#f1e6d4;border:1px solid #cdb58f;border-radius:999px;color:#5a4630;padding:7px 10px;font-size:11px;white-space:nowrap}.apply-all:hover{background:#e6d2b5}
