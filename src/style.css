@@ -103,3 +103,45 @@ header{height:62px;background:#fff;border-color:#e8e2d8;padding:0 22px}
 .market-selected button{border:0;background:transparent;color:#a16c55;font-size:11px}
 @media(max-width:1100px){.marketplace-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){.marketplace-screen{padding:18px}.marketplace-gallery{grid-template-columns:1fr}.marketplace-intro{align-items:start}.marketplace-intro h1{font-size:32px}.market-bag{display:none}.floating-views{right:8px;top:8px}.floating-views button{padding:8px;font-size:10px}}
+
+/* Borderless editorial marketplace */
+.editorial-market{background:#faf8f4}
+.editorial-intro{padding:42px 0 24px}
+.editorial-intro h1{font:400 clamp(31px,4vw,53px) Georgia,serif;letter-spacing:-1px;margin:12px 0;color:#292724}
+.editorial-intro p{font-size:13px;color:#8b8074}
+.editorial-search{display:flex;align-items:center;gap:9px;border-bottom:1px solid #ddd4c7;padding:11px 0;margin-bottom:27px;color:#8b8074}
+.editorial-search input{flex:1;border:0;outline:0;background:transparent;font-size:13px;color:#292724}
+.editorial-search span{display:flex;align-items:center;gap:6px;font-size:11px}
+.editorial-section{margin:0 0 43px}
+.editorial-section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px}
+.editorial-section-head h2{font-size:20px;font-weight:550;letter-spacing:-.3px;color:#292724;margin:0}
+.editorial-section-head button{display:flex;align-items:center;gap:7px;border:0;background:transparent;font-size:12px;color:#746a5d;padding:7px 0}
+.editorial-section-head button:hover{color:#292724}
+.editorial-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.editorial-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:19px 15px}
+.editorial-product{min-width:0}
+.editorial-photo{position:relative;aspect-ratio:1;background:#e7e0d5;overflow:hidden;border-radius:5px}
+.editorial-photo>img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease,filter .3s}
+.editorial-photo:hover>img{transform:scale(1.035)}
+.editorial-add{position:absolute;bottom:10px;left:10px;right:10px;display:flex;justify-content:center;align-items:center;gap:5px;padding:10px 5px;border:0;border-radius:999px;background:#fffffff0;color:#383027;font-size:11px;opacity:0;transform:translateY(7px);transition:opacity .2s,transform .2s}
+.editorial-photo:hover .editorial-add,.editorial-add:focus-visible{opacity:1;transform:translateY(0)}
+.editorial-add.added{background:#e9e1d5}
+.photo-steps{position:absolute;top:0;left:0;right:0;height:42%;display:flex;opacity:0;transition:opacity .2s}
+.editorial-photo:hover .photo-steps{opacity:1}
+.photo-steps button{flex:1;border:0;background:transparent;position:relative}
+.photo-steps button:after{content:'';position:absolute;top:9px;left:4px;right:4px;height:2px;border-radius:2px;background:#ffffff80}
+.photo-steps button.current:after{background:white}
+.editorial-meta{display:flex;justify-content:space-between;gap:7px;margin-top:10px;color:#968b7e;font-size:10px}
+.editorial-name{font-size:12px;margin-top:5px;color:#3e3933}
+@media(max-width:1150px){.editorial-row,.editorial-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.editorial-row .editorial-product:nth-child(n+4){display:none}}
+@media(max-width:700px){.editorial-row,.editorial-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.editorial-row .editorial-product:nth-child(n+3){display:none}.editorial-meta{flex-direction:column;gap:2px}.editorial-intro{padding-top:20px}}
+/* Borderless accordion controls in studio sidebar */
+.sidebar section{border-bottom:1px solid #eeeae4}
+.sidebar .settings-accordion{border-bottom:1px solid #eeeae4;padding:0}
+.settings-accordion summary{list-style:none;display:flex;align-items:center;justify-content:space-between;padding:18px 20px;cursor:pointer;font-size:13px;font-weight:600;color:#332d26;transition:background .2s}
+.settings-accordion summary::-webkit-details-marker{display:none}
+.settings-accordion summary:hover{background:#f8f5f0}
+.settings-accordion summary:after{content:'⌄';color:#a28f73;font-size:17px}
+.settings-accordion[open] summary:after{transform:rotate(180deg)}
+.settings-accordion-body{padding:0 20px 20px}
+.settings-accordion-body section{padding:0;border:0}
