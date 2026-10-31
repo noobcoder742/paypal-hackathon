@@ -61,3 +61,45 @@ header{height:62px;background:#fff;border-color:#e8e2d8;padding:0 22px}
 .toast{background:#c9b89b;color:#292724;border-radius:999px}
 
 .selected-table-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}.selected-table-heading .selected-name{margin:0}.apply-all{background:#f1e6d4;border:1px solid #cdb58f;border-radius:999px;color:#5a4630;padding:7px 10px;font-size:11px;white-space:nowrap}.apply-all:hover{background:#e6d2b5}
+
+/* Canvas-first studio and concept marketplace */
+.scene-top{display:none}
+.canvas-wrap{margin-top:12px}
+.floating-views{position:absolute;right:18px;top:16px;z-index:5;background:#ffffffb8;backdrop-filter:blur(15px);border:1px solid #ffffff8c;box-shadow:0 4px 20px #00000017;border-radius:999px}
+.floating-views button{color:#36312b}
+.floating-views button.active{background:#fff}
+.marketplace-pill{display:flex;align-items:center;justify-content:space-between;width:100%;padding:13px 17px;margin-top:8px;border:1px solid #d6c4a9;border-radius:999px;background:#c9b89b;color:#302a22;font-size:13px;font-weight:700}
+.marketplace-pill span{font-size:11px;font-weight:500}
+.marketplace-screen{flex:1;min-height:0;overflow:auto;padding:26px 38px 50px;background:#faf8f4}
+.marketplace-top{display:flex;justify-content:space-between;align-items:center}
+.market-back{border:1px solid #e5ded3;background:white;border-radius:999px;padding:10px 15px;display:flex;align-items:center;gap:8px;color:#292724}
+.market-label{font-size:10px;letter-spacing:1.5px;color:#927c5d}
+.marketplace-intro{display:flex;justify-content:space-between;align-items:end;margin:38px 0 30px;gap:20px}
+.marketplace-intro h1{font-family:Georgia,serif;font-size:43px;font-weight:400;margin:9px 0;color:#292724}
+.marketplace-intro p{color:#777067;font-size:13px;max-width:560px;line-height:1.6}
+.market-bag{border-radius:999px;background:white;border:1px solid #ebe3d8;padding:11px 15px;display:flex;align-items:center;gap:8px;white-space:nowrap;font-size:12px}
+.marketplace-filters{display:flex;justify-content:space-between;gap:18px;align-items:center;margin-bottom:24px;flex-wrap:wrap}
+.market-categories{display:flex;gap:7px;flex-wrap:wrap}
+.market-categories button{border:1px solid #e5ddd1;background:#fff;border-radius:999px;padding:10px 15px;color:#665e53;font-size:12px}
+.market-categories button.active{background:#c9b89b;color:#292724;border-color:#c9b89b}
+.market-search{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #e5ddd1;border-radius:999px;padding:9px 13px;color:#80766b}
+.market-search input{border:0;outline:0;background:transparent;min-width:190px;color:#292724;font-size:12px}
+.marketplace-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.market-card{overflow:hidden;background:white;border-radius:18px;border:1px solid #eee7dc}
+.market-photo{position:relative;aspect-ratio:4/3;background:#e7e0d5}
+.market-photo img{width:100%;height:100%;object-fit:cover}
+.market-photo span{position:absolute;top:12px;left:12px;background:#ffffffe8;border-radius:999px;padding:6px 11px;font-size:11px;color:#4c4135}
+.market-info{display:flex;align-items:end;justify-content:space-between;gap:12px;padding:16px}
+.market-info small{font-size:10px;color:#8c8073}
+.market-info h3{font-size:15px;margin:7px 0;color:#292724}
+.market-info p{font-size:12px;color:#766044;margin:0}
+.market-info p span{color:#948b81}
+.market-add{display:flex;gap:5px;align-items:center;border:0;background:#c9b89b;color:#292724;border-radius:999px;padding:9px 12px;font-size:11px;white-space:nowrap}
+.market-add.added{background:#ece8e1;color:#7e756a}
+.market-disclaimer{font-size:11px;color:#8e8376;line-height:1.6;margin-top:28px}
+.market-empty{padding:40px;color:#857b70}
+.market-selected{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #eee7dc;font-size:12px}
+.market-selected small{display:block;color:#9b8d7a;margin-top:4px}
+.market-selected button{border:0;background:transparent;color:#a16c55;font-size:11px}
+@media(max-width:1100px){.marketplace-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.marketplace-screen{padding:18px}.marketplace-gallery{grid-template-columns:1fr}.marketplace-intro{align-items:start}.marketplace-intro h1{font-size:32px}.market-bag{display:none}.floating-views{right:8px;top:8px}.floating-views button{padding:8px;font-size:10px}}
