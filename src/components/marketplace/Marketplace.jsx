@@ -1,27 +1,48 @@
 import React,{useState} from 'react';
-import {ArrowLeft,Plus,Check,Search,ShoppingBag} from 'lucide-react';
+import {ArrowLeft,ArrowRight,Plus,Check,Search,ShoppingBag} from 'lucide-react';
 
-// Demonstration listings only. Replace with licensed vendor images, verified offers and
-// hotel-approved menus before public launch. Prices are illustrative SGD estimates.
+// DEMO CONTENT. All images, prices and vendor names are placeholders.
+// Do not represent these as real vendor listings or hotel-approved packages.
 export const demoListings=[
- {id:'floral-white',category:'Floral',name:'Ivory garden centrepieces',vendor:'Sample floral studio',price:180,unit:'per arrangement',photo:'https://images.unsplash.com/photo-1523438885200-e635ba2c371e?w=1000&q=80',inventoryType:'flowers'},
- {id:'floral-arch',category:'Floral',name:'Statement ceremony arch',vendor:'Sample floral studio',price:980,unit:'per setup',photo:'https://images.unsplash.com/photo-1519741497674-611481863552?w=1000&q=80',inventoryType:'arch'},
- {id:'music-strings',category:'Music',name:'Live string ensemble',vendor:'Sample music provider',price:850,unit:'per session',photo:'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=1000&q=80'},
- {id:'light-ambient',category:'Lighting',name:'Warm ambient lighting',vendor:'Sample production studio',price:600,unit:'per setup',photo:'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=1000&q=80'},
- {id:'catering-banquet',category:'Catering',name:'Hotel banquet menu consultation',vendor:'Venue catering team — placeholder',price:null,unit:'quotation required',photo:'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=1000&q=80'},
- {id:'chauffeur-car',category:'Chauffeur',name:'Wedding arrival chauffeur',vendor:'Sample transport provider',price:320,unit:'per booking',photo:'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1000&q=80'}
+ {id:'floral-white',category:'Floral Arrangements',name:'Ivory garden centrepiece',vendor:'Sample floral studio',price:180,unit:'arrangement',photo:'https://images.unsplash.com/photo-1523438885200-e635ba2c371e?w=800&q=80',inventoryType:'flowers'},
+ {id:'floral-arch',category:'Floral Arrangements',name:'Ceremony floral arch',vendor:'Sample floral studio',price:980,unit:'setup',photo:'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&q=80',inventoryType:'arch'},
+ {id:'floral-roses',category:'Floral Arrangements',name:'Blush rose display',vendor:'Sample floral studio',price:260,unit:'arrangement',photo:'https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=800&q=80',inventoryType:'flowers'},
+ {id:'music-strings',category:'Music & Entertainment',name:'Live string ensemble',vendor:'Sample music provider',price:850,unit:'session',photo:'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=800&q=80'},
+ {id:'music-piano',category:'Music & Entertainment',name:'Piano performance',vendor:'Sample music provider',price:540,unit:'session',photo:'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?w=800&q=80'},
+ {id:'light-ambient',category:'Lighting & Production',name:'Warm ambient lighting',vendor:'Sample production studio',price:600,unit:'setup',photo:'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=800&q=80'},
+ {id:'light-stage',category:'Lighting & Production',name:'Stage spotlight package',vendor:'Sample production studio',price:740,unit:'setup',photo:'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=800&q=80'},
+ {id:'catering-banquet',category:'Hotel Catering',name:'Banquet menu consultation',vendor:'Hotel catering — placeholder',price:null,unit:'quote',photo:'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=800&q=80'},
+ {id:'catering-dessert',category:'Hotel Catering',name:'Dessert selection',vendor:'Hotel catering — placeholder',price:null,unit:'quote',photo:'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=800&q=80'},
+ {id:'chauffeur-car',category:'Chauffeur & Transport',name:'Wedding arrival chauffeur',vendor:'Sample transport provider',price:320,unit:'booking',photo:'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=80'}
 ];
-const categories=['All','Floral','Music','Lighting','Catering','Chauffeur'];
+const categories=['Floral Arrangements','Music & Entertainment','Lighting & Production','Hotel Catering','Chauffeur & Transport'];
+function Product({item,onAdd,added}){
+ const [imageIndex,setImageIndex]=useState(0);
+ // Different crops of the same placeholder photograph, not additional verified product photos.
+ const base=item.photo;
+ const alternates=[base,base.replace('w=800','w=900').replace('q=80','q=75')+'&crop=entropy&fit=crop',base.replace('w=800','w=1000')+'&fit=crop&crop=center'];
+ return <article className="editorial-product" onMouseLeave={()=>setImageIndex(0)}>
+  <div className="editorial-photo" onMouseEnter={()=>setImageIndex(1)}>
+   <img src={alternates[imageIndex]} alt={item.name+' illustrative reference'} loading="lazy"/>
+   <div className="photo-steps">{alternates.map((_,i)=><button key={i} aria-label={'View sample image '+(i+1)} className={i===imageIndex?'current':''} onMouseEnter={()=>setImageIndex(i)} onClick={()=>setImageIndex(i)}/>)}</div>
+   <button className={'editorial-add '+(added?'added':'')} disabled={added} onClick={()=>onAdd(item)}>{added?<><Check size={14}/> Added</>:<><Plus size={14}/> Add to inventory</>}</button>
+  </div>
+  <div className="editorial-meta"><span>{item.vendor}</span><span>{item.price===null?'Price on request':'From S$'+item.price.toLocaleString('en-SG')}</span></div>
+  <div className="editorial-name">{item.name}</div>
+ </article>;
+}
 export default function Marketplace({onBack,onAdd,added=[]}){
- const [category,setCategory]=useState('All');
+ const [category,setCategory]=useState(null);
  const [query,setQuery]=useState('');
- const filtered=demoListings.filter(item=>(category==='All'||item.category===category)&&[item.name,item.vendor,item.category].join(' ').toLowerCase().includes(query.toLowerCase()));
- return <div className="marketplace-screen">
-  <div className="marketplace-top"><button className="market-back" onClick={onBack}><ArrowLeft size={17}/> Back to studio</button><span className="market-label">WEDDING MARKETPLACE · PREVIEW</span></div>
-  <div className="marketplace-intro"><div><span className="eyebrow">CURATE YOUR CELEBRATION</span><h1>Discover the details.</h1><p>Explore flowers, performances, lighting and wedding services. Add favourites to your studio inventory.</p></div><div className="market-bag"><ShoppingBag size={18}/>{added.length} saved</div></div>
-  <div className="marketplace-filters"><div className="market-categories">{categories.map(c=><button key={c} className={category===c?'active':''} onClick={()=>setCategory(c)}>{c}</button>)}</div><label className="market-search"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search items or services"/></label></div>
-  <div className="marketplace-gallery">{filtered.map(item=><article className="market-card" key={item.id}><div className="market-photo"><img src={item.photo} alt={'Illustrative '+item.category.toLowerCase()+' photograph'} loading="lazy"/><span>{item.category}</span></div><div className="market-info"><div><small>{item.vendor}</small><h3>{item.name}</h3><p>{item.price===null?'Price on request':`From S$${item.price.toLocaleString('en-SG')}`} <span>· {item.unit}</span></p></div><button className={added.includes(item.id)?'market-add added':'market-add'} disabled={added.includes(item.id)} onClick={()=>onAdd(item)}>{added.includes(item.id)?<><Check size={15}/> Added</>:<><Plus size={15}/> Add</>}</button></div></article>)}</div>
-  {filtered.length===0&&<p className="market-empty">No listings match your search.</p>}
-  <p className="market-disclaimer">Concept marketplace: illustrative photos, sample vendors and estimated prices only. No live listings, confirmed availability or hotel-approved catering menus yet. Chauffeur services are saved for future exterior/hotel planning, not placed in the ballroom.</p>
+ const matches=item=>[item.name,item.vendor,item.category].join(' ').toLowerCase().includes(query.toLowerCase());
+ const items=demoListings.filter(matches);
+ return <div className="marketplace-screen editorial-market">
+  <div className="marketplace-top"><button className="market-back" onClick={()=>category?setCategory(null):onBack()}><ArrowLeft size={16}/>{category?'All collections':'Back to studio'}</button><span className="market-label">MARKETPLACE · CONCEPT</span></div>
+  <div className="editorial-intro"><span className="eyebrow">THE WEDDING EDIT</span><h1>{category||'Thoughtfully curated.'}</h1><p>{category?'Explore the full collection and save pieces to your wedding plan.':'Explore pieces and services for your celebration.'}</p></div>
+  <label className="editorial-search"><Search size={16}/><input placeholder="Search collections and items" value={query} onChange={e=>setQuery(e.target.value)}/><span>{added.length} saved <ShoppingBag size={14}/></span></label>
+  {category?<div className="editorial-grid">{items.filter(item=>item.category===category).map(item=><Product key={item.id} item={item} onAdd={onAdd} added={added.includes(item.id)}/>)}</div>:
+   <div className="editorial-sections">{categories.map(cat=>{const group=items.filter(item=>item.category===cat);if(!group.length)return null;return <section key={cat} className="editorial-section"><div className="editorial-section-head"><h2>{cat}</h2><button onClick={()=>setCategory(cat)}>View more <ArrowRight size={15}/></button></div><div className="editorial-row">{group.slice(0,4).map(item=><Product key={item.id} item={item} onAdd={onAdd} added={added.includes(item.id)}/>)}</div></section>})}</div>}
+  {items.length===0&&<p className="market-empty">No items found.</p>}
+  <p className="market-disclaimer">Prototype listings only. Images are illustrative, not authenticated product photographs. Hover variations use crops of the same image until vendors provide multiple photos. Prices are estimates, not quotations. Catering is subject to each hotel's approved menus.</p>
  </div>;
 }
