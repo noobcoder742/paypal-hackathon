@@ -38,7 +38,7 @@ Search the source for these markers:
 | 3D geometry | Procedural approximations | Verified venue geometry, licensed textures and GLB assets |
 | Seating | Stable-looking table/seat IDs in prototype | Persistent identifiers, reassignment rules and conflict checks |
 | Layout safety | No collision or egress certification | Hotel validation and clear restrictions |
-| Landing hero | CSS animation placeholder | Owned or licensed video / interactive 3D media |
+| Landing hero | Full-viewport video element; video file not yet supplied, CSS gradient fallback | Add owned/cleared MP4 at `public/media/wedding-hero.mp4` and optional poster `public/media/wedding-hero-poster.jpg` |
 | Routing | In-memory page state | URL routes, deep links, browser history, scroll restoration |
 | Styles | Multiple appended CSS layers | Consolidate tokens and component styles |
 
@@ -73,3 +73,12 @@ Search the source for these markers:
 10. Test responsive layouts, reduced motion and GPU memory before deployment.
 
 This file documents the prototype. It is not a security audit or certification.
+
+## Homepage media implementation
+
+- The homepage video covers the entire viewport, including behind the transparent header.
+- Place an owned or licensed H.264 MP4 at `public/media/wedding-hero.mp4`.
+- Optionally provide `public/media/wedding-hero-poster.jpg` for the video poster.
+- The video is muted, looping, and plays inline; reduced-motion users see a static fallback.
+- **No video is included in this commit**. Until supplied, the CSS gradient fallback appears.
+- Interior pages use a borderless, non-overlay navigation bar; only the 3D editor retains distinct floating controls.
