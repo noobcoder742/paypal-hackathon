@@ -503,3 +503,11 @@ header{height:76px;padding:0 30px;background:linear-gradient(110deg,#fff 0%,#fbf
 @media(max-width:550px){
   .embedded-studio .viewer .studio-mode-tabs.studio-mode-overlay{top:72px;left:14px}
 }
+
+/* Seating is a contextual banquet-table action, not a floating scene mode switch. */
+.table-planning-controls{display:grid;gap:12px;margin:18px 0 10px}
+.table-planning-controls .seating-plan-button{width:100%;border:0;border-radius:999px;background:#d7c2a5;color:#3e3023;padding:12px 17px;font-size:12px;font-weight:600;cursor:pointer}
+.table-planning-controls .seating-plan-button:hover{background:#cbb08c}
+.table-planning-controls .toggle{margin:4px 0}
+.table-title-input{box-sizing:border-box;width:100%;padding:11px 13px;border:1px solid #e3d6c7;border-radius:11px;background:#fffaf4;color:#44372b;font:13px Inter,system-ui,sans-serif;outline:none}
+.table-title-input:focus{border-color:#b69a76;box-shadow:0 0 0 2px #d7c2a555}
