@@ -525,3 +525,12 @@ header{height:76px;padding:0 30px;background:linear-gradient(110deg,#fff 0%,#fbf
 .sidebar-seating .table-planning-controls .seating-plan-button{background:#c1dfd4;color:#245d53}
 .sidebar-seating .side-tabs button.active{background:#c9e2d9;color:#255f55}
 .sidebar-seating .studio-save-action{background:#b7d8cb;color:#234d45}
+
+/* Seating editor: compact dietary controls and table-specific settings */
+.sidebar-seating .seat-editor h4{font:400 20px Georgia,serif;margin:10px 0 0;color:#245c54}
+.sidebar-seating .seat-editor textarea.table-title-input{resize:vertical;min-height:65px;font-family:inherit}
+.seating-table-summary{font-size:12px;color:#54786d;background:#dcece5;border-radius:10px;padding:10px 12px}
+.dietary-options{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:5px 0 12px}
+.dietary-options label{display:flex;align-items:center;gap:7px;font-size:11px;color:#31584f;cursor:pointer}
+.dietary-options input{accent-color:#28796e}
+@media(max-width:430px){.dietary-options{grid-template-columns:1fr}}
