@@ -200,3 +200,17 @@ header{height:76px;padding:0 30px;background:linear-gradient(110deg,#fff 0%,#fbf
 @media(max-width:1050px){.body{padding:12px;gap:12px}.sidebar{width:320px}.floating-views button{padding:9px 10px}}
 @media(max-width:850px){.body{flex-direction:column}.sidebar{width:100%;border-radius:18px}.canvas-wrap{min-height:520px}.app{height:auto}.viewer{min-height:570px}}
 @media(max-width:550px){header{padding:0 12px;height:65px}.brand strong{font-size:16px}.brandmark{width:36px;height:36px}.header-right{gap:2px}.save{padding:8px}.save:last-child{padding:9px 12px}.canvas-wrap{min-height:450px}.floating-views{top:12px;right:10px}.floating-tools{top:12px;left:10px}.floating-tools button{width:34px;height:34px}.hint{left:9px;bottom:10px;max-width:75%;font-size:9px}.legend{display:none}.viewer-fullscreen{right:10px;bottom:10px}}
+
+/* Main tab: true lightweight accordion rows, not boxed sections */
+.sidebar .studio-group{border-bottom:1px solid #eee7df;background:transparent}
+.sidebar .studio-group summary{padding:20px 23px;font-size:16px;gap:12px}
+.sidebar .studio-group[open]>summary{background:#f1e8dfb0;border-radius:20px;margin:3px 8px 8px;padding:16px 15px}
+.sidebar .studio-group .settings-accordion-body{padding:5px 23px 20px}
+.sidebar .studio-group .stat-row{padding:8px 0 18px;border:0}
+.sidebar .studio-group .stat-row b{font-size:23px}
+.sidebar .studio-group .buttonrow{margin:8px 0 12px}
+.sidebar .studio-group .remove-type{margin-top:10px}
+.sidebar .studio-group .choice-row{margin:10px 0}
+.sidebar .studio-reset{padding:15px 23px}
+.marketplace-link{border:0;background:#eee0d1;border-radius:999px;padding:12px 18px;color:#514033;font-size:12px;margin-top:10px}
+.sidebar .studio-group .settings-accordion-body>.muted{margin:6px 0 12px}
