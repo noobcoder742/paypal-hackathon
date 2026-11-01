@@ -82,3 +82,13 @@ This file documents the prototype. It is not a security audit or certification.
 - The video is muted, looping, and plays inline; reduced-motion users see a static fallback.
 - **No video is included in this commit**. Until supplied, the CSS gradient fallback appears.
 - Interior pages use a borderless, non-overlay navigation bar; only the 3D editor retains distinct floating controls.
+
+## Vendor shortlist and inventory (prototype)
+
+- Planner's Vendors screen has two tabs: **Inventory** (flat visual list, with hidden category metadata and planned quantities) and **Favourites** (grouped by category, ordered by user preference).
+- Marketplace card stars toggle favourites without opening the item. On touch devices stars are always visible.
+- Product detail pages expose separate Add to inventory and Favourite actions.
+- Venue listings are excluded from these vendor/product collections; venue shortlists require their own booking-oriented model.
+- Data currently lives in `localStorage` under `wedding-platform-planner-v1` (`savedItems`, `favourites`, `inventoryQuantities`). Ranking is array order within each category, not a global rank.
+- Future DB should use separate `wishlist_items` and `wedding_inventory_items` tables with unique wedding/product keys, category metadata, optional preference rank, quantity and vendor approval status. Product IDs must be stable.
+- No checkout or reservation is performed by adding to inventory.
