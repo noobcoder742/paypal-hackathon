@@ -397,3 +397,30 @@ header{height:76px;padding:0 30px;background:linear-gradient(110deg,#fff 0%,#fbf
 @media(max-width:1000px){.luxury-hero,.luxury-venue-hero{grid-template-columns:1fr 1fr;gap:35px}.luxury-details,.luxury-booking{gap:40px}.platform-links-centered{gap:20px}}
 @media(max-width:850px){.platform-nav{grid-template-columns:1fr auto}.platform-links-centered{display:none}.luxury-hero,.luxury-venue-hero,.luxury-details,.luxury-booking{grid-template-columns:1fr}.luxury-hero{min-height:0}.luxury-venue-hero{min-height:0}.luxury-venue-photo{height:420px}.luxury-product-info{padding:35px 0}.luxury-related-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.luxury-story{padding:85px 15px}}
 @media(max-width:550px){.luxury-breadcrumb{padding:15px 0 25px}.luxury-breadcrumb span{font-size:8px}.luxury-product-info h1,.luxury-venue-heading h1{font-size:39px}.luxury-related-grid{grid-template-columns:1fr 1fr;gap:13px}.luxury-booking-form{padding:20px}.luxury-collection-tabs{flex-wrap:wrap}.luxury-main-image{aspect-ratio:4/5}}
+
+/* Compact editor: maximize canvas and keep actions contextual */
+.platform-nav{height:42px;min-height:42px;padding-left:clamp(12px,2.4vw,34px);padding-right:clamp(12px,2.4vw,34px)}
+.platform-logo span{width:27px;height:27px;font-size:19px}
+.platform-logo strong{font-size:15px}
+.platform-links-centered button{font-size:11px;padding:5px 3px}
+.platform-nav-right .account-trigger{padding:6px}
+.platform-nav-right .account-trigger svg{width:15px;height:15px}
+.account-popover{top:34px}
+.embedded-studio{height:calc(100dvh - 42px);min-height:500px}
+.embedded-studio .app{height:100%;min-height:500px}
+.embedded-studio .app>.body{flex:1;min-height:0;padding:10px 12px 10px;gap:12px}
+.embedded-studio .viewer{min-height:0;position:relative}
+.embedded-studio .canvas-wrap{flex:1;min-height:300px;border-radius:20px}
+.studio-mode-tabs.studio-mode-overlay{position:absolute;top:17px;left:75px;z-index:8;padding:0;background:#ffffff29;backdrop-filter:blur(12px);border:1px solid #ffffff45;border-radius:999px;gap:2px}
+.studio-mode-tabs.studio-mode-overlay button{padding:8px 13px;font-size:11px;background:transparent;color:#fff}
+.studio-mode-tabs.studio-mode-overlay button.active{background:#e1cdb0;color:#3e3024}
+.studio-sidebar-heading{padding:18px 18px 11px;display:flex;flex-direction:column;align-items:center;gap:12px;border-bottom:1px solid #eee6dd}
+.studio-sidebar-heading h1{font-family:Georgia,serif;font-size:21px;line-height:1.2;font-weight:400;color:#42352b;text-align:center;margin:0}
+.studio-quick-actions{display:flex;align-items:center;justify-content:center;gap:9px;width:100%}
+.studio-quick-actions button{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:999px;background:#f0e9e0;color:#665649;padding:9px 12px;font-size:11px;min-height:34px}
+.studio-quick-actions button:disabled{opacity:.35;cursor:not-allowed}
+.studio-quick-actions .studio-save-action{background:#cdb89a;color:#382c20;padding:9px 20px}
+.embedded-studio .side-tabs{padding-top:10px}
+.embedded-studio .bottom-note{padding:8px 9px;font-size:10px}
+@media(max-width:850px){.embedded-studio{height:auto;min-height:0}.embedded-studio .app{height:auto;min-height:0}.embedded-studio .app>.body{flex-direction:column}.embedded-studio .viewer{min-height:550px}.studio-mode-tabs.studio-mode-overlay{top:15px;left:66px}.studio-sidebar-heading{padding:15px}}
+@media(max-width:550px){.platform-nav{height:44px;min-height:44px}.platform-logo strong{font-size:13px}.embedded-studio .viewer{min-height:470px}.studio-mode-tabs.studio-mode-overlay{top:57px;left:12px}.studio-mode-tabs.studio-mode-overlay button{padding:7px 10px}}
