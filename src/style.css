@@ -489,3 +489,17 @@ header{height:76px;padding:0 30px;background:linear-gradient(110deg,#fff 0%,#fbf
 .favourite-actions button:disabled{opacity:.25;cursor:not-allowed}
 @media(hover:none){.listing-favourite{opacity:1;transform:none}}
 @media(max-width:550px){.vendor-tabs{width:100%}.vendor-tabs button{flex:1;justify-content:center}.vendor-line{align-items:flex-start}.vendor-actions{flex-direction:column;align-items:flex-end;gap:5px}.favourite-line{gap:10px}}
+
+/* Fix: Design/Seating mode switch must not overlap the Select/Measure toolbar. */
+.embedded-studio .viewer .studio-mode-tabs.studio-mode-overlay{
+  top:78px;
+  left:24px;
+  right:auto;
+  z-index:9;
+}
+@media(max-width:850px){
+  .embedded-studio .viewer .studio-mode-tabs.studio-mode-overlay{top:76px;left:20px}
+}
+@media(max-width:550px){
+  .embedded-studio .viewer .studio-mode-tabs.studio-mode-overlay{top:72px;left:14px}
+}
