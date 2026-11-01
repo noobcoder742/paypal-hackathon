@@ -61,9 +61,9 @@ function Carpet(){const texture=useMemo(carpetTexture,[]);useEffect(()=>()=>text
 const CREAM='#e8dfd0', GOLD='#b89a68', TRIM='#d0bd9d';
 function WallPanel({x,z,rotation=0,ornate=false}){
  return <group position={[x,0,z]} rotation={[0,rotation,0]}>
-  <Box position={[0,3.9,0]} args={[3.1,7.75,.12]} color="#d7cfc1"/>
+  <Box position={[0,3.9,0]} args={[3.1,7.75,.12]} color="#d6c8b7"/>
   <Box position={[0,3.7,.075]} args={[2.76,6.4,.035]} color={CREAM}/>
-  <Box position={[0,3.65,.105]} args={[2.52,6.1,.02]} color="#eee8de"/>
+  <Box position={[0,3.65,.105]} args={[2.52,6.1,.02]} color="#f4eee5"/>
   {[-1.37,1.37].map(v=><Box key={v} position={[v,3.88,.17]} args={[.075,7.5,.12]} color={TRIM}/>)}
   {[.9,6.62].map(y=><Box key={y} position={[0,y,.17]} args={[2.8,.055,.12]} color={GOLD}/>)}
   <Box position={[0,7.1,.18]} args={[2.7,.95,.07]} color={ornate?'#8e7551':'#b7a68d'}/>
@@ -72,8 +72,8 @@ function WallPanel({x,z,rotation=0,ornate=false}){
 }
 function ArchedMirror({x,z,rotation=0}){
  return <group position={[x,0,z]} rotation={[0,rotation,0]}>
-  <Box position={[0,3.75,.19]} args={[2.25,5.5,.07]} color="#c9c8c1" metalness={.62} roughness={.25}/>
-  <mesh position={[0,6.45,.19]}><sphereGeometry args={[1.13,18,10,0,Math.PI,0,Math.PI/2]}/><meshStandardMaterial color="#d0cdc4" metalness={.65} roughness={.25}/></mesh>
+  <Box position={[0,3.75,.19]} args={[2.25,5.5,.07]} color="#c9c6bf" metalness={.86} roughness={.09}/>
+  <mesh position={[0,6.45,.19]}><sphereGeometry args={[1.13,18,10,0,Math.PI,0,Math.PI/2]}/><meshStandardMaterial color="#c9c6bf" metalness={.82} roughness={.11}/></mesh>
   {[-1.19,1.19].map(v=><Box key={v} position={[v,3.9,.27]} args={[.09,5.55,.09]} color={GOLD} metalness={.65}/>)}
   <Box position={[0,1.02,.28]} args={[2.47,.09,.09]} color={GOLD}/>
  </group>;
@@ -89,7 +89,7 @@ function Walls({showRoof}){
   <ArchedMirror x={-LENGTH/2+.32} z={7.5} rotation={Math.PI/2}/>
   <ArchedMirror x={LENGTH/2-.32} z={-7.5} rotation={-Math.PI/2}/>
   <ArchedMirror x={LENGTH/2-.32} z={7.5} rotation={-Math.PI/2}/>
-  {[-WIDTH/2+.15,WIDTH/2-.15].map(z=><Box key={z} position={[0,7.95,z]} args={[LENGTH,.35,.4]} color="#e9e1d4"/>)}
+  {[-WIDTH/2+.15,WIDTH/2-.15].map(z=><Box key={z} position={[0,7.95,z]} args={[LENGTH,.35,.4]} color="#e8e0d4"/>)}
   {[-LENGTH/2+.15,LENGTH/2-.15].map(x=><Box key={x} position={[x,7.95,0]} args={[.4,.35,WIDTH]} color="#e9e1d4"/>)}
  </group>;
 }
@@ -104,17 +104,17 @@ function ExitDoor({x,z,rotation=0}){
 function Leaf({x,y,z,rotation=0,warm=true}){
  return <mesh position={[x,y,z]} rotation={[0,rotation,.35]}>
   <sphereGeometry args={[.09,7,5]}/>
-  <meshStandardMaterial color={warm?'#fff4d9':'#fff9ed'} emissive={warm?'#ffdfab':'#fff4e4'} emissiveIntensity={warm?1.2:.5} roughness={.55}/>
+  <meshStandardMaterial color={warm?'#fff4d9':'#fff9ed'} emissive={warm?'#ffdfab':'#fff4e4'} emissiveIntensity={warm?.85:.42} roughness={.55}/>
  </mesh>;
 }
 function Chandelier({x,z,warm=true}){
  // One lightweight branching canopy, reused at all photographed approximate locations.
  return <group position={[x,6.55,z]}>
   <Box position={[0,.62,0]} args={[.035,1.22,.035]} color="#b69a70"/>
-  <mesh><sphereGeometry args={[.16,8,6]}/><meshStandardMaterial color="#bba078" metalness={.68} roughness={.4}/></mesh>
+  <mesh><sphereGeometry args={[.16,8,6]}/><meshStandardMaterial color="#bba078" metalness={.8} roughness={.24}/></mesh>
   {Array.from({length:12},(_,i)=>{const angle=i*Math.PI*2/12,dist=1.05+(i%3)*.15;
    return <group key={i} rotation={[0,angle,0]}>
-    <mesh position={[dist*.5,.02,0]} rotation={[0,0,-.22]}><cylinderGeometry args={[.012,.022,dist,5]}/><meshStandardMaterial color="#b99d72" metalness={.55}/></mesh>
+    <mesh position={[dist*.5,.02,0]} rotation={[0,0,-.22]}><cylinderGeometry args={[.012,.022,dist,5]}/><meshStandardMaterial color="#b99d72" metalness={.72} roughness={.3}/></mesh>
     {Array.from({length:4},(_,j)=><group key={j}>
       <Leaf x={.48+j*.22} y={.13+Math.sin(j*.9)*.12} z={j%2?-.15:.15} warm={warm}/>
       <Leaf x={.55+j*.2} y={.22+Math.sin(j*.8)*.1} z={j%2?.18:-.18} warm={warm}/>
