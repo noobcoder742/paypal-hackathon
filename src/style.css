@@ -424,3 +424,39 @@ header{height:76px;padding:0 30px;background:linear-gradient(110deg,#fff 0%,#fbf
 .embedded-studio .bottom-note{padding:8px 9px;font-size:10px}
 @media(max-width:850px){.embedded-studio{height:auto;min-height:0}.embedded-studio .app{height:auto;min-height:0}.embedded-studio .app>.body{flex-direction:column}.embedded-studio .viewer{min-height:550px}.studio-mode-tabs.studio-mode-overlay{top:15px;left:66px}.studio-sidebar-heading{padding:15px}}
 @media(max-width:550px){.platform-nav{height:44px;min-height:44px}.platform-logo strong{font-size:13px}.embedded-studio .viewer{min-height:470px}.studio-mode-tabs.studio-mode-overlay{top:57px;left:12px}.studio-mode-tabs.studio-mode-overlay button{padding:7px 10px}}
+
+/* Video-first homepage and seamless interior navigation */
+.platform-nav{height:52px;min-height:52px;background:transparent;border-bottom:0;box-shadow:none;position:relative;z-index:30}
+.platform-logo span{width:32px;height:32px;font-size:22px}
+.platform-logo strong{font-size:17px}
+.platform-links-centered button{font-size:12px}
+.platform-nav-right .account-trigger{padding:8px}
+.platform-nav-right .account-trigger svg{width:16px;height:16px}
+.account-popover{top:41px}
+.platform-interior .platform-nav{background:#faf8f5;border:0}
+.platform-home{background:#c9b9a8}
+.platform-home .platform-nav{position:absolute;top:0;left:0;right:0;background:transparent;color:#fff}
+.platform-home .platform-logo,.platform-home .platform-links-centered button,.platform-home .account-trigger{color:#fff}
+.platform-home .platform-logo span{background:#ffffff30;color:#fff;border:1px solid #ffffff60;backdrop-filter:blur(10px)}
+.platform-home .account-trigger{background:#ffffff24;backdrop-filter:blur(10px)}
+.platform-home .platform-links-centered button:hover,.platform-home .platform-links-centered button.active{color:#fff;text-decoration:underline;text-underline-offset:6px}
+.platform-home .mobile-nav{position:absolute;top:52px;left:0;right:0;z-index:30}
+.landing-video-home{position:relative;width:100%;max-width:none;min-height:100svh;height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0;padding:95px 24px 70px;overflow:hidden;color:white}
+.landing-video-layer,.landing-video-layer video,.landing-video-fallback,.landing-video-shade{position:absolute;inset:0;width:100%;height:100%}
+.landing-video-layer video{object-fit:cover;z-index:1}
+.landing-video-fallback{z-index:0;background:radial-gradient(ellipse at 50% 38%,#d4bda2 0%,#a58b76 42%,#6c5a4c 100%)}
+.landing-video-shade{z-index:2;background:linear-gradient(180deg,#1f1a1647 0%,#211b1740 48%,#1f1a1666 100%)}
+.landing-video-content{position:relative;z-index:4;max-width:850px}
+.landing-video-home .landing-kicker{color:#f6e9d8;letter-spacing:3px}
+.landing-video-home h1{color:#fff;text-shadow:0 3px 25px #1f1b1733}
+.landing-video-home h1 em{color:#f4e5d2}
+.landing-video-home p{color:#fff;font-size:15px;line-height:1.8;max-width:530px;margin:0 auto}
+.landing-video-home .landing-actions{margin:35px 0 0}
+.landing-video-home .landing-actions button{background:#e5d2b9;color:#392e25}
+.landing-video-home .landing-actions button+button{background:#ffffff25;color:white;border:1px solid #ffffff90;backdrop-filter:blur(12px)}
+.landing-video-footnote{position:absolute;z-index:4;bottom:24px;left:clamp(18px,4vw,65px);right:clamp(18px,4vw,65px);display:flex;justify-content:space-between;gap:12px;font-size:10px;letter-spacing:2px;color:#f5e8db}
+.platform-home .platform-footer{display:none}
+.embedded-studio{height:calc(100dvh - 52px)}
+@media(max-width:850px){.platform-home .platform-nav{grid-template-columns:1fr auto}.landing-video-home{height:100svh;min-height:580px}}
+@media(max-width:550px){.platform-nav{height:52px;min-height:52px}.landing-video-home{padding:110px 18px 85px}.landing-video-home h1{font-size:clamp(45px,12vw,75px)}.landing-video-footnote{font-size:8px;letter-spacing:1px}.platform-home .mobile-nav{top:52px}}
+@media(prefers-reduced-motion:reduce){.landing-video-layer video{display:none}}
