@@ -162,19 +162,23 @@ function ChandelierSet({warm=true}){return <group>{[-10.2,-3.4,3.4,10.2].flatMap
 function Chair({x,z,angle,color,highlight=false,onSeatClick,seatSelected=false,seatingMode=false}){
  const [seatHovered,setSeatHovered]=useState(false);
  const active=seatingMode&&(seatHovered||seatSelected);
- // @feature SEAT_OUTLINE: Real line geometry, not material-dependent Outlines.
- // Hover highlights temporarily; selection stays until a different seat or empty canvas is clicked.
- const outline=<lineSegments raycast={()=>null} renderOrder={50}><edgesGeometry args={[new THREE.BoxGeometry(.64,1.46,.66)]}/><lineBasicMaterial color="#138D86" depthTest={false} transparent opacity={.95}/></lineSegments>;
+ // @feature SEAT_OUTLINE: Outline the actual chair meshes, not a bounding box.
+ // The same chair-specific outline is shown on hover and persists on selection.
+ // Keep the existing orange Design-mode outline completely separate.
+ const outlineColor=active?'#13A9A0':'#ff8500';
+ const outlined=active||highlight;
+ const materialColor=active?'#d4f2ea':color;
+ const chairMaterial=<meshStandardMaterial color={materialColor} roughness={.95} emissive={active?'#0a766f':'#000000'} emissiveIntensity={active?.15:0}/>;
+ const edges=outlined?<Outlines thickness={active?.045:.032} color={outlineColor} screenspace={true}/>:null;
  return <group position={[x,0,z]} rotation={[0,angle,0]}
    onPointerOver={seatingMode?(e)=>{if(e.shiftKey)return;e.stopPropagation();setSeatHovered(true);document.body.style.cursor='pointer'}:undefined}
    onPointerOut={seatingMode?(e)=>{e.stopPropagation();setSeatHovered(false);document.body.style.cursor='auto'}:undefined}
    onClick={onSeatClick}>
-  <mesh position={[0,.47,-.025]} castShadow receiveShadow><boxGeometry args={[.58,.16,.56]}/><meshStandardMaterial color={color} roughness={.97}/>{highlight&&<Outlines thickness={.032} color="#ff8500"/>}</mesh>
-  <mesh position={[0,.96,.28]} castShadow receiveShadow><boxGeometry args={[.58,.89,.13]}/><meshStandardMaterial color={color} roughness={.97}/>{highlight&&<Outlines thickness={.032} color="#ff8500"/>}</mesh>
-  {[-.265,.265].map(side=><mesh key={'side'+side} position={[side,.27,.15]} castShadow><boxGeometry args={[.055,.48,.36]}/><meshStandardMaterial color={color} roughness={.98}/></mesh>)}
-  <mesh position={[0,.20,.36]} castShadow><boxGeometry args={[.55,.4,.045]}/><meshStandardMaterial color={color} roughness={.99}/></mesh>
-  {[-.15,.15].map(side=><mesh key={'skirt'+side} position={[side,.14,-.27]} castShadow><boxGeometry args={[.24,.28,.04]}/><meshStandardMaterial color={color} roughness={.99}/></mesh>)}
-  {active&&<group position={[0,.73,.05]}>{outline}</group>}
+  <mesh position={[0,.47,-.025]} castShadow receiveShadow><boxGeometry args={[.58,.16,.56]}/>{chairMaterial}{edges}</mesh>
+  <mesh position={[0,.96,.28]} castShadow receiveShadow><boxGeometry args={[.58,.89,.13]}/>{chairMaterial}{edges}</mesh>
+  {[-.265,.265].map(side=><mesh key={'side'+side} position={[side,.27,.15]} castShadow><boxGeometry args={[.055,.48,.36]}/>{chairMaterial}{edges}</mesh>)}
+  <mesh position={[0,.20,.36]} castShadow><boxGeometry args={[.55,.4,.045]}/>{chairMaterial}{edges}</mesh>
+  {[-.15,.15].map(side=><mesh key={'skirt'+side} position={[side,.14,-.27]} castShadow><boxGeometry args={[.24,.28,.04]}/>{chairMaterial}{edges}</mesh>)}
  </group>;
 }
 /** @placeholder FLORAL_ASSET: Generic geometry; vendor-specific flowers require separate approved 3D models. */
