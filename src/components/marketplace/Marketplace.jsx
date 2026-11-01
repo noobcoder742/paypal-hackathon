@@ -1,5 +1,6 @@
 import React,{useState} from 'react';
 import {ArrowLeft,ArrowRight,Plus,Check,Search,ShoppingBag,Heart,Rotate3D,CalendarDays,MapPin,Clock,Info} from 'lucide-react';
+/** @placeholder DEMO_CATALOG: Replace with licensed vendor photos, real offers, prices and 3D asset URLs from the backend. */
 export const demoListings=[
  {id:'floral-white',category:'Floral Arrangements',name:'Ivory garden centrepiece',vendor:'Sample floral studio',price:180,unit:'arrangement',photo:'https://images.unsplash.com/photo-1523438885200-e635ba2c371e?w=1000&q=80',inventoryType:'flowers'},
  {id:'floral-arch',category:'Floral Arrangements',name:'Ceremony floral arch',vendor:'Sample floral studio',price:980,unit:'setup',photo:'https://images.unsplash.com/photo-1519741497674-611481863552?w=1000&q=80',inventoryType:'arch'},
@@ -13,13 +14,16 @@ export const demoListings=[
  {id:'chauffeur-car',category:'Chauffeur & Transport',name:'Wedding arrival chauffeur',vendor:'Sample transport provider',price:320,unit:'booking',photo:'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1000&q=80'}
 ];
 const categories=['Floral Arrangements','Music & Entertainment','Lighting & Production','Hotel Catering','Chauffeur & Transport'];
+/** @placeholder DEMO_VENUE: The current photo is generic illustrative imagery, NOT an authenticated Orchard Grand photo. */
 const venue={id:'orchard-grand-john-jacob',name:'Grand Ballroom',hotel:'The Orchard Grand',location:'Orchard, Singapore',photo:'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=1400&q=85'};
 function price(item){return item.price==null?'Price on request':'From S$'+item.price.toLocaleString('en-SG')}
 function Listing({item,onOpen}){return <button className="luxury-listing" onClick={()=>onOpen(item)}><div className="luxury-listing-image"><img src={item.photo} alt={item.name+' illustrative image'} loading="lazy"/></div><div className="editorial-meta"><span>{item.vendor}</span><span>{price(item)}</span></div><div className="editorial-name">{item.name}</div></button>}
+/** @placeholder PRODUCT_MEDIA: Multiple thumbnails are crops of one illustrative photo, NOT distinct views or a 3D model. */
 function ImageGallery({item}){const [selected,setSelected]=useState(0);const images=[item.photo,item.photo.replace('w=1000','w=1200')+'&crop=center',item.photo.replace('w=1000','w=1400')+'&crop=entropy'];return <div className="luxury-gallery"><div className="luxury-main-image"><img src={images[selected]} alt={item.name+' product illustration'}/><div className="luxury-image-note">Illustrative photography · Verified 3D model not yet available</div></div><div className="luxury-thumbs">{images.map((src,i)=><button className={selected===i?'active':''} key={i} onClick={()=>setSelected(i)} aria-label={'View image '+(i+1)}><img src={src} alt="Alternate crop of illustrative photo"/></button>)}</div></div>}
+/** @integration PRODUCT_DETAIL: Replace image gallery with optimized GLB viewer only when a verified asset exists. */
 function ProductDetail({item,onBack,onAdd,added,onOpen,onStartDesign}){
  const related=demoListings.filter(x=>x.category===item.category&&x.id!==item.id).slice(0,3);
- return <div className="luxury-detail"><div className="luxury-breadcrumb"><button onClick={onBack}><ArrowLeft size={15}/> Back to collection</button><span>MARKETPLACE / {item.category.toUpperCase()}</span></div>
+ return <div className="luxury-detail"><div className="luxury-breadcrumb"><button onClick={onBack}><ArrowLeft size={15}/> Marketplace</button><span>MARKETPLACE / {item.category.toUpperCase()}</span></div>
  <section className="luxury-hero"><ImageGallery item={item}/><div className="luxury-product-info"><small>THE WEDDING EDIT · {item.category.toUpperCase()}</small><h1>{item.name}</h1><p className="luxury-vendor">{item.vendor}</p><div className="luxury-price">{price(item)}</div><p>Thoughtfully selected for your celebration. Explore the details, check suitability for your venue and save this item to your wedding plan.</p><button className="luxury-primary" disabled={added} onClick={()=>onAdd(item)}>{added?'Saved to your wedding':'Add to my wedding'} <ArrowRight size={17}/></button><button className="luxury-secondary" onClick={onStartDesign}>Open my 3D studio <ArrowRight size={15}/></button><p className="luxury-note">Estimated pricing only. Availability, exact specifications and commercial rights must be confirmed with the vendor.</p></div></section>
  <section className="luxury-story"><span>01 — THE CREATION</span><h2>A detail that makes the day yours.</h2><p>Every element contributes to the atmosphere of a celebration. Discover how this piece could complement your chosen venue and wedding style.</p></section>
  <section className="luxury-wide-photo"><img src={item.photo} alt={item.name+' editorial illustration'} loading="lazy"/></section>
@@ -29,9 +33,11 @@ function ProductDetail({item,onBack,onAdd,added,onOpen,onStartDesign}){
  <section className="luxury-related"><div className="between"><div><span>05 — DISCOVER MORE</span><h2>You may also love.</h2></div></div><div className="luxury-related-grid">{related.map(x=><Listing key={x.id} item={x} onOpen={onOpen}/>)}</div></section>
  <section className="luxury-story"><span>06 — VENDOR SERVICES</span><h2>Made for your celebration.</h2><p>Request a quotation, confirm setup requirements and coordinate delivery with your chosen vendor. Booking and payments will be enabled after vendor onboarding.</p></section></div>
 }
+/** @integration VENUE_BOOKING: Date selection is local UI only. Never display 'available' or a live rate without hotel-backed inventory. */
 function VenueDetail({onBack,onStartDesign,onPlan}){
+ // @placeholder HOTEL_AVAILABILITY: Inputs do not call a hotel API, hold a date, or submit an enquiry.
  const [date,setDate]=useState(''),[guests,setGuests]=useState(200),[status,setStatus]=useState('');
- return <div className="luxury-detail"><div className="luxury-breadcrumb"><button onClick={onBack}><ArrowLeft size={15}/> Back to venues</button><span>MARKETPLACE / SINGAPORE VENUES</span></div>
+ return <div className="luxury-detail"><div className="luxury-breadcrumb"><button onClick={onBack}><ArrowLeft size={15}/> Marketplace</button><span>MARKETPLACE / SINGAPORE VENUES</span></div>
  <section className="luxury-venue-hero"><div className="luxury-venue-photo"><img src={venue.photo} alt="Illustrative hotel wedding banquet, not a verified photograph of the venue"/><span>Illustrative venue imagery · Replace with hotel-authorized photographs</span></div><div className="luxury-venue-heading"><small>THE THE ORCHARD GRAND · ORCHARD</small><h1>Grand Ballroom</h1><p>Explore the ballroom, discover wedding possibilities and start creating your own celebration.</p><button className="luxury-primary" onClick={onStartDesign}>Start designing <ArrowRight size={16}/></button></div></section>
  <section className="luxury-story"><span>01 — THE VENUE</span><h2>Where your celebration takes shape.</h2><p>A hotel ballroom with an ornate coffered ceiling, branching chandeliers, decorative wall panels and a large LED display. The current 3D model is an unofficial reconstruction.</p></section>
  <section className="luxury-details"><div><span>02 — THE EXPERIENCE</span><h2>Wedding packages & catering.</h2><p>Hotel catering and menu choices should be confirmed directly with the venue.</p></div><div className="luxury-specs">{[['Location','Orchard, Singapore'],['Catering','Hotel options; confirmation required'],['Banquet setup','Subject to hotel-approved floor plan'],['Decorations','Hotel restrictions may apply'],['Pricing','Current quotation required'],['Venue availability','Not connected to hotel inventory']].map(([k,v])=><div key={k}><span>{k}</span><strong>{v}</strong></div>)}</div></section>
@@ -40,14 +46,16 @@ function VenueDetail({onBack,onStartDesign,onPlan}){
  <section className="luxury-story"><span>05 — MORE INFORMATION</span><h2>Plan with confidence.</h2><p>Hotel-approved catering menus, confirmed capacities, real-time rates, booking deposits and cancellation policies will be displayed once the venue is officially onboarded.</p><button className="luxury-secondary" onClick={onPlan}>Open wedding planner <ArrowRight size={16}/></button></section></div>;
 }
 export default function Marketplace({onBack,onAdd,added=[],onStartDesign=()=>{},onPlan=()=>{}}){
+ // @todo ROUTING: Replace local marketplace view state with shareable routes (/marketplace, /venues/:slug, /products/:slug).
  const [category,setCategory]=useState(null),[detail,setDetail]=useState(null),[collection,setCollection]=useState('All'),[query,setQuery]=useState('');
- const back=()=>{if(detail){setDetail(null);return}if(category){setCategory(null);return}onBack()};
+ // Navigation rule: detail breadcrumb always returns to the marketplace root; the global logo handles Home.
+ const back=()=>{setDetail(null);setCategory(null);setCollection('All');window.scrollTo?.(0,0)};
  const open=item=>{setDetail(item);window.scrollTo?.(0,0)};
  const matches=item=>[item.name,item.vendor,item.category].join(' ').toLowerCase().includes(query.toLowerCase());
  const items=demoListings.filter(matches);
  if(detail==='venue')return <div className="marketplace-screen luxury-market"><VenueDetail onBack={back} onStartDesign={onStartDesign} onPlan={onPlan}/></div>;
  if(detail)return <div className="marketplace-screen luxury-market"><ProductDetail item={detail} onBack={back} onAdd={onAdd} added={added.includes(detail.id)} onOpen={open} onStartDesign={onStartDesign}/></div>;
- return <div className="marketplace-screen editorial-market luxury-market"><div className="marketplace-top"><button className="market-back" onClick={back}><ArrowLeft size={16}/> Back</button><span className="market-label">WEDDING MARKETPLACE · CONCEPT</span></div><div className="editorial-intro"><span className="eyebrow">THE WEDDING EDIT</span><h1>{category||'Thoughtfully curated.'}</h1><p>Discover your venue, explore meaningful details and save your favourites.</p></div>
+ return <div className="marketplace-screen editorial-market luxury-market"><div className="marketplace-top marketplace-top-minimal"><span className="market-label">WEDDING MARKETPLACE · CONCEPT</span></div><div className="editorial-intro"><span className="eyebrow">THE WEDDING EDIT</span><h1>{category||'Thoughtfully curated.'}</h1><p>Discover your venue, explore meaningful details and save your favourites.</p></div>
  <div className="luxury-collection-tabs">{['All','Venues','Products','Services'].map(x=><button key={x} className={collection===x?'active':''} onClick={()=>{setCollection(x);setCategory(null)}}>{x}</button>)}</div>
  <label className="editorial-search"><Search size={16}/><input placeholder="Search products and services" value={query} onChange={e=>setQuery(e.target.value)}/><span>{added.length} saved <ShoppingBag size={14}/></span></label>
  {(collection==='All'||collection==='Venues')&&!category&&<section className="editorial-section"><div className="editorial-section-head"><h2>Wedding Venues</h2></div><div className="editorial-row"><Listing item={{...venue,vendor:venue.hotel,price:null,category:'Venues'}} onOpen={()=>open('venue')}/></div></section>}
