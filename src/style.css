@@ -325,3 +325,75 @@ header{height:76px;padding:0 30px;background:linear-gradient(110deg,#fff 0%,#fbf
 @media(max-width:850px){.platform-links{display:none}.mobile-nav-toggle{display:block}.dashboard-grid,.dashboard-lower,.planner-layout{grid-template-columns:1fr}.planner-menu{display:flex;overflow-x:auto}.planner-menu button{white-space:nowrap}.landing-features{grid-template-columns:1fr}.venue-preview-card{grid-template-columns:1fr}}
 @media(max-width:550px){.platform-nav{padding:0 14px}.platform-logo strong{font-size:15px}.nav-my-wedding{padding:9px;font-size:10px}.landing{padding:65px 15px}.landing-actions{flex-direction:column;align-items:center}.hero-media{height:310px}.hero-media-label{font-size:8px}.platform-page{padding:35px 16px}.planner-content{padding:18px}.metric-grid{gap:5px}.dashboard-progress,.dashboard-date{padding:18px}}
 @media(prefers-reduced-motion:reduce){.hero-orbit{animation:none!important}*,*:before,*:after{scroll-behavior:auto!important;transition-duration:0.01ms!important}}
+
+/* Luxury editorial detail pages and genuinely centered navigation */
+.platform-nav{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center}
+.platform-logo{justify-self:start}
+.platform-links-centered{justify-self:center;gap:clamp(30px,4vw,70px)}
+.platform-links-centered button{font-size:13px;letter-spacing:.01em}
+.platform-nav-right{justify-self:end}
+.luxury-market{background:#faf8f5}
+.luxury-detail{max-width:1560px;margin:0 auto;color:#393029}
+.luxury-breadcrumb{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:25px 0 38px}
+.luxury-breadcrumb button{display:flex;align-items:center;gap:9px;background:transparent;border:0;color:#7c6c5c;font-size:12px}
+.luxury-breadcrumb span,.luxury-product-info>small,.luxury-venue-heading small,.luxury-story>span,.luxury-details>div>span,.luxury-booking>div>span,.luxury-related>div>div>span{font-size:10px;letter-spacing:2px;color:#9a8167;font-weight:600}
+.luxury-hero{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,.85fr);gap:clamp(35px,5vw,95px);align-items:center;min-height:75vh}
+.luxury-gallery{min-width:0}
+.luxury-main-image{aspect-ratio:1/1;position:relative;background:#eee7df;overflow:hidden;border-radius:3px}
+.luxury-main-image img{width:100%;height:100%;object-fit:cover}
+.luxury-image-note{position:absolute;left:22px;bottom:18px;background:#fff9;padding:9px 13px;border-radius:999px;color:#6e6258;font-size:10px;backdrop-filter:blur(8px)}
+.luxury-thumbs{display:flex;gap:12px;margin-top:14px}
+.luxury-thumbs button{border:1px solid transparent;background:none;padding:0;width:74px;height:74px;overflow:hidden;border-radius:4px}
+.luxury-thumbs button.active{border-color:#ac9477}
+.luxury-thumbs img{width:100%;height:100%;object-fit:cover}
+.luxury-product-info h1,.luxury-venue-heading h1{font:400 clamp(37px,4.5vw,73px)/1.08 Georgia,serif;letter-spacing:-1.7px;margin:22px 0}
+.luxury-product-info>p,.luxury-venue-heading p{color:#82776d;font-size:14px;line-height:1.9;max-width:440px}
+.luxury-vendor{color:#9c8b79!important;font-size:12px!important}
+.luxury-price{font:27px Georgia,serif;margin:40px 0}
+.luxury-primary,.luxury-secondary{border:0;border-radius:999px;padding:16px 22px;display:inline-flex;align-items:center;justify-content:center;gap:12px;font-size:12px}
+.luxury-primary{background:#cbb494;color:#32271d}
+.luxury-primary:disabled{opacity:.6;cursor:default}
+.luxury-secondary{background:#f0e9e0;color:#574838}
+.luxury-product-info .luxury-primary,.luxury-product-info .luxury-secondary{display:flex;width:100%;margin-top:11px}
+.luxury-note{font-size:11px!important;line-height:1.7!important;margin-top:25px}
+.luxury-story{text-align:center;max-width:850px;margin:0 auto;padding:clamp(95px,12vw,190px) 25px}
+.luxury-story h2,.luxury-details h2,.luxury-booking h2,.luxury-related h2{font:400 clamp(35px,4.4vw,68px)/1.12 Georgia,serif;letter-spacing:-1px;margin:23px 0}
+.luxury-story p,.luxury-details p,.luxury-booking p{font-size:15px;line-height:1.9;color:#82776d;max-width:580px;margin:0 auto 25px}
+.luxury-wide-photo{height:min(75vh,850px);background:#e7dfd4;overflow:hidden}
+.luxury-wide-photo img{width:100%;height:100%;object-fit:cover}
+.luxury-3d-placeholder{border:1px solid #e7dbcf;background:#f4ede5;min-height:260px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:15px;margin-top:50px;color:#8d7962}
+.luxury-3d-placeholder strong{font:23px Georgia,serif;color:#56493c}
+.luxury-3d-placeholder small{font-size:11px;color:#8e8175}
+.luxury-details,.luxury-booking{display:grid;grid-template-columns:1fr 1fr;gap:clamp(40px,7vw,140px);padding:clamp(100px,12vw,190px) 0;border-top:1px solid #e8ded2}
+.luxury-details h2,.luxury-booking h2{max-width:570px}
+.luxury-details p,.luxury-booking p{margin:0}
+.luxury-specs>div{display:flex;justify-content:space-between;align-items:baseline;gap:25px;padding:22px 0;border-bottom:1px solid #e6dcd0}
+.luxury-specs span{font-size:12px;color:#928474}
+.luxury-specs strong{font-size:12px;color:#42372d;text-align:right;font-weight:500}
+.luxury-venue-cta{max-width:none;background:#eee4d8;border-radius:16px}
+.luxury-venue-cta p{margin-bottom:35px}
+.luxury-related{padding:clamp(90px,11vw,165px) 0}
+.luxury-related-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:25px;margin-top:45px}
+.luxury-listing{display:block;width:100%;text-align:left;background:transparent;border:0;padding:0;color:#40352d}
+.luxury-listing-image{aspect-ratio:1;overflow:hidden;background:#eee5d9;border-radius:4px}
+.luxury-listing-image img{width:100%;height:100%;object-fit:cover;transition:transform .45s ease}
+.luxury-listing:hover img{transform:scale(1.035)}
+.luxury-collection-tabs{display:flex;gap:8px;margin:18px 0 25px}
+.luxury-collection-tabs button{border:0;border-radius:999px;background:#f0e9e0;color:#736659;padding:12px 20px;font-size:12px}
+.luxury-collection-tabs button.active{background:#d5bea2;color:#352b21}
+.luxury-venue-hero{display:grid;grid-template-columns:1.3fr 1fr;align-items:center;gap:clamp(40px,5vw,90px);min-height:75vh}
+.luxury-venue-photo{height:min(75vh,730px);position:relative;overflow:hidden;background:#e5d8c7}
+.luxury-venue-photo img{width:100%;height:100%;object-fit:cover}
+.luxury-venue-photo>span{position:absolute;bottom:20px;left:20px;right:20px;background:#fffc;padding:9px;border-radius:8px;font-size:10px;color:#766a60}
+.luxury-venue-heading{padding-right:20px}
+.luxury-booking-form{padding:32px;background:#f2eae1;border-radius:16px;display:grid;gap:19px;align-content:start}
+.luxury-booking-form label{display:grid;gap:10px;font-size:12px;color:#756758}
+.luxury-booking-form input{border:1px solid #e2d4c3;border-radius:9px;background:#fff;padding:14px;color:#44372c}
+.availability-status{display:flex;gap:10px;align-items:center;font-size:12px;color:#8c7258}
+.luxury-booking-form>p{font-size:12px;margin:0}
+.task-title-input{width:100%;flex:1;border:0;outline:0;background:transparent;color:#544a40;font:inherit;font-size:13px;padding:4px 0;min-width:0}
+.task-title-input:focus{background:#f9f4ee;box-shadow:0 1px 0 #c9ad8b}
+.task-title-input.done{text-decoration:line-through;color:#aaa096}
+@media(max-width:1000px){.luxury-hero,.luxury-venue-hero{grid-template-columns:1fr 1fr;gap:35px}.luxury-details,.luxury-booking{gap:40px}.platform-links-centered{gap:20px}}
+@media(max-width:850px){.platform-nav{grid-template-columns:1fr auto}.platform-links-centered{display:none}.luxury-hero,.luxury-venue-hero,.luxury-details,.luxury-booking{grid-template-columns:1fr}.luxury-hero{min-height:0}.luxury-venue-hero{min-height:0}.luxury-venue-photo{height:420px}.luxury-product-info{padding:35px 0}.luxury-related-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.luxury-story{padding:85px 15px}}
+@media(max-width:550px){.luxury-breadcrumb{padding:15px 0 25px}.luxury-breadcrumb span{font-size:8px}.luxury-product-info h1,.luxury-venue-heading h1{font-size:39px}.luxury-related-grid{grid-template-columns:1fr 1fr;gap:13px}.luxury-booking-form{padding:20px}.luxury-collection-tabs{flex-wrap:wrap}.luxury-main-image{aspect-ratio:4/5}}
