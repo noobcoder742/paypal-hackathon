@@ -123,18 +123,25 @@ function Chandelier({x,z,warm=true}){
   <pointLight intensity={warm?.9:.45} color={warm?'#ffe1b6':'#fff7ec'} distance={5}/>
  </group>;
 }
+// Coffered ceiling: pale recessed panels with gold cove trim. The two special
+// bays have a luminous mirrored lattice (NOT a dark ventilation grille).
+// Layout is photograph-guided; spacing remains provisional.
 function CeilingBay({x,z,skylight=false,warm=true}){
- const color=warm?'#e5b57e':'#fff1d9';
+ const glow=warm?'#e7c18d':'#f5ede2';
  return <group position={[x,8.04,z]}>
-  <Box position={[0,0,0]} args={[7.42,.12,7.02]} color="#e6ded3"/>
-  <Box position={[0,-.07,0]} args={[6.7,.04,6.25]} color={skylight?'#c6c4c2':'#f6f0e7'}/>
-  {[-3.17,3.17].map(v=><Box key={'a'+v} position={[v,-.11,0]} args={[.07,.04,5.98]} color={color}/>)}
-  {[-2.95,2.95].map(v=><Box key={'b'+v} position={[0,-.11,v]} args={[6.15,.04,.07]} color={color}/>)}
-  {skylight&&<group><Box position={[0,-.12,0]} args={[3.9,.025,3.6]} color="#b9b7b3" metalness={.6} roughness={.35}/>{Array.from({length:9},(_,i)=><Box key={i} position={[-1.7+i*.43,-.15,0]} args={[.045,.04,3.4]} color="#55534e" metalness={.5}/>)}</group>}
+  <Box position={[0,0,0]} args={[7.42,.12,7.02]} color="#e6ded4"/>
+  <Box position={[0,-.065,0]} args={[6.76,.035,6.33]} color="#f4eee6"/>
+  {[-3.18,3.18].map(v=><Box key={'x'+v} position={[v,-.095,0]} args={[.085,.035,6.1]} color={glow}/>)}
+  {[-2.98,2.98].map(v=><Box key={'z'+v} position={[0,-.095,v]} args={[6.26,.035,.085]} color={glow}/>)}
+  {skylight&&<group>
+   <Box position={[0,-.115,0]} args={[4.1,.025,3.75]} color="#d9d5d0" metalness={.25} roughness={.4}/>
+   {Array.from({length:7},(_,i)=><Box key={'x'+i} position={[-1.83+i*.61,-.145,0]} args={[.045,.025,3.7]} color="#9d8c7e" metalness={.65} roughness={.22}/>)}
+   {Array.from({length:7},(_,i)=><Box key={'z'+i} position={[0,-.145,-1.66+i*.55]} args={[4.03,.025,.045]} color="#a99a8b" metalness={.65} roughness={.22}/>)}
+   {[-1.95,1.95].map(v=><Box key={'edge'+v} position={[v,-.15,0]} args={[.085,.03,3.75]} color="#fff7ec"/>)}
+  </group>}
  </group>;
 }
 function CeilingDetails({showRoof,warm=true}){
- // All coffer geometry is only shown in guest view/when ceiling is enabled.
  if(!showRoof)return null;
  return <group>
   <Box position={[0,8.22,0]} args={[LENGTH,.16,WIDTH]} color="#eee7dc"/>
