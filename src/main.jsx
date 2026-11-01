@@ -159,7 +159,58 @@ function ChandelierSet({warm=true}){return <group>{[-10.2,-3.4,3.4,10.2].flatMap
 // Chair with a continuous fabric slipcover, a curved backrest and a split skirt.
 // Front faces the centre of its associated banquet table.
 /** @placeholder FURNITURE: Procedural chair-cover geometry, pending licensed high-quality furniture asset. */
-function Chair({x,z,angle,color,highlight=false,onSeatClick,seatSelected=false,seatingMode=false}){
+// @feature DIETARY_BADGES: Navy pictograms on white circular badges, rendered as
+// lightweight CanvasTextures. Multiple dietary needs are supported per seat.
+const DIETARY_OPTIONS=[
+ {id:'halal',label:'Halal'},
+ {id:'vegetarian',label:'Vegetarian'},
+ {id:'vegan',label:'Vegan'},
+ {id:'gluten',label:'Gluten-free'},
+ {id:'fish',label:'Fish allergy'},
+ {id:'dairy',label:'Dairy allergy'},
+ {id:'nuts',label:'Nut allergy'},
+ {id:'other',label:'Other dietary need'}
+];
+function makeDietaryTexture(type){
+ const canvas=document.createElement('canvas');canvas.width=128;canvas.height=128;
+ const c=canvas.getContext('2d');c.clearRect(0,0,128,128);
+ c.fillStyle='#ffffff';c.beginPath();c.arc(64,64,59,0,Math.PI*2);c.fill();
+ c.strokeStyle='#162d4a';c.lineWidth=5;c.lineCap='round';c.lineJoin='round';
+ const line=(...p)=>{c.beginPath();c.moveTo(p[0],p[1]);for(let i=2;i<p.length;i+=2)c.lineTo(p[i],p[i+1]);c.stroke()};
+ if(type==='vegetarian'||type==='vegan'){
+  c.beginPath();c.moveTo(37,94);c.bezierCurveTo(22,56,48,27,96,29);c.bezierCurveTo(105,71,74,104,37,94);c.stroke();
+  line(36,94,87,39);line(55,73,47,50);line(69,59,89,61);
+  if(type==='vegan')line(27,103,38,94);
+ }else if(type==='fish'){
+  c.beginPath();c.ellipse(62,63,28,17,0,0,Math.PI*2);c.stroke();
+  line(34,63,20,46,20,80,34,63);c.beginPath();c.arc(78,58,2.5,0,Math.PI*2);c.fillStyle='#162d4a';c.fill();
+  line(29,98,99,28);
+ }else if(type==='dairy'){
+  c.beginPath();c.moveTo(47,33);c.lineTo(81,33);c.lineTo(81,42);c.lineTo(89,53);c.lineTo(89,96);c.lineTo(39,96);c.lineTo(39,53);c.lineTo(47,42);c.closePath();c.stroke();
+  line(39,63,89,63);line(25,103,103,25);
+ }else if(type==='gluten'){
+  line(64,28,64,101);for(let y=40;y<91;y+=16){line(64,y+7,47,y-3);line(64,y+7,81,y-3)}
+  line(26,102,103,25);
+ }else if(type==='nuts'){
+  c.beginPath();c.ellipse(64,65,25,34,-.3,0,Math.PI*2);c.stroke();line(58,38,73,93);line(26,103,102,26);
+ }else if(type==='halal'){
+  c.beginPath();c.arc(63,62,29,-1.2,1.8);c.stroke();
+  c.beginPath();c.arc(75,54,23,-1.2,1.8);c.stroke();
+  line(86,29,89,38,99,39,91,45,92,55);
+ }else{
+  c.beginPath();c.arc(64,64,29,0,Math.PI*2);c.stroke();line(64,43,64,70);
+  c.beginPath();c.arc(64,83,3,0,Math.PI*2);c.fillStyle='#162d4a';c.fill();
+ }
+ const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;return texture;
+}
+function DietaryBadge({type,index,total}){
+ const texture=useMemo(()=>makeDietaryTexture(type),[type]);
+ useEffect(()=>()=>texture.dispose(),[texture]);
+ return <Billboard position={[(index-(total-1)/2)*.31,1.64,.02]} follow>
+  <mesh raycast={()=>null} renderOrder={40}><circleGeometry args={[.145,32]}/><meshBasicMaterial map={texture} transparent depthTest={false} depthWrite={false}/></mesh>
+ </Billboard>;
+}
+function Chair({x,z,angle,color,highlight=false,onSeatClick,seatSelected=false,seatingMode=false,dietaryTags=[]}){
  const [seatHovered,setSeatHovered]=useState(false);
  const active=seatingMode&&(seatHovered||seatSelected);
  // @feature SEAT_OUTLINE: Outline the actual chair meshes, not a bounding box.
@@ -179,6 +230,7 @@ function Chair({x,z,angle,color,highlight=false,onSeatClick,seatSelected=false,s
   {[-.265,.265].map(side=><mesh key={'side'+side} position={[side,.27,.15]} castShadow><boxGeometry args={[.055,.48,.36]}/>{chairMaterial}{edges}</mesh>)}
   <mesh position={[0,.20,.36]} castShadow><boxGeometry args={[.55,.4,.045]}/>{chairMaterial}{edges}</mesh>
   {[-.15,.15].map(side=><mesh key={'skirt'+side} position={[side,.14,-.27]} castShadow><boxGeometry args={[.24,.28,.04]}/>{chairMaterial}{edges}</mesh>)}
+  {seatingMode&&dietaryTags.slice(0,3).map((type,i)=><DietaryBadge key={type} type={type} index={i} total={Math.min(dietaryTags.length,3)}/>)}
  </group>;
 }
 /** @placeholder FLORAL_ASSET: Generic geometry; vendor-specific flowers require separate approved 3D models. */
