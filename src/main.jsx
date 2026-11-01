@@ -149,12 +149,25 @@ function CeilingDetails({showRoof,warm=true}){
  </group>;
 }
 function ChandelierSet({warm=true}){return <group>{[-10.2,-3.4,3.4,10.2].flatMap(x=>[-5.2,5.2].map(z=><Chandelier key={x+'-'+z} x={x} z={z} warm={warm}/>))}</group>}
+// Chair with a continuous fabric slipcover, a curved backrest and a split skirt.
+// Front faces the centre of its associated banquet table.
 function Chair({x,z,angle,color,highlight=false}){
  return <group position={[x,0,z]} rotation={[0,angle,0]}>
-  <mesh position={[0,.49,0]} castShadow receiveShadow><boxGeometry args={[.57,.15,.55]}/><meshStandardMaterial color={color} roughness={.93}/>{highlight&&<Outlines thickness={.035} color="#ff8500"/>}</mesh>
-  <mesh position={[0,1.02,.27]} castShadow receiveShadow><boxGeometry args={[.57,.88,.13]}/><meshStandardMaterial color={color} roughness={.94}/>{highlight&&<Outlines thickness={.035} color="#ff8500"/>}</mesh>
-  {[-.23,.23].map(side=><mesh key={side} position={[side,.3,.27]} castShadow><boxGeometry args={[.06,.5,.11]}/><meshStandardMaterial color={color} roughness={.96}/></mesh>)}
-  {[-.2,.2].map(side=><mesh key={side} position={[side,.19,-.18]} castShadow><boxGeometry args={[.05,.37,.05]}/><meshStandardMaterial color="#ab967c" roughness={.7}/></mesh>)}
+  <mesh position={[0,.47,-.025]} castShadow receiveShadow>
+   <boxGeometry args={[.58,.16,.56]}/><meshStandardMaterial color={color} roughness={.97}/>
+   {highlight&&<Outlines thickness={.032} color="#ff8500"/>}
+  </mesh>
+  <mesh position={[0,.96,.28]} castShadow receiveShadow>
+   <boxGeometry args={[.58,.89,.13]}/><meshStandardMaterial color={color} roughness={.97}/>
+   {highlight&&<Outlines thickness={.032} color="#ff8500"/>}
+  </mesh>
+  {[-.265,.265].map(side=><mesh key={'side'+side} position={[side,.27,.15]} castShadow>
+   <boxGeometry args={[.055,.48,.36]}/><meshStandardMaterial color={color} roughness={.98}/>
+  </mesh>)}
+  <mesh position={[0,.20,.36]} castShadow><boxGeometry args={[.55,.4,.045]}/><meshStandardMaterial color={color} roughness={.99}/></mesh>
+  {[-.15,.15].map(side=><mesh key={'skirt'+side} position={[side,.14,-.27]} castShadow>
+   <boxGeometry args={[.24,.28,.04]}/><meshStandardMaterial color={color} roughness={.99}/>
+  </mesh>)}
  </group>;
 }
 function Flowers({variant}){
