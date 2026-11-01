@@ -13,9 +13,33 @@ const palette={ivory:'#e6dfd2',champagne:'#b9a58d',sage:'#a6b2a0',rose:'#d6adb1'
 const initialTables=Array.from({length:24},(_,i)=>({id:i+1,x:-12+(i%6)*4.65,z:-7.9+Math.floor(i/6)*5.15,chairs:10,gap:.22,rotation:0}));
 const initialState={tables:initialTables,stage:{x:12,z:0,width:4.2,depth:7,rotation:0},theme:'ivory',flowers:'white',lighting:'warm',showRoof:false,showDecor:true,showAv:true,inventory:['table','flowers'],showStage:false,showScreen:false,showArch:false};
 function load(){try{let v=JSON.parse(localStorage.getItem(venue.storageKey));return v&&Array.isArray(v.tables)?{...initialState,...v}:initialState}catch{return initialState}}
-function carpetTexture(){const c=document.createElement('canvas');c.width=512;c.height=512;const g=c.getContext('2d');g.fillStyle='#a49e91';g.fillRect(0,0,512,512);for(let r=0;r<32;r++){for(let col=0;col<32;col++){let x=col*16+(r%2)*8,y=r*16;g.save();g.translate(x,y);g.rotate(-0.36);g.fillStyle=(r+col)%5===0?'#4c4c49':'#333b40';g.beginPath();g.roundRect(-3,-6,6,11,2);g.fill();g.restore()}}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(5.5,4);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;return t}
+function carpetTexture(){
+ const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1024;
+ const ctx=canvas.getContext('2d');
+ ctx.fillStyle='#918c8d';ctx.fillRect(0,0,1024,1024);
+ // Flowing, overlapping botanical ribbons inspired by the reference carpet.
+ // Procedural approximation, not a scan of the hotel's proprietary pattern.
+ const rng=(n)=>{const v=Math.sin(n*127.1+78.23)*43758.5453;return v-Math.floor(v)};
+ for(let i=0;i<110;i++){
+  const x=rng(i+1)*1200-100,y=rng(i+500)*1200-100;
+  const shade=['#d6d3cc','#ddd8cd','#5d6670','#8f7777','#aaa18b','#849187'][i%6];
+  ctx.strokeStyle=shade;ctx.globalAlpha=.42+(.22*rng(i+44));ctx.lineWidth=2.2+rng(i+88)*9;
+  ctx.beginPath();ctx.moveTo(x-130,y+80);
+  ctx.bezierCurveTo(x-65,y-90,x+80,y+100,x+160,y-55);ctx.stroke();
+ }
+ ctx.globalAlpha=.65;
+ for(let i=0;i<34;i++){
+  const x=rng(i+800)*1024,y=rng(i+900)*1024;
+  ctx.strokeStyle=i%3===0?'#e8dfd1':'#5e5c61';ctx.lineWidth=1.8;
+  for(let j=0;j<9;j++){ctx.beginPath();ctx.ellipse(x,y,30+j*7,15+j*6,.55,0,Math.PI*1.5);ctx.stroke()}
+ }
+ ctx.globalAlpha=1;
+ const texture=new THREE.CanvasTexture(canvas);texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+ texture.repeat.set(2.4,1.7);texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=4;
+ return texture;
+}
 function Box({position,args,color,metalness=0,roughness=.8,highlight=false,...rest}){return <mesh position={position} castShadow receiveShadow {...rest}><boxGeometry args={args}/><meshStandardMaterial color={color} metalness={metalness} roughness={roughness}/>{highlight&&<Outlines thickness={.045} color="#ff8500"/>}</mesh>}
-function Carpet(){const texture=useMemo(carpetTexture,[]);return <mesh rotation={[-Math.PI/2,0,0]} position={[0,.015,0]} receiveShadow><planeGeometry args={[LENGTH,WIDTH]}/><meshStandardMaterial map={texture} roughness={1}/></mesh>}
+function Carpet(){const texture=useMemo(carpetTexture,[]);useEffect(()=>()=>texture.dispose(),[texture]);return <mesh rotation={[-Math.PI/2,0,0]} position={[0,.015,0]} receiveShadow><planeGeometry args={[LENGTH,WIDTH]}/><meshStandardMaterial map={texture} roughness={1}/></mesh>}
 // Grand Ballroom architectural details are reconstructed from reference photography.
 // Exact fixture positions, door openings and decorative dimensions remain provisional.
 const CREAM='#e8dfd0', GOLD='#b89a68', TRIM='#d0bd9d';
