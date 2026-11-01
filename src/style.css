@@ -214,3 +214,114 @@ header{height:76px;padding:0 30px;background:linear-gradient(110deg,#fff 0%,#fbf
 .sidebar .studio-reset{padding:15px 23px}
 .marketplace-link{border:0;background:#eee0d1;border-radius:999px;padding:12px 18px;color:#514033;font-size:12px;margin-top:10px}
 .sidebar .studio-group .settings-accordion-body>.muted{margin:6px 0 12px}
+
+/* Unified public platform, wedding dashboard and planner */
+.platform-root{min-height:100vh;background:#faf8f5;color:#352e28;font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+.platform-nav{height:75px;background:#fffdfb;border-bottom:1px solid #ece5dd;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(16px,4vw,65px);gap:20px;position:relative;z-index:20}
+.platform-logo{display:flex;align-items:center;gap:11px;background:none;border:0;color:#352e28;white-space:nowrap}
+.platform-logo span{display:grid;place-items:center;background:#eee2d1;border-radius:50%;width:37px;height:37px;font:25px Georgia,serif;color:#8e6f4c}
+.platform-logo strong{font-family:Georgia,serif;font-size:19px;font-weight:500}
+.platform-links{display:flex;align-items:center;gap:clamp(10px,2vw,32px)}
+.platform-links button{background:transparent;border:0;padding:9px 3px;color:#746a60;font-size:12px;white-space:nowrap}
+.platform-links button.active,.platform-links button:hover{color:#372b22}
+.platform-nav-right{display:flex;align-items:center;gap:13px}
+.nav-my-wedding{border:1px solid #e7d9c6;background:#f5ede2;color:#544333;padding:11px 16px;border-radius:999px;font-size:12px;white-space:nowrap}
+.account-menu{position:relative}
+.account-trigger{border:0;background:#efe6db;color:#554636;border-radius:999px;padding:10px;display:flex;align-items:center;gap:5px}
+.account-popover{position:absolute;right:0;top:48px;min-width:205px;background:#fff;border:1px solid #eee7de;border-radius:15px;box-shadow:0 18px 45px #38281c1c;padding:8px;display:grid;z-index:40}
+.account-popover button{display:flex;align-items:center;gap:10px;text-align:left;border:0;background:transparent;padding:12px;color:#514438;border-radius:9px;font-size:12px}
+.account-popover button:hover{background:#f6f0e8}
+.account-popover small{color:#9d8e7f;font-size:9px;margin-left:auto}
+.mobile-nav-toggle{display:none;background:transparent;border:0;color:#574b40}
+.mobile-nav{display:grid;background:#fff;padding:12px 24px;border-bottom:1px solid #e8ded2}
+.mobile-nav button{border:0;background:none;text-align:left;padding:12px;color:#574b40}
+.platform-page{max-width:1320px;margin:0 auto;padding:clamp(28px,5vw,75px) clamp(18px,4vw,65px);min-height:calc(100vh - 145px)}
+.page-eyebrow,.landing-kicker{font-size:10px;letter-spacing:2.5px;color:#9b8062;font-weight:700}
+.platform-page h1,.landing h1{font-family:Georgia,serif;font-weight:400;letter-spacing:-2px;font-size:clamp(36px,5vw,67px);line-height:1.1;margin:18px 0}
+.page-lede{font-size:14px;color:#867a6f;max-width:610px;line-height:1.7;margin-bottom:34px}
+.landing{text-align:center;max-width:1450px;margin:auto;padding:90px 28px 60px}
+.landing h1{font-size:clamp(54px,8vw,108px);line-height:1.03;margin:22px 0 20px}
+.landing h1 em{font-weight:400;color:#947659}
+.landing>p{font-size:15px;line-height:1.7;color:#82776c;max-width:540px;margin:0 auto}
+.landing-actions{display:flex;justify-content:center;gap:12px;margin:30px 0 55px}
+.landing-actions button,.venue-preview-info button,.dashboard-date button,.dashboard-studio button,.solid{border:0;background:#cbb494;border-radius:999px;color:#352a20;padding:13px 19px;display:inline-flex;align-items:center;justify-content:center;gap:10px;font-size:12px}
+.landing-actions button+button{background:#f3ede5}
+.hero-media{height:clamp(300px,45vw,590px);border-radius:28px;background:radial-gradient(ellipse at 55% 35%,#f6e9d8,#e4d5c3 48%,#cbb8a5);overflow:hidden;position:relative}
+.hero-orbit{position:absolute;inset:8% 10%;transform:perspective(900px) rotateX(50deg) rotateZ(-28deg);animation:heroFloat 11s ease-in-out infinite alternate}
+.hero-arch{position:absolute;inset:4% 14%;border:24px solid #f7f1e8;border-radius:35% 35% 12% 12%;box-shadow:inset 0 0 0 12px #d1b48d,0 25px 60px #6c56433a}
+.hero-stage{position:absolute;left:35%;right:35%;top:15%;height:15%;background:#d7b68d;border-radius:12px;box-shadow:0 12px 20px #6c56433a}
+.hero-tables{position:absolute;inset:30% 15%;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);place-items:center}
+.hero-tables span{width:min(10vw,100px);height:min(10vw,100px);background:#fffaf3;border:12px solid #e5d8c7;border-radius:50%;box-shadow:0 12px 25px #6b524537}
+.hero-media-label{position:absolute;bottom:22px;left:25px;right:25px;display:flex;justify-content:space-between;gap:15px;font-size:10px;letter-spacing:1.4px;color:#58483b}
+@keyframes heroFloat{to{transform:perspective(900px) rotateX(48deg) rotateZ(-25deg) translateY(-12px)}}
+.landing-features{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:26px;text-align:left}
+.landing-features button{border:1px solid #ece4db;background:#fffdfb;border-radius:17px;padding:25px;display:grid;gap:10px;text-align:left;color:#41362d;position:relative}
+.landing-features small{color:#a58e75}.landing-features strong{font:28px Georgia,serif}.landing-features span{font-size:12px;color:#877a6f}.landing-features svg{position:absolute;right:20px;top:20px}
+.venue-preview-card{display:grid;grid-template-columns:1.25fr 1fr;background:white;border-radius:22px;overflow:hidden;border:1px solid #eee6dd}
+.venue-art{min-height:340px;background:linear-gradient(135deg,#d9c4a7,#f2e9dc);position:relative;display:grid;place-items:center}
+.venue-art>span{position:absolute;top:20px;left:22px;font-size:10px;letter-spacing:2px;color:#6c543c}
+.venue-arch{height:210px;width:190px;border:22px solid #eee6d8;border-bottom:0;border-radius:100px 100px 0 0;box-shadow:0 15px 30px #6c4e342b,inset 0 0 0 12px #bba07c}
+.venue-preview-info{padding:55px 42px;display:flex;flex-direction:column;align-items:start;justify-content:center}
+.venue-preview-info small{letter-spacing:1.5px;color:#a18a6e}.venue-preview-info h2{font:36px Georgia,serif;margin:12px 0}.venue-preview-info p{font-size:13px;color:#857a70;line-height:1.7;margin-bottom:22px}
+.dashboard-grid{display:grid;grid-template-columns:2fr 1fr;gap:18px}
+.dashboard-progress,.dashboard-date,.dashboard-studio,.profile-panel{background:#fff;border:1px solid #eee7df;border-radius:19px;padding:28px}
+.between{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.progress-track{height:7px;background:#f0ebe5;border-radius:999px;overflow:hidden;margin:18px 0 26px}
+.progress-track>div{height:100%;background:#c7ab89;border-radius:999px;transition:width .3s}
+.metric-grid,.guest-summary,.seating-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.metric-grid div,.guest-summary div,.seating-summary div{display:grid;gap:5px}
+.metric-grid strong,.guest-summary strong,.seating-summary strong{font:29px Georgia,serif}
+.metric-grid small,.guest-summary small,.seating-summary small{font-size:11px;color:#92877b}
+.dashboard-date{display:flex;flex-direction:column;align-items:start;gap:16px;background:#efe3d4}
+.dashboard-date strong{font:27px Georgia,serif}.dashboard-date small{font-size:10px;letter-spacing:1.3px}
+.dashboard-lower{display:grid;grid-template-columns:1.4fr 1fr;gap:30px;margin-top:42px}
+.dashboard-lower h2,.planner-content h2{font:29px Georgia,serif;font-weight:400;margin:0 0 18px}
+.text-link{border:0;background:transparent;color:#917457;font-size:12px}
+.next-task{display:flex;align-items:center;gap:14px;border:0;border-bottom:1px solid #e9e1d7;padding:18px 2px;background:transparent;width:100%;text-align:left;color:#40372f}
+.next-task>span:nth-child(2){flex:1;font-size:13px}.next-task small{display:block;font-size:11px;color:#93877b;margin-top:5px}
+.next-circle{width:22px;height:22px;border:1px solid #d8c7b3;border-radius:50%}
+.dashboard-studio{background:#e9ddce}.dashboard-studio small{font-size:10px;letter-spacing:1.5px}.dashboard-studio p{font-size:13px;color:#7f7162;line-height:1.7}
+.planner-layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:34px}
+.planner-menu{display:grid;align-content:start;gap:5px}
+.planner-menu button{display:flex;gap:12px;align-items:center;border:0;background:transparent;border-radius:12px;text-align:left;padding:14px 16px;color:#73685d;font-size:13px}
+.planner-menu button.active,.planner-menu button:hover{background:#ede1d3;color:#423326}
+.planner-content{background:#fff;border:1px solid #eee7df;border-radius:19px;padding:28px;min-width:0}
+.plan-section{margin:26px 0}.plan-section h3{font:20px Georgia,serif;font-weight:400;margin:0 0 13px}
+.task-line{display:flex;gap:12px;align-items:center;border-bottom:1px solid #f0e9e1;padding:13px 3px;font-size:13px;color:#544a40}
+.task-line input{accent-color:#b99c77}.task-line .done{text-decoration:line-through;color:#aaa096}
+.subtle-add{border:0;background:#f3ede5;border-radius:999px;padding:10px 15px;color:#574534;display:inline-flex;align-items:center;gap:7px;font-size:12px}
+.inline-actions{display:flex;gap:8px}.inline-actions button{display:flex;align-items:center;gap:6px;border:0;border-radius:999px;padding:10px 13px;background:#f3eee8;font-size:12px}
+.inline-actions button.solid{background:#cbb494}
+.small-muted{font-size:12px;color:#918477;line-height:1.6}
+.guest-summary,.seating-summary{margin:25px 0;background:#f8f4ef;border-radius:13px;padding:20px}
+.guest-table-scroll{overflow-x:auto}.guest-table{width:100%;border-collapse:collapse;min-width:720px}
+.guest-table th{font-size:10px;color:#958777;text-align:left;padding:12px 8px;border-bottom:1px solid #eee5da}
+.guest-table td{padding:10px 5px;border-bottom:1px solid #f1ebe4}
+.guest-table input,.guest-table select,.payment-line input,.budget-card input,.profile-panel input{border:1px solid #e7ded3;border-radius:9px;padding:10px;min-width:0;max-width:170px;background:#fff;color:#40372e;font-size:12px}
+.guest-table td button{background:transparent;border:0;color:#8d7163}
+.empty-state{padding:36px;text-align:center;color:#988b7e;font-size:13px}
+.budget-card{padding:25px;border-radius:15px;background:#f6f0e9;display:flex;align-items:center;gap:24px;margin:18px 0 28px;flex-wrap:wrap}
+.budget-card label,.profile-panel label{display:grid;gap:9px;font-size:12px}
+.budget-card strong{font:32px Georgia,serif}.budget-card small{font-size:11px;color:#9c8a77}
+.payment-line,.vendor-line{display:flex;align-items:center;gap:12px;border-bottom:1px solid #eee6dc;padding:13px 0}
+.vendor-line{justify-content:space-between}.vendor-line span{font-size:13px}.vendor-line small{display:block;color:#9a8c7f;font-size:11px;margin-top:4px}.vendor-line button{border:0;background:transparent;color:#a37863}
+.notes-label{display:grid;gap:9px;margin-top:30px;font-size:13px}.notes-label textarea{border:1px solid #e8ddd1;border-radius:12px;padding:15px;resize:vertical;background:#fff;color:#43372d}
+.action-wide{margin-top:12px}.profile-panel{max-width:630px;display:grid;gap:24px}.profile-panel input{max-width:100%;width:100%}.profile-stats{display:flex;flex-wrap:wrap;gap:12px}.profile-stats span{background:#f6f0e8;border-radius:999px;padding:10px 15px;font-size:12px}
+.platform-footer{border-top:1px solid #eee6dd;padding:22px clamp(18px,4vw,65px);display:flex;justify-content:space-between;gap:15px;font-size:11px;color:#a29485}
+.platform-toast{position:fixed;bottom:25px;left:50%;transform:translateX(-50%);background:#3c352d;color:white;padding:13px 22px;border-radius:999px;z-index:60;font-size:12px}
+.embedded-studio{height:calc(100vh - 75px);min-height:650px}
+.embedded-studio .app{height:100%;min-height:650px}
+.embedded-studio .app>header{height:63px}
+.studio-back{background:transparent;border:0;color:#8b765d;padding:10px 12px;border-radius:999px;font-size:12px}
+.studio-back:hover{background:#f3e9dc}
+.studio-mode-tabs{display:flex;gap:5px;padding:12px 18px 0}
+.studio-mode-tabs button{border:0;background:#eee8e1;border-radius:999px;padding:10px 18px;color:#75695e;font-size:12px}
+.studio-mode-tabs button.active{background:#cdb79b;color:#3c3025}
+.seat-editor{padding:19px;border-bottom:1px solid #e9e1d7;display:grid;gap:10px}
+.seat-editor h3{font:21px Georgia,serif;margin:0}.seat-editor p{font-size:12px;color:#877b70;line-height:1.5}
+.seat-editor select{width:100%;padding:10px;border-radius:10px;border:1px solid #e5d9cb;background:#fff;color:#3c332a}
+.seat-editor button{border:0;border-radius:999px;padding:11px 14px;background:#e8d8c4;color:#453729;font-size:12px}
+@media(max-width:1050px){.platform-links{gap:12px}.platform-links button{font-size:11px}.platform-logo strong{font-size:16px}}
+@media(max-width:850px){.platform-links{display:none}.mobile-nav-toggle{display:block}.dashboard-grid,.dashboard-lower,.planner-layout{grid-template-columns:1fr}.planner-menu{display:flex;overflow-x:auto}.planner-menu button{white-space:nowrap}.landing-features{grid-template-columns:1fr}.venue-preview-card{grid-template-columns:1fr}}
+@media(max-width:550px){.platform-nav{padding:0 14px}.platform-logo strong{font-size:15px}.nav-my-wedding{padding:9px;font-size:10px}.landing{padding:65px 15px}.landing-actions{flex-direction:column;align-items:center}.hero-media{height:310px}.hero-media-label{font-size:8px}.platform-page{padding:35px 16px}.planner-content{padding:18px}.metric-grid{gap:5px}.dashboard-progress,.dashboard-date{padding:18px}}
+@media(prefers-reduced-motion:reduce){.hero-orbit{animation:none!important}*,*:before,*:after{scroll-behavior:auto!important;transition-duration:0.01ms!important}}
