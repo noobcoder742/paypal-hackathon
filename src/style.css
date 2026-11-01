@@ -511,3 +511,17 @@ header{height:76px;padding:0 30px;background:linear-gradient(110deg,#fff 0%,#fbf
 .table-planning-controls .toggle{margin:4px 0}
 .table-title-input{box-sizing:border-box;width:100%;padding:11px 13px;border:1px solid #e3d6c7;border-radius:11px;background:#fffaf4;color:#44372b;font:13px Inter,system-ui,sans-serif;outline:none}
 .table-title-input:focus{border-color:#b69a76;box-shadow:0 0 0 2px #d7c2a555}
+
+/* Distinguish design controls from guest-seating work without changing the 3D viewport. */
+.embedded-studio .sidebar-seating{background:#f1f6f4;border-left:1px solid #c7dcd5}
+.sidebar-seating .studio-sidebar-heading{background:#e4f0eb;border-bottom:1px solid #c7dcd5}
+.sidebar-design .studio-sidebar-heading{background:transparent}
+.studio-mode-indicator{font-size:10px;font-weight:700;letter-spacing:2px;color:#a18766;text-align:center}
+.sidebar-seating .studio-mode-indicator{color:#28796e}
+.sidebar-seating .seat-editor{background:#eaf4f0;border-bottom:1px solid #c7dcd5;border-radius:0 0 14px 14px}
+.sidebar-seating .seat-editor h3{color:#235e56}
+.sidebar-seating .seat-editor button{background:#d1e7de;color:#255c53}
+.sidebar-seating .seat-editor button:hover{background:#bed9cf}
+.sidebar-seating .table-planning-controls .seating-plan-button{background:#c1dfd4;color:#245d53}
+.sidebar-seating .side-tabs button.active{background:#c9e2d9;color:#255f55}
+.sidebar-seating .studio-save-action{background:#b7d8cb;color:#234d45}
