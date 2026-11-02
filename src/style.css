@@ -615,3 +615,13 @@ header{height:76px;padding:0 30px;background:linear-gradient(110deg,#fff 0%,#fbf
 .listing-text{display:block;width:100%;text-align:left;background:transparent;border:0;padding:0;color:#40352d;cursor:pointer}
 @media (hover:none){.listing-star,.listing-add{opacity:1;transform:none}.listing-card:hover{transform:none}}
 @media (prefers-reduced-motion:reduce){.listing-card,.listing-media img{transition:opacity .2s}.listing-card:hover{transform:none}}
+
+/* ===== Design sidebar reorder (updates_claude) ===== */
+.selected-group{border:1px solid #d8c3a2;background:#fffaf2;box-shadow:0 6px 18px rgba(120,90,50,.08)}
+.selected-group>summary{color:#7a5a32}
+.feature-rows{display:grid;gap:4px}
+.feature-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #efe7dc}
+.feature-row:last-of-type{border-bottom:0}
+.feature-row .toggle{margin:0}
+.feature-row .remove-type{margin:0;padding:4px 10px}
+.inventory-subhead{margin:18px 4px 8px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#9b8062;font-weight:700}

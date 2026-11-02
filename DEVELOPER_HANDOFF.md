@@ -142,3 +142,14 @@ Guest view keeps the camera at eye height inside the room, so it can never zoom 
   - Moving the pointer left to right steps through the photos, with a crossfade and slide. Pass `item.photos` to use real photos; extra frames are currently crops of one photo (`@placeholder LISTING_PHOTOS`).
   - On hover the card nudges right and reveals a star favourite button on a translucent circle (red when favourited) and a translucent rounded "Add to inventory" bar.
   - The star and bar are always visible on touch screens, and motion is reduced when the user asks for it.
+
+## Design sidebar order (updates_claude)
+
+- **Main tab:**
+  1. **Selected item**: only shown when a table or the stage is selected, highlighted, and scrolled into view.
+  2. Banquet tables
+  3. Wedding styling
+  4. **Stage & features**: one compact list of show/remove rows for stage, LED screen and floral arch.
+  5. Venue environment (collapsed)
+  6. Reset
+- **Inventory tab:** inventory items, then Marketplace selections, then the Marketplace link.
