@@ -12,9 +12,11 @@ import {grandBallroom as venue} from './venues/orchard-grand/grand-ballroom/conf
 const {length:LENGTH,width:WIDTH,height:HEIGHT}=venue.dimensions;
 const palette={ivory:'#e6dfd2',champagne:'#b9a58d',sage:'#a6b2a0',rose:'#d6adb1',midnight:'#555866'};
 /** @placeholder VENUE_LAYOUT: Table positions are demonstration coordinates, not a hotel-approved banquet plan. */
-const initialTables=Array.from({length:24},(_,i)=>({id:i+1,x:-12+(i%6)*4.65,z:-7.9+Math.floor(i/6)*5.15,chairs:10,gap:.22,rotation:0}));
+// @estimate STAGE_CLEARANCE: Leave the entire first default table column clear
+// for the larger stage and guest circulation. The remaining tables retain IDs.
+const initialTables=Array.from({length:24},(_,i)=>({id:i+1,x:-12+(i%6)*4.65,z:-7.9+Math.floor(i/6)*5.15,chairs:10,gap:.22,rotation:0})).filter(t=>t.x!==-12);
 /** @prototype STUDIO_DEFAULTS: Bright is default only for new layouts; saved browser layouts override these values. */
-const initialState={tables:initialTables,stage:{x:-14.05,z:0,width:7.2,depth:2.5,rotation:Math.PI/2},theme:'ivory',flowers:'white',lighting:'bright',showRoof:false,showDecor:true,showAv:true,inventory:['table','flowers','stage'],showStage:true,showScreen:false,showArch:false,showTableLabels:false,seatDietary:{}};
+const initialState={tables:initialTables,stage:{x:-13.9,z:0,width:10.2,depth:3.4,rotation:Math.PI/2},theme:'ivory',flowers:'white',lighting:'bright',showRoof:false,showDecor:true,showAv:true,inventory:['table','flowers','stage'],showStage:true,showScreen:false,showArch:false,showTableLabels:false,seatDietary:{}};
 function load(){
  try{
   const v=JSON.parse(localStorage.getItem(venue.storageKey));
@@ -24,7 +26,19 @@ function load(){
   // exact old default; never overwrite a stage the couple repositioned.
   const old=v.stage;
   const oldDefault=old&&old.x===12&&old.z===0&&old.width===4.2&&old.depth===7&&(old.rotation||0)===0;
-  return {...initialState,...v,stage:oldDefault?{...initialState.stage}:v.stage||initialState.stage};
+  const previousStage=oldDefault||(
+   old&&old.x===-14.05&&old.z===0&&old.width===7.2&&old.depth===2.5&&old.rotation===Math.PI/2
+  );
+  const stage=previousStage?{...initialState.stage}:v.stage||initialState.stage;
+  // Only remove untouched default-position tables when upgrading the default
+  // stage. Never delete a table that the couple has already moved.
+  const tables=previousStage?v.tables.filter(t=>{
+   const i=t.id-1;
+   return !(i>=0&&i<24&&i%6===0&&
+    Math.abs(t.x-(-12))<.001&&
+    Math.abs(t.z-(-7.9+Math.floor(i/6)*5.15))<.001);
+  }):v.tables;
+  return {...initialState,...v,stage,tables};
  }catch{return initialState}
 }
 /** @placeholder VENUE_CARPET: Procedural approximation. Replace with authorized venue-specific PBR texture. */
@@ -261,8 +275,8 @@ function TableLabel({title}){
  return <Billboard position={[0,1.75,0]} follow><mesh raycast={()=>null}><shapeGeometry args={[shape]}/><meshBasicMaterial color="#fffaf2" transparent opacity={.83} depthWrite={false} side={THREE.DoubleSide}/></mesh><Text raycast={()=>null} position={[0,0,.015]} fontSize={.19} color="#4c3a2b" maxWidth={1.93} anchorX="center" anchorY="middle" outlineWidth={0}>{title}</Text></Billboard>;
 }
 function Table({data,selected,highlight=false,onSelect,onMove,onDragStart,onDragEnd,theme,flowers,decor,controlsRef,tool,seatingMode=false,onSeatClick,seatSelection=null,showTableLabels=false,onTableSeatSelect,seatDietary={}}){const [hovered,setHovered]=useState(false);const group=useRef();const dragging=useRef(false);const plane=useMemo(()=>new THREE.Plane(new THREE.Vector3(0,1,0),0),[]);const hit=useMemo(()=>new THREE.Vector3(),[]);const fabric=palette[theme]||palette.ivory;return <group ref={group} position={[data.x,0,data.z]} rotation={[0,data.rotation||0,0]} onPointerOver={e=>{e.stopPropagation();setHovered(true);document.body.style.cursor='pointer'}} onPointerOut={e=>{e.stopPropagation();setHovered(false);document.body.style.cursor='auto'}} onClick={seatingMode?(e)=>{if(e.shiftKey||e.button!==0)return;const isChair=e.object?.userData?.seatPart;if(isChair)return;e.stopPropagation();onTableSeatSelect?.(data.id)}:undefined} onPointerDown={e=>{if(e.shiftKey || seatingMode || !e.object.userData.moveHandle)return;e.stopPropagation();onSelect({type:'table',id:data.id});if(e.button===0 && tool==='select'){dragging.current=true;onDragStart();if(controlsRef.current)controlsRef.current.enabled=false;e.target.setPointerCapture(e.pointerId)}}} onPointerMove={e=>{if(!dragging.current)return;e.stopPropagation();if(e.ray.intersectPlane(plane,hit)){onMove(data.id,Math.max(-14.2,Math.min(14.2,hit.x)),Math.max(-9.8,Math.min(9.8,hit.z)))}}} onPointerUp={e=>{dragging.current=false;if(controlsRef.current)controlsRef.current.enabled=true;onDragEnd();if(e.target.hasPointerCapture(e.pointerId))e.target.releasePointerCapture(e.pointerId)}}><mesh userData={{moveHandle:true,editable:'table-'+data.id}} position={[0,.77,0]} castShadow receiveShadow><cylinderGeometry args={[.89,.89,.12,40]}/><meshStandardMaterial color={fabric} roughness={.9}/></mesh><mesh position={[0,.42,0]}><cylinderGeometry args={[.12,.25,.65,12]}/><meshStandardMaterial color="#8b8279"/></mesh><DrapedCloth color={fabric}/>{Array.from({length:data.chairs},(_,i)=>{const a=i*Math.PI*2/data.chairs;return <Chair key={i} x={Math.sin(a)*(1.16+(data.gap??.22))} z={Math.cos(a)*(1.16+(data.gap??.22))} angle={a} color={fabric} highlight={!seatingMode&&(highlight||selected)} seatSelected={seatingMode&&seatSelection?.tableId===data.id&&seatSelection?.seatNumber===i+1} seatingMode={seatingMode} dietaryTags={seatDietary[String(data.id)+':'+String(i+1)]||[]} onSeatClick={seatingMode?(e)=>{if(e.shiftKey)return;e.stopPropagation();onSeatClick?.(data.id,i+1)}:undefined}/>})}{decor&&<Flowers variant={flowers}/>} {showTableLabels&&<TableLabel title={data.title?.trim()||`Table ${data.id}`}/>} {(!seatingMode&&(selected||hovered))&&<mesh raycast={()=>null} position={[0,.04,0]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[1.42+(data.gap??.22),1.48+(data.gap??.22),64]}/><meshBasicMaterial color="#ff8800" side={THREE.DoubleSide}/></mesh>}</group>}
-/** @estimate STAGE: Reference-photo-guided platform ~7.2 m wide along the
- * LED wall, ~2.5 m deep, ~0.4 m tall. Not hotel-confirmed. The x=-14.05
+/** @estimate STAGE: Reference-photo-guided platform ~10.2 m wide along the
+ * LED wall, ~3.4 m deep, ~0.4 m tall. Not hotel-confirmed. The x=-13.9
  * placement leaves the stage immediately in front of the short-side screen.
  * Users may drag it anywhere; this is only the initial layout.
  */
