@@ -153,3 +153,32 @@ Guest view keeps the camera at eye height inside the room, so it can never zoom 
   5. Venue environment (collapsed)
   6. Reset
 - **Inventory tab:** inventory items, then Marketplace selections, then the Marketplace link.
+
+## Map-first Design page, drafts and redesign v2 (updates_claude)
+
+**Flow:**
+1. Design opens `src/explorer/DesignPage.jsx`.
+2. The first visit shows `VenueExplorer`, the 3D map of Singapore. Later visits reopen the last draft, with a "← on the map" link back.
+3. Venues come from `src/data/venues.js`: hotels, churches and outdoor venues, each with bookable `spaces`. Only the Orchard Grand has a 3D space; the other four are labelled example pins on real buildings.
+4. On the map you can search or filter, fly to a venue, open its card (MRT, parking, catering, capacity), and tap a ballroom. The building goes translucent and the ballroom box pulses. **Design this ballroom** then dives into the studio.
+
+**Map data:**
+- `scripts/fetch-sg-map.mjs` (run by the free `fetch-sg-map.yml` Action) fetches all of Singapore from OpenStreetMap in 0.05° chunks.
+- It simplifies footprints (0.6 m tolerance) and writes 1 km tiles to `public/data/sg/tiles` plus `index.json`.
+- Projection: equirectangular around 1.3521, 103.8198 (`src/explorer/geo.js`).
+- Tiles near the camera load on demand (up to 180).
+- Until tiles exist, the explorer falls back to the Orchard Grand 700 m dataset.
+- **Accuracy:** `node scripts/check-map-accuracy.mjs` writes `docs/map-accuracy.md` (projection error, landmark heights, height coverage).
+
+**Drafts:**
+- Up to 3 per space. Draft A uses the original `wedding-room-v1` key, so existing layouts survive; B and C use `wedding-room-v1:draft-B` and `:draft-C`.
+- Saving captures a thumbnail; this needs `preserveDrawingBuffer` on the studio canvas. Compare shows thumbnails and the stats of each saved draft.
+- Switching drafts remounts the studio, so only saved changes carry over.
+- Studio props added: `storageKey`, `headerExtras`, `onSaved`.
+
+**Redesign v2:**
+- White base, Cormorant Garamond + Outfit (Google Fonts in `index.html`), and one rosewood accent `#8e3b46`.
+- Sliding indicators via `src/components/ui/useSlidingIndicator.js`: nav pill, studio views, side tabs, marketplace tabs.
+- Side panel: summary and capacity meter, Selected item above the tabs, then **Layout** (tables, stage and features, room, reset) · **Style** · **Items** (inventory, marketplace selections).
+- Checkboxes in the panel render as switches. Accordions animate where the browser supports `interpolate-size`.
+- All motion respects `prefers-reduced-motion`.
