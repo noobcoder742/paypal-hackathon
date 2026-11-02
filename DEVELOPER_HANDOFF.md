@@ -113,3 +113,23 @@ This file documents the prototype. It is not a security audit or certification.
 - `scripts/fetch-osm-surroundings.mjs` writes `public/data/orchard-grand-surroundings.json`. The output is in metres, already projected around the hotel's OSM location (x east, z south). The GitHub Action `fetch-city.yml` refreshes it when the script changes, or on demand from the Actions tab.
 - `src/studio/city/CityContext.jsx`: hidden until the camera is 60 m out. Hotel parts that contain the ballroom are drawn as translucent glass. `ORBIT_LIMITS.maxR` and `panRadius` grow when the data exists. Camera near/far and fog scale with zoom.
 - Attribution "© OpenStreetMap contributors (ODbL)" must stay visible wherever the city layer is shown.
+
+## Feature parity with `main`
+
+`main` holds the first prototype (a single commit with history unrelated to `updates`). Each of its features was checked against `updates_claude`:
+
+| `main` feature | Status on `updates_claude` |
+| --- | --- |
+| Dollhouse / floor plan / guest views | Kept, plus **Map view** (shown only when OSM data exists) |
+| Drag tables and stage | Kept |
+| Add / remove tables, delete selected table | Kept |
+| Chairs per table | Kept (plus chair-to-table gap) |
+| Table rotation, stage rotation | **Restored** (sliders in Selected item) |
+| Stage width / depth | Kept |
+| Fabric colour, flowers, lighting | Kept |
+| Ceiling slab, AV equipment toggles | Kept (Venue environment) |
+| Table flowers, LED screen, floral arch, stage | Kept through Inventory add/remove |
+| Save to local storage, reset, capacity warning | Kept |
+
+Seating (click a chair to highlight it, assign a guest, add dietary tags, view from the seat) comes from `updates` and still works with the new chair models.
+Guest view keeps the camera at eye height inside the room, so it can never zoom out to the city. Only the orbit views (dollhouse, plan, map) can zoom out.
