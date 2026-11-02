@@ -133,3 +133,12 @@ This file documents the prototype. It is not a security audit or certification.
 
 Seating (click a chair to highlight it, assign a guest, add dietary tags, view from the seat) comes from `updates` and still works with the new chair models.
 Guest view keeps the camera at eye height inside the room, so it can never zoom out to the city. Only the orbit views (dollhouse, plan, map) can zoom out.
+
+## Navigation, ceiling and marketplace cards (updates_claude)
+
+- **Moving around:** in Map view, left-drag moves across the map and right-drag or Shift-drag rotates. In every view, arrow keys or WASD move and +/- zoom. Keys are ignored while typing in a form field. In Guest view the keys walk.
+- **Ceiling:** "Show ceiling" (on by default for new layouts) draws the ceiling whenever the camera is below ceiling height, and hides it automatically from above. The duplicate slab in `Walls` was removed.
+- **Product cards** (`Listing` in `Marketplace.jsx`):
+  - Moving the pointer left to right steps through the photos, with a crossfade and slide. Pass `item.photos` to use real photos; extra frames are currently crops of one photo (`@placeholder LISTING_PHOTOS`).
+  - On hover the card nudges right and reveals a star favourite button on a translucent circle (red when favourited) and a translucent rounded "Add to inventory" bar.
+  - The star and bar are always visible on touch screens, and motion is reduced when the user asks for it.

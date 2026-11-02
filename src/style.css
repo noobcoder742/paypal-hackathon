@@ -591,3 +591,27 @@ header{height:76px;padding:0 30px;background:linear-gradient(110deg,#fff 0%,#fbf
 /* Selected table: Apply to all and the titles toggle sit under the title field. */
 .selected-table-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:10px}
 .selected-table-actions .toggle{margin:0}
+
+/* ===== Marketplace product card (hover photo scrub, star, add-to-inventory bar) ===== */
+.listing-card{position:relative;min-width:0;transition:transform .35s cubic-bezier(.2,.7,.2,1)}
+.listing-card:hover{transform:translateX(6px)}
+.listing-media{position:relative;aspect-ratio:1;overflow:hidden;border-radius:6px;background:#eee5d9}
+.listing-media-open{position:absolute;inset:0;width:100%;height:100%;border:0;padding:0;background:none;cursor:pointer}
+.listing-media img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:translateX(0) scale(var(--frame-scale,1));opacity:0;transition:opacity .45s ease,transform .6s cubic-bezier(.2,.7,.2,1)}
+.listing-media img.is-active{opacity:1}
+.listing-media img.is-before{transform:translateX(-6%) scale(var(--frame-scale,1))}
+.listing-media img.is-after{transform:translateX(6%) scale(var(--frame-scale,1))}
+.listing-dots{position:absolute;left:0;right:0;top:12px;display:flex;justify-content:center;gap:5px;opacity:0;transition:opacity .25s;pointer-events:none}
+.listing-dots span{width:18px;height:2px;border-radius:2px;background:rgba(255,255,255,.55)}
+.listing-dots span.on{background:#fff}
+.listing-star{position:absolute;top:10px;right:10px;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.38);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#3b302a;opacity:0;transform:translateY(-4px);transition:opacity .25s,transform .25s,color .2s,background .2s}
+.listing-star.active{color:#d3263f;opacity:1;transform:none}
+.listing-star.active svg{fill:#d3263f}
+.listing-star:hover{background:rgba(255,255,255,.6)}
+.listing-add{position:absolute;left:10px;right:10px;bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.42);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:#2f2620;font-size:12.5px;font-weight:500;opacity:0;transform:translateY(8px);transition:opacity .25s,transform .25s,background .2s}
+.listing-add:hover:not(:disabled){background:rgba(255,255,255,.7)}
+.listing-add.added{color:#4f6b4a;cursor:default}
+.listing-card:hover .listing-star,.listing-card:hover .listing-add,.listing-card:hover .listing-dots,.listing-card:focus-within .listing-star,.listing-card:focus-within .listing-add{opacity:1;transform:none}
+.listing-text{display:block;width:100%;text-align:left;background:transparent;border:0;padding:0;color:#40352d;cursor:pointer}
+@media (hover:none){.listing-star,.listing-add{opacity:1;transform:none}.listing-card:hover{transform:none}}
+@media (prefers-reduced-motion:reduce){.listing-card,.listing-media img{transition:opacity .2s}.listing-card:hover{transform:none}}
