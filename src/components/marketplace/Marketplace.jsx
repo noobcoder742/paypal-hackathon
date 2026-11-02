@@ -41,8 +41,8 @@ function VenueDetail({onBack,onStartDesign,onPlan}){
  <section className="luxury-story luxury-venue-cta"><span>04 — DESIGN THE EXPERIENCE</span><h2>See it before your special day.</h2><p>Arrange tables, explore different lighting conditions and preview the ballroom from a guest's perspective.</p><button className="luxury-primary" onClick={onStartDesign}>Enter the 3D ballroom <ArrowRight size={16}/></button></section>
  <section className="luxury-story"><span>05 — MORE INFORMATION</span><h2>Plan with confidence.</h2><p>Hotel-approved catering menus, confirmed capacities, real-time rates, booking deposits and cancellation policies will be displayed once the venue is officially onboarded.</p><button className="luxury-secondary" onClick={onPlan}>Open wedding planner <ArrowRight size={16}/></button></section></div>;
 }
-export default function Marketplace({onBack,onAdd,added=[],favourites=[],onToggleFavourite=()=>{},onStartDesign=()=>{},onPlan=()=>{}}){
- const [category,setCategory]=useState(null),[detail,setDetail]=useState(null),[collection,setCollection]=useState('All'),[query,setQuery]=useState('');
+export default function Marketplace({initialCategory=null,onBack,onAdd,added=[],favourites=[],onToggleFavourite=()=>{},onStartDesign=()=>{},onPlan=()=>{}}){
+ const [category,setCategory]=useState(initialCategory),[detail,setDetail]=useState(null),[collection,setCollection]=useState('All'),[query,setQuery]=useState('');
  // Navigation rule: detail breadcrumb always returns to the marketplace root; the global logo handles Home.
  const back=()=>{setDetail(null);setCategory(null);setCollection('All');window.scrollTo?.(0,0)};
  const open=item=>{setDetail(item);window.scrollTo?.(0,0)};

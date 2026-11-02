@@ -534,3 +534,57 @@ header{height:76px;padding:0 30px;background:linear-gradient(110deg,#fff 0%,#fbf
 .dietary-options label{display:flex;align-items:center;gap:7px;font-size:11px;color:#31584f;cursor:pointer}
 .dietary-options input{accent-color:#28796e}
 @media(max-width:430px){.dietary-options{grid-template-columns:1fr}}
+
+/* ===== Redesign layer (updates_claude): 16:9 home hero, pill navigation, home sections ===== */
+.platform-nav{background:transparent;border-bottom:0}
+.platform-interior .platform-nav{background:transparent}
+.platform-logo span,.platform-nav-right .account-trigger{background:transparent;border:1px solid currentColor}
+.nav-pill{padding:4px;border-radius:999px;background:rgba(255,255,255,.42);border:1px solid rgba(255,255,255,.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.platform-links-centered.nav-pill{gap:2px}
+.platform-links-centered.nav-pill button{padding:7px 16px;border-radius:999px;font-size:13px;color:#4a3f35}
+.platform-links-centered.nav-pill button.active{background:rgba(255,255,255,.75);color:#2f2620;text-decoration:none}
+.platform-interior .nav-pill{background:rgba(53,46,40,.05);border-color:rgba(53,46,40,.1)}
+.platform-home .nav-pill{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.32)}
+.platform-home .platform-links-centered.nav-pill button{color:#fff}
+.platform-home .platform-links-centered.nav-pill button:hover,.platform-home .platform-links-centered.nav-pill button.active{background:rgba(255,255,255,.22);text-decoration:none}
+.platform-home .platform-logo span{background:transparent;border-color:rgba(255,255,255,.7);backdrop-filter:none}
+.platform-home .account-trigger{background:transparent;border:1px solid rgba(255,255,255,.7);backdrop-filter:none}
+.platform-home .platform-nav{height:68px;min-height:68px}
+/* Hero is one 16:9 frame that starts at the very top, behind the transparent header. */
+.landing-video-home{height:auto;min-height:0;aspect-ratio:16/9;padding:90px 24px 70px;justify-content:center;text-align:center}
+.landing-video-content{max-width:860px;margin:0 auto;text-align:center;display:flex;flex-direction:column;align-items:center}
+.landing-video-content .landing-actions{justify-content:center}
+@media(max-width:760px){.landing-video-home{aspect-ratio:auto;min-height:100svh}}
+.platform-home{background:#faf8f5}
+.home-sections{max-width:1240px;margin:0 auto;padding:0 clamp(16px,4vw,48px) 40px;color:#352e28}
+.home-section{padding:72px 0 0}
+.home-section-head{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap;margin-bottom:26px}
+.home-section h2{font:400 clamp(34px,4vw,52px)/1 Georgia,serif;letter-spacing:-1px;margin:0}
+.home-section h3{font:400 28px/1.1 Georgia,serif;margin:10px 0 8px}
+.home-link{display:inline-flex;align-items:center;gap:8px;border:1px solid #352e28;background:transparent;border-radius:999px;padding:9px 16px;font-size:13px;color:#352e28}
+.home-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid #352e28}
+.home-step{padding:20px 22px 22px 0;margin-right:22px;border-right:1px solid #e4dbd0}
+.home-step:last-child{border-right:0;margin-right:0}
+.home-step p{margin:0;color:#7d7268;font-size:14px;line-height:1.6}
+.home-venues{display:grid;grid-template-columns:2fr 1fr 1fr;gap:18px}
+.home-venue{display:flex;flex-direction:column;text-align:left;background:none;border:0;padding:0;color:inherit}
+.home-venue p{margin:0;color:#7d7268;font-size:13px}
+.home-venue-plate{position:relative;width:100%;aspect-ratio:4/3;border-radius:16px;overflow:hidden}
+.home-venue-plate.jj{background:linear-gradient(160deg,#3a2f2a,#8c6f57 55%,#e8d6bd)}
+.home-venue-plate.garden{background:linear-gradient(160deg,#2f3b33,#7f9a84 60%,#dfe7d9)}
+.home-venue-plate.chapel{background:linear-gradient(160deg,#2c2c38,#7c7a99 60%,#e2e0ea)}
+.home-chip{position:absolute;top:12px;left:12px;font-size:10px;letter-spacing:1.5px;font-weight:700;padding:5px 10px;border-radius:999px;background:#fffdfb;color:#8e6f4c}
+.home-chip.muted{background:rgba(255,255,255,.8);color:#5d534a}
+.home-bento{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:160px;gap:14px}
+.home-tile{display:flex;flex-direction:column;justify-content:space-between;text-align:left;border:1px solid #ece4db;background:#fffdfb;border-radius:16px;padding:20px;color:#352e28}
+.home-tile h3{font-size:30px;margin:0;display:flex;align-items:center;gap:10px}
+.home-tile.big{grid-column:span 2;grid-row:span 2;background:#352e28;border-color:#352e28;color:#faf8f5}
+.home-tile.big .page-eyebrow{color:#cbb494}
+.home-tile.big h3{font-size:54px}
+.home-tile.wide{grid-column:span 2}
+@media(max-width:860px){
+ .home-steps{grid-template-columns:1fr 1fr}.home-step:nth-child(2){border-right:0;margin-right:0}
+ .home-venues{grid-template-columns:1fr}
+ .home-bento{grid-template-columns:1fr 1fr;grid-auto-rows:130px}.home-tile.big{grid-row:span 1}.home-tile.big h3{font-size:36px}
+}
+@media(max-width:480px){.home-steps{grid-template-columns:1fr}.home-step{border-right:0;margin-right:0;border-bottom:1px solid #e4dbd0}}
