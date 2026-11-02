@@ -144,7 +144,7 @@ function curvedBack(){
  const p=g.attributes.position;
  for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i);p.setZ(i,p.getZ(i)+x*x*.35-(y+.33)*.07);if(y>.2)p.setX(i,x*(1-(y-.2)*.25))}
  g.translate(0,.98,.25);
- return g.toNonIndexed();
+ return g;
 }
 function bow(){
  const loops=[-1,1].map(side=>{const t=new THREE.TorusGeometry(.065,.022,8,18);t.scale(1,.62,.5);t.rotateZ(side*.35);t.translate(side*.07,0,0);return t.toNonIndexed()});
