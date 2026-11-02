@@ -14,9 +14,12 @@ const DATA_URL='/data/orchard-grand-surroundings.json';
 const FLOOR=3.4; // metres per storey, matches the fetch script
 const FACADE_PALETTE=['#e9e5dc','#ddd6c9','#cfd5d9','#e4dac8','#c3cbd0','#d8d2c6','#eee9e0'];
 
+// One shared request for every component that needs the city data.
+let cityRequest=null;
+function loadCity(){return cityRequest||(cityRequest=fetch(DATA_URL).then(r=>r.ok?r.json():null).then(d=>d?.buildings?d:null).catch(()=>null))}
 export function useCityData(){
  const [data,setData]=useState(null);
- useEffect(()=>{let live=true;fetch(DATA_URL).then(r=>r.ok?r.json():null).then(d=>{if(live&&d?.buildings)setData(d)}).catch(()=>{});return()=>{live=false}},[]);
+ useEffect(()=>{let live=true;loadCity().then(d=>{if(live)setData(d)});return()=>{live=false}},[]);
  return data;
 }
 

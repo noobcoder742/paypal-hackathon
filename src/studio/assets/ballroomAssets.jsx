@@ -45,6 +45,8 @@ const lighten=(hex,amount)=>'#'+new THREE.Color(hex).lerp(new THREE.Color('#ffff
 export const satinMaterial=color=>cached('satin'+color,()=>new THREE.MeshPhysicalMaterial({color,roughness:.62,sheen:1,sheenRoughness:.32,sheenColor:new THREE.Color(lighten(color,.55)),side:THREE.DoubleSide,envMapIntensity:.55}));
 // Stretch chair covers: matte fabric with a weaker sheen.
 export const coverMaterial=color=>cached('cover'+color,()=>new THREE.MeshPhysicalMaterial({color,roughness:.82,sheen:.7,sheenRoughness:.5,sheenColor:new THREE.Color(lighten(color,.4)),envMapIntensity:.4}));
+// Seating-mode highlight for the selected/hovered chair (teal tint).
+export const activeCoverMaterial=color=>cached('coverActive'+color,()=>new THREE.MeshPhysicalMaterial({color,roughness:.82,sheen:.7,emissive:new THREE.Color('#0a766f'),emissiveIntensity:.15}));
 export const sashMaterial=color=>cached('sash'+color,()=>new THREE.MeshPhysicalMaterial({color,roughness:.38,sheen:1,sheenRoughness:.22,sheenColor:new THREE.Color(lighten(color,.6)),side:THREE.DoubleSide,envMapIntensity:.8}));
 const porcelain=()=>cached('porcelain',()=>new THREE.MeshPhysicalMaterial({color:'#fbf8f2',roughness:.18,clearcoat:.8,clearcoatRoughness:.1}));
 const charger=()=>cached('charger',()=>new THREE.MeshStandardMaterial({color:'#bfa27a',metalness:.85,roughness:.32}));
