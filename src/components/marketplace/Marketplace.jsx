@@ -1,4 +1,5 @@
-import React,{useState} from 'react';
+import React,{useState,useRef} from 'react';
+import useSlidingIndicator from '../ui/useSlidingIndicator.js';
 import {ArrowLeft,ArrowRight,Plus,Check,Search,ShoppingBag,Heart,Star,Rotate3D,CalendarDays,MapPin,Clock,Info} from 'lucide-react';
 export const demoListings=[
  {id:'floral-white',category:'Floral Arrangements',name:'Ivory garden centrepiece',vendor:'Sample floral studio',price:180,unit:'arrangement',photo:'https://images.unsplash.com/photo-1523438885200-e635ba2c371e?w=1000&q=80',inventoryType:'flowers'},
@@ -13,7 +14,7 @@ export const demoListings=[
  {id:'chauffeur-car',category:'Chauffeur & Transport',name:'Wedding arrival chauffeur',vendor:'Sample transport provider',price:320,unit:'booking',photo:'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1000&q=80'}
 ];
 const categories=['Floral Arrangements','Music & Entertainment','Lighting & Production','Hotel Catering','Chauffeur & Transport'];
-const venue={id:'orchard-grand-john-jacob',name:'Grand Ballroom',hotel:'The Orchard Grand',location:'Orchard, Singapore',photo:'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=1400&q=85'};
+const venue={id:'orchard-grand-john-jacob',name:'Grand Ballroom',hotel:'The Orchard Grand',location:'Orchard, Singapore',photo:'/venues/orchard-grand/grand-ballroom.jpg'};
 function price(item){return item.price==null?'Price on request':'From S$'+item.price.toLocaleString('en-SG')}
 const FRAME_STYLES=[{objectPosition:'50% 50%',scale:1},{objectPosition:'25% 40%',scale:1.14},{objectPosition:'78% 62%',scale:1.24}];
 function listingPhotos(item){return item.photos?.length?item.photos:FRAME_STYLES.map(()=>item.photo)}
@@ -60,16 +61,16 @@ function VenueDetail({onBack,onStartDesign,onPlan}){
  <section className="luxury-story"><span>05 — MORE INFORMATION</span><h2>Plan with confidence.</h2><p>Hotel-approved catering menus, confirmed capacities, real-time rates, booking deposits and cancellation policies will be displayed once the venue is officially onboarded.</p><button className="luxury-secondary" onClick={onPlan}>Open wedding planner <ArrowRight size={16}/></button></section></div>;
 }
 export default function Marketplace({initialCategory=null,onBack,onAdd,added=[],favourites=[],onToggleFavourite=()=>{},onStartDesign=()=>{},onPlan=()=>{}}){
- const [category,setCategory]=useState(initialCategory),[detail,setDetail]=useState(null),[collection,setCollection]=useState('All'),[query,setQuery]=useState('');
+ const tabsRef=useRef(null);const [category,setCategory]=useState(initialCategory),[detail,setDetail]=useState(null),[collection,setCollection]=useState('All'),[query,setQuery]=useState('');
  // Navigation rule: detail breadcrumb always returns to the marketplace root; the global logo handles Home.
  const back=()=>{setDetail(null);setCategory(null);setCollection('All');window.scrollTo?.(0,0)};
  const open=item=>{setDetail(item);window.scrollTo?.(0,0)};
  const matches=item=>[item.name,item.vendor,item.category].join(' ').toLowerCase().includes(query.toLowerCase());
- const items=demoListings.filter(matches);
+ const items=demoListings.filter(matches);useSlidingIndicator(tabsRef,[collection,detail]);
  if(detail==='venue')return <div className="marketplace-screen luxury-market"><VenueDetail onBack={back} onStartDesign={onStartDesign} onPlan={onPlan}/></div>;
  if(detail)return <div className="marketplace-screen luxury-market"><ProductDetail item={detail} onBack={back} onAdd={onAdd} added={added.includes(detail.id)} onOpen={open} onStartDesign={onStartDesign} isFavourite={favourites.includes(detail.id)} onToggleFavourite={onToggleFavourite}/></div>;
- return <div className="marketplace-screen editorial-market luxury-market"><div className="marketplace-top marketplace-top-minimal"><span className="market-label">WEDDING MARKETPLACE · CONCEPT</span></div><div className="editorial-intro"><span className="eyebrow">THE WEDDING EDIT</span><h1>{category||'Thoughtfully curated.'}</h1><p>Discover your venue, explore meaningful details and save your favourites.</p></div>
- <div className="luxury-collection-tabs">{['All','Venues','Products','Services'].map(x=><button key={x} className={collection===x?'active':''} onClick={()=>{setCollection(x);setCategory(null)}}>{x}</button>)}</div>
+ return <div className="marketplace-screen editorial-market luxury-market"><div className="marketplace-top marketplace-top-minimal"><span className="market-label">WEDDING MARKETPLACE · CONCEPT</span></div><div className="editorial-intro"><span className="eyebrow">The wedding edit</span><h1>{category||<>Find what <em>belongs</em> in your room.</>}</h1><p>Every product can be placed in your venue in 3D before you enquire.</p></div>
+ <div className="luxury-collection-tabs" ref={tabsRef}><span className="slide-ind" aria-hidden="true"/>{['All','Venues','Products','Services'].map(x=><button key={x} className={collection===x?'active':''} onClick={()=>{setCollection(x);setCategory(null)}}>{x}</button>)}</div>
  <label className="editorial-search"><Search size={16}/><input placeholder="Search products and services" value={query} onChange={e=>setQuery(e.target.value)}/><span>{added.length} saved <ShoppingBag size={14}/></span></label>
  {(collection==='All'||collection==='Venues')&&!category&&<section className="editorial-section"><div className="editorial-section-head"><h2>Wedding Venues</h2></div><div className="editorial-row"><Listing item={{...venue,vendor:venue.hotel,price:null,category:'Venues'}} onOpen={()=>open('venue')}/></div></section>}
  {(collection==='All'||collection==='Products'||collection==='Services')&&(category?<div className="editorial-grid">{items.filter(x=>x.category===category).map(item=><Listing key={item.id} item={item} onOpen={open} isFavourite={favourites.includes(item.id)} onToggleFavourite={onToggleFavourite} onAdd={onAdd} added={added.includes(item.id)}/>)}</div>:<div className="editorial-sections">{categories.filter(c=>collection==='All'||(collection==='Products'?['Floral Arrangements','Lighting & Production'].includes(c):!['Floral Arrangements','Lighting & Production'].includes(c))).map(cat=>{const group=items.filter(item=>item.category===cat);if(!group.length)return null;return <section key={cat} className="editorial-section"><div className="editorial-section-head"><h2>{cat}</h2><button onClick={()=>{setCategory(cat);window.scrollTo?.(0,0)}}>View more <ArrowRight size={15}/></button></div><div className="editorial-row">{group.slice(0,4).map(item=><Listing key={item.id} item={item} onOpen={open} isFavourite={favourites.includes(item.id)} onToggleFavourite={onToggleFavourite} onAdd={onAdd} added={added.includes(item.id)}/>)}</div></section>})}</div>)}
