@@ -1,5 +1,5 @@
 import React,{useState} from 'react';
-import {ArrowLeft,ArrowRight,Plus,Check,Search,ShoppingBag,Heart,Rotate3D,CalendarDays,MapPin,Clock,Info} from 'lucide-react';
+import {ArrowLeft,ArrowRight,Plus,Check,Search,ShoppingBag,Heart,Star,Rotate3D,CalendarDays,MapPin,Clock,Info} from 'lucide-react';
 export const demoListings=[
  {id:'floral-white',category:'Floral Arrangements',name:'Ivory garden centrepiece',vendor:'Sample floral studio',price:180,unit:'arrangement',photo:'https://images.unsplash.com/photo-1523438885200-e635ba2c371e?w=1000&q=80',inventoryType:'flowers'},
  {id:'floral-arch',category:'Floral Arrangements',name:'Ceremony floral arch',vendor:'Sample floral studio',price:980,unit:'setup',photo:'https://images.unsplash.com/photo-1519741497674-611481863552?w=1000&q=80',inventoryType:'arch'},
@@ -15,8 +15,26 @@ export const demoListings=[
 const categories=['Floral Arrangements','Music & Entertainment','Lighting & Production','Hotel Catering','Chauffeur & Transport'];
 const venue={id:'orchard-grand-john-jacob',name:'Grand Ballroom',hotel:'The Orchard Grand',location:'Orchard, Singapore',photo:'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=1400&q=85'};
 function price(item){return item.price==null?'Price on request':'From S$'+item.price.toLocaleString('en-SG')}
-function Listing({item,onOpen,isFavourite=false,onToggleFavourite}){
- return <div className="luxury-listing-wrap"><button className="luxury-listing" onClick={()=>onOpen(item)}><div className="luxury-listing-image"><img src={item.photo} alt={item.name+' illustrative image'} loading="lazy"/></div><div className="editorial-meta"><span>{item.vendor}</span><span>{price(item)}</span></div><div className="editorial-name">{item.name}</div></button>{item.category!=='Venues'&&onToggleFavourite&&<button className={'listing-favourite '+(isFavourite?'active':'')} title={isFavourite?'Remove from favourites':'Add to favourites'} aria-label={(isFavourite?'Remove ':'Favourite ')+item.name} aria-pressed={isFavourite} onClick={()=>onToggleFavourite(item)}><span>{isFavourite?'★':'☆'}</span></button>}</div>;
+const FRAME_STYLES=[{objectPosition:'50% 50%',scale:1},{objectPosition:'25% 40%',scale:1.14},{objectPosition:'78% 62%',scale:1.24}];
+function listingPhotos(item){return item.photos?.length?item.photos:FRAME_STYLES.map(()=>item.photo)}
+// Product card: moving the pointer to the right steps through the photos, the
+// card nudges right on hover, and hover reveals a favourite star and an
+// add-to-inventory bar (always visible on touch screens).
+function Listing({item,onOpen,isFavourite=false,onToggleFavourite,onAdd,added=false}){
+ const photos=listingPhotos(item),[index,setIndex]=useState(0);
+ const scrub=e=>{const r=e.currentTarget.getBoundingClientRect();setIndex(Math.min(photos.length-1,Math.max(0,Math.floor((e.clientX-r.left)/r.width*photos.length))))};
+ const isProduct=item.category!=='Venues';
+ return <div className="listing-card" onPointerLeave={()=>setIndex(0)}>
+  <div className="listing-media" onPointerMove={scrub}>
+   <button type="button" className="listing-media-open" onClick={()=>onOpen(item)} aria-label={'Open '+item.name}>
+    {photos.map((src,i)=>{const frame=item.photos?.length?FRAME_STYLES[0]:FRAME_STYLES[i%FRAME_STYLES.length];return <img key={i} src={src} alt={i===0?item.name+' illustrative image':''} loading="lazy" className={i===index?'is-active':i<index?'is-before':'is-after'} style={{objectPosition:frame.objectPosition,'--frame-scale':frame.scale}}/>})}
+   </button>
+   {photos.length>1&&<div className="listing-dots" aria-hidden="true">{photos.map((_,i)=><span key={i} className={i===index?'on':''}/>)}</div>}
+   {isProduct&&onToggleFavourite&&<button type="button" className={'listing-star'+(isFavourite?' active':'')} aria-pressed={isFavourite} aria-label={(isFavourite?'Remove from favourites: ':'Favourite: ')+item.name} title={isFavourite?'Remove from favourites':'Add to favourites'} onClick={()=>onToggleFavourite(item)}><Star size={17} strokeWidth={1.8}/></button>}
+   {isProduct&&onAdd&&<button type="button" className={'listing-add'+(added?' added':'')} onClick={()=>{if(!added)onAdd(item)}} disabled={added}>{added?<><Check size={15}/> In your inventory</>:<><Plus size={15}/> Add to inventory</>}</button>}
+  </div>
+  <button type="button" className="listing-text" onClick={()=>onOpen(item)}><div className="editorial-meta"><span>{item.vendor}</span><span>{price(item)}</span></div><div className="editorial-name">{item.name}</div></button>
+ </div>;
 }
 function ImageGallery({item}){const [selected,setSelected]=useState(0);const images=[item.photo,item.photo.replace('w=1000','w=1200')+'&crop=center',item.photo.replace('w=1000','w=1400')+'&crop=entropy'];return <div className="luxury-gallery"><div className="luxury-main-image"><img src={images[selected]} alt={item.name+' product illustration'}/><div className="luxury-image-note">Illustrative photography · Verified 3D model not yet available</div></div><div className="luxury-thumbs">{images.map((src,i)=><button className={selected===i?'active':''} key={i} onClick={()=>setSelected(i)} aria-label={'View image '+(i+1)}><img src={src} alt="Alternate crop of illustrative photo"/></button>)}</div></div>}
 function ProductDetail({item,onBack,onAdd,added,onOpen,onStartDesign,isFavourite,onToggleFavourite}){
@@ -54,6 +72,6 @@ export default function Marketplace({initialCategory=null,onBack,onAdd,added=[],
  <div className="luxury-collection-tabs">{['All','Venues','Products','Services'].map(x=><button key={x} className={collection===x?'active':''} onClick={()=>{setCollection(x);setCategory(null)}}>{x}</button>)}</div>
  <label className="editorial-search"><Search size={16}/><input placeholder="Search products and services" value={query} onChange={e=>setQuery(e.target.value)}/><span>{added.length} saved <ShoppingBag size={14}/></span></label>
  {(collection==='All'||collection==='Venues')&&!category&&<section className="editorial-section"><div className="editorial-section-head"><h2>Wedding Venues</h2></div><div className="editorial-row"><Listing item={{...venue,vendor:venue.hotel,price:null,category:'Venues'}} onOpen={()=>open('venue')}/></div></section>}
- {(collection==='All'||collection==='Products'||collection==='Services')&&(category?<div className="editorial-grid">{items.filter(x=>x.category===category).map(item=><Listing key={item.id} item={item} onOpen={open} isFavourite={favourites.includes(item.id)} onToggleFavourite={onToggleFavourite}/>)}</div>:<div className="editorial-sections">{categories.filter(c=>collection==='All'||(collection==='Products'?['Floral Arrangements','Lighting & Production'].includes(c):!['Floral Arrangements','Lighting & Production'].includes(c))).map(cat=>{const group=items.filter(item=>item.category===cat);if(!group.length)return null;return <section key={cat} className="editorial-section"><div className="editorial-section-head"><h2>{cat}</h2><button onClick={()=>{setCategory(cat);window.scrollTo?.(0,0)}}>View more <ArrowRight size={15}/></button></div><div className="editorial-row">{group.slice(0,4).map(item=><Listing key={item.id} item={item} onOpen={open}/>)}</div></section>})}</div>)}
+ {(collection==='All'||collection==='Products'||collection==='Services')&&(category?<div className="editorial-grid">{items.filter(x=>x.category===category).map(item=><Listing key={item.id} item={item} onOpen={open} isFavourite={favourites.includes(item.id)} onToggleFavourite={onToggleFavourite} onAdd={onAdd} added={added.includes(item.id)}/>)}</div>:<div className="editorial-sections">{categories.filter(c=>collection==='All'||(collection==='Products'?['Floral Arrangements','Lighting & Production'].includes(c):!['Floral Arrangements','Lighting & Production'].includes(c))).map(cat=>{const group=items.filter(item=>item.category===cat);if(!group.length)return null;return <section key={cat} className="editorial-section"><div className="editorial-section-head"><h2>{cat}</h2><button onClick={()=>{setCategory(cat);window.scrollTo?.(0,0)}}>View more <ArrowRight size={15}/></button></div><div className="editorial-row">{group.slice(0,4).map(item=><Listing key={item.id} item={item} onOpen={open} isFavourite={favourites.includes(item.id)} onToggleFavourite={onToggleFavourite} onAdd={onAdd} added={added.includes(item.id)}/>)}</div></section>})}</div>)}
  <p className="market-disclaimer">Prototype listings, illustrative imagery and estimated prices only. No live vendor inventory, venue availability or payment processing.</p></div>;
 }
