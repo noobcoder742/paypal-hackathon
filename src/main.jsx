@@ -12,8 +12,19 @@ import {grandBallroom as venue} from './venues/orchard-grand/grand-ballroom/conf
 const {length:LENGTH,width:WIDTH,height:HEIGHT}=venue.dimensions;
 const palette={ivory:'#e6dfd2',champagne:'#b9a58d',sage:'#a6b2a0',rose:'#d6adb1',midnight:'#555866'};
 const initialTables=Array.from({length:24},(_,i)=>({id:i+1,x:-12+(i%6)*4.65,z:-7.9+Math.floor(i/6)*5.15,chairs:10,gap:.22,rotation:0}));
-const initialState={tables:initialTables,stage:{x:12,z:0,width:4.2,depth:7,rotation:0},theme:'ivory',flowers:'white',lighting:'bright',showRoof:false,showDecor:true,showAv:true,inventory:['table','flowers'],showStage:false,showScreen:false,showArch:false,showTableLabels:false,seatDietary:{}};
-function load(){try{let v=JSON.parse(localStorage.getItem(venue.storageKey));return v&&Array.isArray(v.tables)?{...initialState,...v}:initialState}catch{return initialState}}
+const initialState={tables:initialTables,stage:{x:-14.05,z:0,width:7.2,depth:2.5,rotation:Math.PI/2},theme:'ivory',flowers:'white',lighting:'bright',showRoof:false,showDecor:true,showAv:true,inventory:['table','flowers','stage'],showStage:true,showScreen:false,showArch:false,showTableLabels:false,seatDietary:{}};
+function load(){
+ try{
+  const v=JSON.parse(localStorage.getItem(venue.storageKey));
+  if(!v||!Array.isArray(v.tables))return initialState;
+  // @migration STAGE_PLACEMENT: The previous prototype default placed a
+  // 4.2 x 7 m stage at x=12, away from the LED screen. Migrate only that
+  // exact old default; never overwrite a stage the couple repositioned.
+  const old=v.stage;
+  const oldDefault=old&&old.x===12&&old.z===0&&old.width===4.2&&old.depth===7&&(old.rotation||0)===0;
+  return {...initialState,...v,stage:oldDefault?{...initialState.stage}:v.stage||initialState.stage};
+ }catch{return initialState}
+}
 function carpetTexture(){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1024;
  const ctx=canvas.getContext('2d');
@@ -236,7 +247,25 @@ function TableLabel({title}){
  return <Billboard position={[0,1.75,0]} follow><mesh raycast={()=>null}><shapeGeometry args={[shape]}/><meshBasicMaterial color="#fffaf2" transparent opacity={.83} depthWrite={false} side={THREE.DoubleSide}/></mesh><Text raycast={()=>null} position={[0,0,.015]} fontSize={.19} color="#4c3a2b" maxWidth={1.93} anchorX="center" anchorY="middle" outlineWidth={0}>{title}</Text></Billboard>;
 }
 function Table({data,selected,highlight=false,onSelect,onMove,onDragStart,onDragEnd,theme,flowers,decor,controlsRef,tool,seatingMode=false,onSeatClick,seatSelection=null,showTableLabels=false,onTableSeatSelect,seatDietary={}}){const [hovered,setHovered]=useState(false);const group=useRef();const dragging=useRef(false);const plane=useMemo(()=>new THREE.Plane(new THREE.Vector3(0,1,0),0),[]);const hit=useMemo(()=>new THREE.Vector3(),[]);const fabric=palette[theme]||palette.ivory;return <group ref={group} position={[data.x,0,data.z]} rotation={[0,data.rotation||0,0]} onPointerOver={e=>{e.stopPropagation();setHovered(true);document.body.style.cursor='pointer'}} onPointerOut={e=>{e.stopPropagation();setHovered(false);document.body.style.cursor='auto'}} onClick={seatingMode?(e)=>{if(e.shiftKey||e.button!==0)return;const isChair=e.object?.userData?.seatPart;if(isChair)return;e.stopPropagation();onTableSeatSelect?.(data.id)}:undefined} onPointerDown={e=>{if(e.shiftKey || seatingMode || !e.object.userData.moveHandle)return;e.stopPropagation();onSelect({type:'table',id:data.id});if(e.button===0 && tool==='select'){dragging.current=true;onDragStart();if(controlsRef.current)controlsRef.current.enabled=false;e.target.setPointerCapture(e.pointerId)}}} onPointerMove={e=>{if(!dragging.current)return;e.stopPropagation();if(e.ray.intersectPlane(plane,hit)){onMove(data.id,Math.max(-14.2,Math.min(14.2,hit.x)),Math.max(-9.8,Math.min(9.8,hit.z)))}}} onPointerUp={e=>{dragging.current=false;if(controlsRef.current)controlsRef.current.enabled=true;onDragEnd();if(e.target.hasPointerCapture(e.pointerId))e.target.releasePointerCapture(e.pointerId)}}><mesh userData={{moveHandle:true,editable:'table-'+data.id}} position={[0,.77,0]} castShadow receiveShadow><cylinderGeometry args={[.89,.89,.12,40]}/><meshStandardMaterial color={fabric} roughness={.9}/></mesh><mesh position={[0,.42,0]}><cylinderGeometry args={[.12,.25,.65,12]}/><meshStandardMaterial color="#8b8279"/></mesh><DrapedCloth color={fabric}/>{Array.from({length:data.chairs},(_,i)=>{const a=i*Math.PI*2/data.chairs;return <Chair key={i} x={Math.sin(a)*(1.16+(data.gap??.22))} z={Math.cos(a)*(1.16+(data.gap??.22))} angle={a} color={fabric} highlight={!seatingMode&&(highlight||selected)} seatSelected={seatingMode&&seatSelection?.tableId===data.id&&seatSelection?.seatNumber===i+1} seatingMode={seatingMode} dietaryTags={seatDietary[String(data.id)+':'+String(i+1)]||[]} onSeatClick={seatingMode?(e)=>{if(e.shiftKey)return;e.stopPropagation();onSeatClick?.(data.id,i+1)}:undefined}/>})}{decor&&<Flowers variant={flowers}/>} {showTableLabels&&<TableLabel title={data.title?.trim()||`Table ${data.id}`}/>} {(!seatingMode&&(selected||hovered))&&<mesh raycast={()=>null} position={[0,.04,0]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[1.42+(data.gap??.22),1.48+(data.gap??.22),64]}/><meshBasicMaterial color="#ff8800" side={THREE.DoubleSide}/></mesh>}</group>}
-function Stage({data,selected,highlight=false,onSelect,onMove,onDragStart,onDragEnd,controlsRef,tool}){const [hovered,setHovered]=useState(false);const drag=useRef(false),plane=useMemo(()=>new THREE.Plane(new THREE.Vector3(0,1,0),0),[]),hit=useMemo(()=>new THREE.Vector3(),[]);return <group position={[data.x,0,data.z]} rotation={[0,data.rotation||0,0]} onPointerOver={e=>{e.stopPropagation();setHovered(true);document.body.style.cursor='pointer'}} onPointerOut={e=>{e.stopPropagation();setHovered(false);document.body.style.cursor='auto'}} onPointerDown={e=>{if(e.shiftKey || !e.object.userData.moveHandle)return;e.stopPropagation();onSelect({type:'stage'});if(e.button!==0 || tool!=='select')return;drag.current=true;onDragStart();if(controlsRef.current)controlsRef.current.enabled=false;e.target.setPointerCapture(e.pointerId)}} onPointerMove={e=>{if(!drag.current)return;e.stopPropagation();if(e.ray.intersectPlane(plane,hit))onMove(Math.max(-14,Math.min(14,hit.x)),Math.max(-9,Math.min(9,hit.z)))}} onPointerUp={e=>{drag.current=false;if(controlsRef.current)controlsRef.current.enabled=true;onDragEnd();if(e.target.hasPointerCapture(e.pointerId))e.target.releasePointerCapture(e.pointerId)}}><mesh userData={{moveHandle:true,editable:'stage'}} position={[0,.24,0]} castShadow receiveShadow><boxGeometry args={[data.width,.48,data.depth]}/><meshStandardMaterial color="#34363a"/></mesh><Box position={[0,.5,0]} args={[data.width,.045,data.depth]} color="#b7a99a" highlight={highlight||selected}/><Box position={[0,2.3,-data.depth/2+.18]} args={[data.width,3.5,.3]} color="#bdb6a8" highlight={highlight||selected}/>{[-data.width/2+.3,data.width/2-.3].map(v=><Box key={v} position={[v,2.3,-data.depth/2+.35]} args={[.13,3.2,.1]} color="#d5b779" metalness={.6}/>)}{(selected||hovered)&&<mesh raycast={()=>null} position={[0,.03,0]} rotation={[-Math.PI/2,0,0]}><planeGeometry args={[data.width+.4,data.depth+.4]}/><meshBasicMaterial color="#ff8800" transparent opacity={.25}/></mesh>}</group>}
+function Stage({data,selected,highlight=false,onSelect,onMove,onDragStart,onDragEnd,controlsRef,tool}){
+ const [hovered,setHovered]=useState(false);
+ const drag=useRef(false),plane=useMemo(()=>new THREE.Plane(new THREE.Vector3(0,1,0),0),[]),hit=useMemo(()=>new THREE.Vector3(),[]);
+ return <group position={[data.x,0,data.z]} rotation={[0,data.rotation||0,0]}
+  onPointerOver={e=>{e.stopPropagation();setHovered(true);document.body.style.cursor='pointer'}}
+  onPointerOut={e=>{e.stopPropagation();setHovered(false);document.body.style.cursor='auto'}}
+  onPointerDown={e=>{if(e.shiftKey||!e.object.userData.moveHandle)return;e.stopPropagation();onSelect({type:'stage'});if(e.button!==0||tool!=='select')return;drag.current=true;onDragStart();if(controlsRef.current)controlsRef.current.enabled=false;e.target.setPointerCapture(e.pointerId)}}
+  onPointerMove={e=>{if(!drag.current)return;e.stopPropagation();if(e.ray.intersectPlane(plane,hit))onMove(Math.max(-14.2,Math.min(14.2,hit.x)),Math.max(-9,Math.min(9,hit.z)))}}
+  onPointerUp={e=>{drag.current=false;if(controlsRef.current)controlsRef.current.enabled=true;onDragEnd();if(e.target.hasPointerCapture(e.pointerId))e.target.releasePointerCapture(e.pointerId)}}>
+  <mesh userData={{moveHandle:true,editable:'stage'}} position={[0,.2,0]} castShadow receiveShadow>
+   <boxGeometry args={[data.width,.4,data.depth]}/><meshStandardMaterial color="#343333" roughness={.82}/>
+  </mesh>
+  <Box position={[0,.415,0]} args={[data.width,.03,data.depth]} color="#b9aa96" highlight={highlight||selected}/>
+  {[-data.width/2+.1,data.width/2-.1].map(v=><Box key={v} position={[v,.22,0]} args={[.045,.4,data.depth]} color="#95816d"/>)}
+  {(selected||hovered)&&<mesh raycast={()=>null} position={[0,.012,0]} rotation={[-Math.PI/2,0,0]}>
+   <planeGeometry args={[data.width+.35,data.depth+.35]}/><meshBasicMaterial color="#ff8800" transparent opacity={.2} depthWrite={false}/>
+  </mesh>}
+ </group>;
+}
 function AV(){return <group>{[-9.6,0,9.6].map(x=><group key={x}><Box position={[x,6.9,0]} args={[1.3,.2,1.3]} color="#28292b"/><Box position={[x,6.55,0]} args={[1.8,.16,1.5]} color="#44464a"/></group>)}</group>}
 // Single camera controller: no OrbitControls, no fixed orbit target.
 // Left drag translates in the camera's screen plane; Shift+left drag looks around
