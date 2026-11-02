@@ -12,12 +12,24 @@ const DIR='public/data/sg';
 const index=JSON.parse(await readFile(`${DIR}/index.json`,'utf8'));
 const O=index.origin,cosLat=Math.cos(O.lat*Math.PI/180);
 const project=(lat,lon)=>[(lon-O.lon)*111320*cosLat,-(lat-O.lat)*110540];
-const haversine=(a,b)=>{const R=6371008.8,r=Math.PI/180,dLat=(b[0]-a[0])*r,dLon=(b[1]-a[1])*r;const h=Math.sin(dLat/2)**2+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(h))};
+// Vincenty inverse formula on the WGS84 ellipsoid (same Earth model as GPS and
+// Google Earth), accurate to well under a millimetre at these distances.
+function geodesic([lat1,lon1],[lat2,lon2]){
+ const a=6378137,f=1/298.257223563,b=a*(1-f),r=Math.PI/180;
+ const L=(lon2-lon1)*r,U1=Math.atan((1-f)*Math.tan(lat1*r)),U2=Math.atan((1-f)*Math.tan(lat2*r));
+ const sU1=Math.sin(U1),cU1=Math.cos(U1),sU2=Math.sin(U2),cU2=Math.cos(U2);
+ let l=L,lp,sS,cS,s,sA,c2A,c2M;
+ do{const sl=Math.sin(l),cl=Math.cos(l);sS=Math.hypot(cU2*sl,cU1*sU2-sU1*cU2*cl);if(!sS)return 0;cS=sU1*sU2+cU1*cU2*cl;s=Math.atan2(sS,cS);sA=cU1*cU2*sl/sS;c2A=1-sA*sA;c2M=c2A?cS-2*sU1*sU2/c2A:0;
+  const C=f/16*c2A*(4+f*(4-3*c2A));lp=l;l=L+(1-C)*f*sA*(s+C*sS*(c2M+C*cS*(-1+2*c2M*c2M)))}while(Math.abs(l-lp)>1e-12);
+ const u2=c2A*(a*a-b*b)/(b*b),A=1+u2/16384*(4096+u2*(-768+u2*(320-175*u2))),B=u2/1024*(256+u2*(-128+u2*(74-47*u2)));
+ const dS=B*sS*(c2M+B/4*(cS*(-1+2*c2M*c2M)-B/6*c2M*(-3+4*sS*sS)*(-3+4*c2M*c2M)));
+ return b*A*(s-dS);
+}
 
 // 1) projection error over random pairs inside Singapore
 let worst=0,sum=0,n=0;
 for(let i=0;i<4000;i++){const a=[1.21+Math.random()*.25,103.6+Math.random()*.43],b=[a[0]+(Math.random()-.5)*.05,a[1]+(Math.random()-.5)*.05];
- const d=haversine(a,b);if(d<50)continue;const [x1,z1]=project(...a),[x2,z2]=project(...b);const e=Math.abs(Math.hypot(x2-x1,z2-z1)-d)/d;worst=Math.max(worst,e);sum+=e;n++}
+ const d=geodesic(a,b);if(d<50)continue;const [x1,z1]=project(...a),[x2,z2]=project(...b);const e=Math.abs(Math.hypot(x2-x1,z2-z1)-d)/d;worst=Math.max(worst,e);sum+=e;n++}
 
 // 2) landmark heights (metres, published architectural/roof heights)
 const LANDMARKS=[
@@ -31,12 +43,21 @@ const LANDMARKS=[
  [/marina bay sands.*(tower|hotel)/i,'Marina Bay Sands hotel tower',194],
  [/pinnacle@duxton/i,'The Pinnacle@Duxton',156]
 ];
+// A tower in OSM is often a named outline plus unnamed building:parts that
+// carry the real heights. The map draws every part, so the visible height is
+// the tallest part whose centre lies inside the named outline.
+const all=[];
+for(const f of await readdir(`${DIR}/tiles`)){const t=JSON.parse(await readFile(`${DIR}/tiles/${f}`,'utf8'));for(const b of t.b)all.push(b)}
+const centre=p=>{let x=0,z=0;for(let i=0;i<p.length;i+=2){x+=p[i];z+=p[i+1]}return [x/(p.length/2),z/(p.length/2)]};
+const inside=(x,z,p)=>{let c=false;for(let i=0,j=p.length-2;i<p.length;j=i,i+=2){const xi=p[i],zi=p[i+1],xj=p[j],zj=p[j+1];if(((zi>z)!==(zj>z))&&(x<(xj-xi)*(z-zi)/(zj-zi)+xi))c=!c}return c};
+const bbox=p=>{let a=[1e9,1e9,-1e9,-1e9];for(let i=0;i<p.length;i+=2){a[0]=Math.min(a[0],p[i]);a[1]=Math.min(a[1],p[i+1]);a[2]=Math.max(a[2],p[i]);a[3]=Math.max(a[3],p[i+1])}return a};
+const centres=all.map(b=>centre(b[5]));
 const found=new Map();
-for(const f of await readdir(`${DIR}/tiles`)){
- const t=JSON.parse(await readFile(`${DIR}/tiles/${f}`,'utf8'));
- for(const b of t.b){const name=b[3];if(!name)continue;for(const [re,label] of LANDMARKS)if(re.test(name)){const cur=found.get(label);if(!cur||b[0]>cur.h)found.set(label,{h:b[0],name})}}
-}
-const rows=LANDMARKS.map(([,label,ref])=>{const f=found.get(label);if(!f)return `| ${label} | ${ref} m | not named in OSM | – |`;const diff=(f.h-ref)/ref*100;return `| ${label} | ${ref} m | ${f.h} m | ${diff>=0?'+':''}${diff.toFixed(1)} % |`});
+for(const b of all){const name=b[3];if(!name)continue;for(const [re,label] of LANDMARKS)if(re.test(name)){
+ const bb=bbox(b[5]);let h=b[0],parts=0;
+ all.forEach((o,i)=>{const [x,z]=centres[i];if(x<bb[0]||x>bb[2]||z<bb[1]||z>bb[3]||o===b)return;if(inside(x,z,b[5])){parts++;h=Math.max(h,o[0])}});
+ const cur=found.get(label);if(!cur||h>cur.h)found.set(label,{h,name,outline:b[0],parts})}}
+const rows=LANDMARKS.map(([,label,ref])=>{const f=found.get(label);if(!f)return `| ${label} | ${ref} m | not named in OSM | – |`;const diff=(f.h-ref)/ref*100;return `| ${label} | ${ref} m | ${f.h} m${f.parts?` (tallest of ${f.parts} parts)`:''} | ${diff>=0?'+':''}${diff.toFixed(1)} % |`});
 const matched=LANDMARKS.map(([,l,ref])=>{const f=found.get(l);return f?Math.abs(f.h-ref)/ref:null}).filter(x=>x!=null);
 
 // 3) coverage
@@ -47,7 +68,7 @@ Generated ${new Date().toISOString()} from tiles built ${index.generated}.
 
 ## 1. Horizontal scale (projection)
 Footprints and positions come from OpenStreetMap, which is traced from aerial imagery and survey data.
-Our flat-map projection was checked against great-circle distances for ${n} random point pairs across Singapore:
+Our flat-map projection was checked against exact distances on the WGS84 Earth ellipsoid (the model GPS and Google Earth use) for ${n} random point pairs across Singapore:
 
 - mean scale error: **${(sum/n*100).toFixed(3)} %**
 - worst case: **${(worst*100).toFixed(3)} %** (about ${(worst*100).toFixed(2)} m per 100 m)

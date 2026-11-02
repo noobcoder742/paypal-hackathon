@@ -113,6 +113,24 @@ for await (const line of rl(INPUT)){
   }
 }
 
+// Simple 3D Buildings rule: when an outline contains building:parts, the parts
+// carry the shape and heights and the outline itself is not drawn. Without
+// this a 290 m tower would also show a lower box from its outline.
+{
+ const inside=(x,z,p)=>{let c=false;for(let i=0,j=p.length-2;i<p.length;j=i,i+=2){const xi=p[i],zi=p[i+1],xj=p[j],zj=p[j+1];if(((zi>z)!==(zj>z))&&(x<(xj-xi)*(z-zi)/(zj-zi)+xi))c=!c}return c};
+ const ctr=p=>{let x=0,z=0;for(let i=0;i<p.length;i+=2){x+=p[i];z+=p[i+1]}return [x*2/p.length,z*2/p.length]};
+ const partsByTile=new Map();
+ for(const [k,v] of tiles)partsByTile.set(k,v.b.filter(b=>b[4]).map(b=>[...ctr(b[5]),b]));
+ let dropped=0;
+ for(const [k,v] of tiles){const [ix,iz]=k.split('_').map(Number);
+  v.b=v.b.filter(b=>{if(b[4])return true;const p=b[5];let x0=1e9,z0=1e9,x1=-1e9,z1=-1e9;for(let i=0;i<p.length;i+=2){x0=Math.min(x0,p[i]);x1=Math.max(x1,p[i]);z0=Math.min(z0,p[i+1]);z1=Math.max(z1,p[i+1])}
+   let has=false;
+   for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++)for(const [x,z,part] of partsByTile.get((ix+dx)+'_'+(iz+dz))||[])
+    // parts keep the outline's name so landmarks stay searchable
+    if(x>=x0&&x<=x1&&z>=z0&&z<=z1&&inside(x,z,p)){has=true;if(!part[3])part[3]=b[3]}
+   if(has)dropped++;return !has})}
+ stats.outlinesReplacedByParts=dropped;
+}
 await rm(OUT,{recursive:true,force:true});
 await mkdir(OUT+'/tiles',{recursive:true});
 const index={source:'OpenStreetMap contributors (ODbL) via Geofabrik extract + osmium',generated:new Date().toISOString(),origin:SG_ORIGIN,tileSize:TILE,stats,tiles:{}};
