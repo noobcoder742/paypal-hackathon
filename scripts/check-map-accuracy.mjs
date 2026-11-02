@@ -57,7 +57,7 @@ for(const b of all){const name=b[3];if(!name)continue;for(const [re,label] of LA
  const bb=bbox(b[5]);let h=b[0],parts=0;
  all.forEach((o,i)=>{const [x,z]=centres[i];if(x<bb[0]||x>bb[2]||z<bb[1]||z>bb[3]||o===b)return;if(inside(x,z,b[5])){parts++;h=Math.max(h,o[0])}});
  const cur=found.get(label);if(!cur||h>cur.h)found.set(label,{h,name,outline:b[0],parts})}}
-const rows=LANDMARKS.map(([,label,ref])=>{const f=found.get(label);if(!f)return `| ${label} | ${ref} m | not named in OSM | – |`;const diff=(f.h-ref)/ref*100;return `| ${label} | ${ref} m | ${f.h} m${f.parts?` (tallest of ${f.parts} parts)`:''} | ${diff>=0?'+':''}${diff.toFixed(1)} % |`});
+const rows=LANDMARKS.map(([,label,ref])=>{const f=found.get(label);if(!f)return `| ${label} | ${ref} m | not named in OSM | – |`;const diff=(f.h-ref)/ref*100;return `| ${label} | ${ref} m | ${f.h} m${f.parts?` (tallest of ${f.parts} part${f.parts>1?'s':''})`:''} | ${diff>=0?'+':''}${diff.toFixed(1)} % |`});
 const matched=LANDMARKS.map(([,l,ref])=>{const f=found.get(l);return f?Math.abs(f.h-ref)/ref:null}).filter(x=>x!=null);
 
 // 3) coverage
