@@ -40,5 +40,9 @@ jobs:
           git add -A public/data/sg
           if git diff --cached --quiet; then echo "No changes"; exit 0; fi
           git commit -m "Update Singapore map tiles from OpenStreetMap"
-          git pull --rebase origin "${GITHUB_REF_NAME}"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          # retry if someone pushed to the branch while the map was building
+          for i in 1 2 3 4; do
+            git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && exit 0
+            sleep $((i*5))
+          done
+          exit 1

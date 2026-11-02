@@ -1,10 +1,10 @@
 # Map accuracy report
 
-Generated 2026-11-02T19:14:26.075Z from tiles built 2026-11-02T19:13:33.154Z.
+Generated 2026-11-02T19:45:18.710Z from tiles built 2026-11-02T19:13:33.154Z.
 
 ## 1. Horizontal scale (projection)
 Footprints and positions come from OpenStreetMap, which is traced from aerial imagery and survey data.
-Our flat-map projection was checked against exact distances on the WGS84 Earth ellipsoid (the model GPS and Google Earth use) for 3996 random point pairs across Singapore:
+Our flat-map projection was checked against exact distances on the WGS84 Earth ellipsoid (the model GPS and Google Earth use) for 4000 random point pairs across Singapore:
 
 - mean scale error: **0.016 %**
 - worst case: **0.032 %** (about 0.03 m per 100 m)
