@@ -106,3 +106,10 @@ This file documents the prototype. It is not a security audit or certification.
 
 - The hero is one 16:9 frame (full screen height on phones) that starts at the top of the page behind a transparent header. Logo and account button have no fill. The centre links sit in a translucent pill.
 - The hero is followed by three sections: How it works, Venues ready in 3D, and The vendor edit. Category tiles open the Marketplace filtered to that category (`initialCategory` prop).
+
+## Ballroom assets and surroundings (updates_claude)
+
+- `src/studio/assets/ballroomAssets.jsx`: shared PBR materials, cloth/chair/bow geometry built once, instanced chandelier leaves and crystals, instanced place settings, a lattice canvas texture, and `StudioEnvironment` (PMREM RoomEnvironment). Labels use the bundled `public/fonts/LiberationSans-Regular.ttf` (SIL OFL).
+- `scripts/fetch-osm-surroundings.mjs` writes `public/data/orchard-grand-surroundings.json`. The output is in metres, already projected around the hotel's OSM location (x east, z south). The GitHub Action `fetch-city.yml` refreshes it when the script changes, or on demand from the Actions tab.
+- `src/studio/city/CityContext.jsx`: hidden until the camera is 60 m out. Hotel parts that contain the ballroom are drawn as translucent glass. `ORBIT_LIMITS.maxR` and `panRadius` grow when the data exists. Camera near/far and fog scale with zoom.
+- Attribution "© OpenStreetMap contributors (ODbL)" must stay visible wherever the city layer is shown.

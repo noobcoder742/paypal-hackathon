@@ -55,6 +55,7 @@ function splitGroups(geo,capColour,sideColour){
  }
  return out;
 }
+function containsOrigin(poly){let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const[xi,zi]=poly[i],[xj,zj]=poly[j];if(((zi>0)!==(zj>0))&&(0<(xj-xi)*(0-zi)/(zj-zi)+xi))c=!c}return c}
 function buildBuildings(buildings){
  const roofs=[],walls=[],host=[];
  for(const b of buildings){
@@ -62,7 +63,7 @@ function buildBuildings(buildings){
   let geo;
   try{geo=new THREE.ExtrudeGeometry(shapeFrom(b.poly),{depth,bevelEnabled:false})}catch{continue}
   geo.rotateX(-Math.PI/2);geo.translate(0,b.minH||0,0);
-  if(b.host){host.push(geo);continue}
+  if(b.host||containsOrigin(b.poly)){host.push(geo);continue}
   const wallColour=safeColour(b.colour||hashColour(b.poly.length+':'+b.poly[0].join(',')),'#e6e1d8');
   const roofColour=b.roof?safeColour(b.roof,'#9a9a96'):wallColour.clone().multiplyScalar(.82);
   const [caps,sides]=splitGroups(geo,roofColour,wallColour);
@@ -82,7 +83,7 @@ function buildRoads(roads){
    const [x,z]=pts[i],[ax,az]=pts[Math.max(0,i-1)],[bx,bz]=pts[Math.min(pts.length-1,i+1)];
    let dx=bx-ax,dz=bz-az;const len=Math.hypot(dx,dz)||1;dx/=len;dz/=len;
    P.push(x-dz*half,y,z+dx*half,x+dz*half,y,z-dx*half);
-   if(i<pts.length-1){const k=base+i*2;idx.push(k,k+1,k+2,k+1,k+3,k+2)}
+   if(i<pts.length-1){const k=base+i*2;idx.push(k,k+2,k+1,k+1,k+2,k+3)} // counter-clockwise from above
   }
   base+=pts.length*2;
  }

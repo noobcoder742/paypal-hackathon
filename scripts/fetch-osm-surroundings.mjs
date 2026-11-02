@@ -116,8 +116,9 @@ for(const e of data.elements){
 const partCentres=parts.map(p=>centroid(p.poly));
 const outlines=buildings.filter(b=>!partCentres.some(c=>inside(c,b.poly)));
 const all=[...outlines,...parts];
-const hostIndex=all.findIndex(b=>inside([0,0],b.poly));
-if(hostIndex>=0)all[hostIndex].host=true;
+// Every part of the hotel that contains the ballroom (podium and tower) is
+// flagged so the studio can draw it as translucent glass.
+for(const b of all)if(inside([0,0],b.poly))b.host=true;
 
 const out={
  source:'OpenStreetMap contributors (ODbL) via Overpass API',
