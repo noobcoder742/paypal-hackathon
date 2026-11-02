@@ -92,3 +92,17 @@ This file documents the prototype. It is not a security audit or certification.
 - Data currently lives in `localStorage` under `wedding-platform-planner-v1` (`savedItems`, `favourites`, `inventoryQuantities`). Ranking is array order within each category, not a global rank.
 - Future DB should use separate `wishlist_items` and `wedding_inventory_items` tables with unique wedding/product keys, category metadata, optional preference rank, quantity and vendor approval status. Product IDs must be stable.
 - No checkout or reservation is performed by adding to inventory.
+
+## Camera navigation (updates_claude)
+
+- `CameraRig` in `src/main.jsx` now orbits around a floor target instead of moving the camera freely.
+- Dollhouse and Floor plan: left-drag orbits, right-drag or Shift+left-drag pans the target (kept inside the room), wheel or pinch zooms (`ORBIT_LIMITS`).
+- Guest view and seat perspective use an eye-height camera. Dragging looks around and the wheel walks forward or back inside the room.
+- View switches ease from the current camera position toward the new preset (`ORBIT_PRESETS`). Furniture dragging still disables the camera through `controlsRef`.
+- `ORBIT_LIMITS.maxR` is the hook for the planned zoom-out to hotel corridors and the surrounding city (see `docs/redesign/PLAN.md`).
+- Testing note: drei `Text` (troika) downloads font data from cdn.jsdelivr.net at runtime. If that host is blocked, the whole 3D scene stays blank. Before launch, bundle a local font and pass it through the `font` prop.
+
+## Homepage (updates_claude)
+
+- The hero is one 16:9 frame (full screen height on phones) that starts at the top of the page behind a transparent header. Logo and account button have no fill. The centre links sit in a translucent pill.
+- The hero is followed by three sections: How it works, Venues ready in 3D, and The vendor edit. Category tiles open the Marketplace filtered to that category (`initialCategory` prop).
