@@ -588,3 +588,6 @@ header{height:76px;padding:0 30px;background:linear-gradient(110deg,#fff 0%,#fbf
  .home-bento{grid-template-columns:1fr 1fr;grid-auto-rows:130px}.home-tile.big{grid-row:span 1}.home-tile.big h3{font-size:36px}
 }
 @media(max-width:480px){.home-steps{grid-template-columns:1fr}.home-step{border-right:0;margin-right:0;border-bottom:1px solid #e4dbd0}}
+/* Selected table: Apply to all and the titles toggle sit under the title field. */
+.selected-table-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:10px}
+.selected-table-actions .toggle{margin:0}
