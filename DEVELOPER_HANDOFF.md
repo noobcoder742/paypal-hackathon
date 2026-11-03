@@ -182,3 +182,8 @@ Guest view keeps the camera at eye height inside the room, so it can never zoom 
 - Side panel: summary and capacity meter, Selected item above the tabs, then **Layout** (tables, stage and features, room, reset) · **Style** · **Items** (inventory, marketplace selections).
 - Checkboxes in the panel render as switches. Accordions animate where the browser supports `interpolate-size`.
 - All motion respects `prefers-reduced-motion`.
+
+### Map: unblocked venue views (src/explorer/viewFinder.js)
+- Selecting a venue or ballroom no longer flies to a fixed angle. `findClearView` casts rays from points on the venue (centre and corners of each part, mid-height and top) to 24 candidate camera directions and picks the one with the fewest rays passing through neighbouring buildings, preferring the smallest turn. If every side is blocked it tilts towards top-down. Uses tile data only, ~20 ms per venue.
+- Venue ownership (`venueOwnership` in VenueExplorer.jsx): buildings containing a venue point, or the nearest within 40 m, plus OSM buildings nearby with the venue's name, plus every other part of the same building. Parts share a building id (7th field of a tile building row, written by scripts/fetch-sg-map.mjs).
+- For new venues, a point anywhere on the building is enough; matching the OSM name helps.

@@ -7,6 +7,7 @@ import {Canvas,useFrame,useThree} from '@react-three/fiber';
 import {Html} from '@react-three/drei';
 import * as THREE from 'three';
 import {Search,X,ArrowRight,MapPin} from 'lucide-react';
+import {findClearView} from './viewFinder.js';
 import {VENUES,VENUE_CATEGORIES} from '../data/venues.js';
 import {project,pointInPolygon} from './geo.js';
 
@@ -40,13 +41,78 @@ function loadTile(index,key){
  return tileCache.get(key);
 }
 
+/* ---------- which buildings belong to a venue ---------- */
+// A venue's map point may land on one piece of a building that OSM splits
+// into parts (podium, tower...), or just outside its footprint. A venue owns:
+// every building containing one of its points (or the nearest one within
+// 40 m), plus every other part of the same building (shared id, 7th field).
+function distToPoly(x,z,f){let d=Infinity;for(let i=0,j=f.length-2;i<f.length;j=i,i+=2){const ax=f[j],az=f[j+1],bx=f[i],bz=f[i+1],dx=bx-ax,dz=bz-az,l=dx*dx+dz*dz||1,t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/l));d=Math.min(d,Math.hypot(x-ax-t*dx,z-az-t*dz))}return d}
+const normName=n=>(n||'').toLowerCase().replace(/\b(the|singapore|hotel)\b/g,'').replace(/[^a-z0-9]/g,'');
+const ownerCache=new Map();
+function venueOwnership(index,id){
+ if(!ownerCache.has(id))ownerCache.set(id,(async()=>{
+  const g=VENUE_GEO[id],buildings=await buildingsAround(index,g.x,g.z,250),hits=new Set();
+  for(const [px,pz] of g.points){
+   let found=buildings.filter(b=>pointInPolygon(px,pz,b[5]));
+   if(!found.length){let best=null,bd=40;for(const b of buildings){const d=distToPoly(px,pz,b[5]);if(d<bd){bd=d;best=b}}if(best)found=[best]}
+   found.forEach(b=>hits.add(b));
+  }
+  // plus buildings nearby that carry the venue's name in OpenStreetMap
+  const key=normName(VENUES.find(v=>v.id===id).name);
+  if(key.length>=4)for(const b of buildings){const n=normName(b[3]);if(n.length>=4&&(n.includes(key)||key.includes(n))&&b[5].length&&distToPoly(g.x,g.z,b[5])<150)hits.add(b)}
+  const groups=new Set([...hits].map(b=>b[6]).filter(v=>v!=null));
+  return b=>hits.has(b)||(b[6]!=null&&groups.has(b[6]));
+ })());
+ return ownerCache.get(id);
+}
+// Ownership tests for the venues close enough to have buildings in a tile.
+async function ownersNear(index,tileKey){
+ let near=VENUES;
+ if(!index.legacy){const [ix,iz]=tileKey.split('_').map(Number),T=index.tileSize,cx=(ix+.5)*T,cz=(iz+.5)*T;near=VENUES.filter(v=>Math.abs(VENUE_GEO[v.id].x-cx)<T*1.6&&Math.abs(VENUE_GEO[v.id].z-cz)<T*1.6)}
+ return Promise.all(near.map(async v=>({id:v.id,test:await venueOwnership(index,v.id)})));
+}
+
+/* ---------- unblocked camera angle ---------- */
+// Loads the tiles around a point and returns their building rows.
+async function buildingsAround(index,x,z,radius){
+ if(!index)return [];
+ if(index.legacy)return index.data.legacy.b;
+ const T=index.tileSize,keys=[];
+ for(let ix=Math.floor((x-radius)/T);ix<=Math.floor((x+radius)/T);ix++)for(let iz=Math.floor((z-radius)/T);iz<=Math.floor((z+radius)/T);iz++){const k=ix+'_'+iz;if(index.tiles[k])keys.push(k)}
+ const tiles=await Promise.all(keys.map(k=>loadTile(index,k)));
+ return tiles.flatMap(t=>t?.b||[]);
+}
+// Camera angle that sees the venue (or one of its spaces) without a
+// neighbouring building in the way. Falls back to the current angle.
+async function clearViewFor(index,venueId,{r,theta,space,phis}){
+ const g=VENUE_GEO[venueId];
+ try{
+  const buildings=await buildingsAround(index,g.x,g.z,Math.min(r,700));
+  const own=await venueOwnership(index,venueId);
+  let target,samples;
+  if(space){
+   const b=space.box,cx=g.points[0][0]+b.x,cz=g.points[0][1]+b.z,y=b.y,hw=b.width/2,hd=b.depth/2;
+   target={x:cx,z:cz};samples=[[cx,y,cz],[cx-hw,y,cz-hd],[cx+hw,y,cz-hd],[cx-hw,y,cz+hd],[cx+hw,y,cz+hd]];
+  }else{
+   // points through the middle and near the top of each part of the venue
+   const mine=buildings.filter(own);target={x:g.x,z:g.z};
+   // (centre plus up to 6 corners pulled slightly inwards, so the whole
+   // building is in view rather than just its middle)
+   samples=mine.length?mine.slice(0,10).flatMap(([h,minH,,,,f])=>{let x=0,z=0;const n=f.length/2;for(let i=0;i<f.length;i+=2){x+=f[i];z+=f[i+1]}x/=n;z/=n;const mid=minH+(h-minH)*.5,out=[[x,mid,z],[x,h*.95,z]];
+    for(let k=0;k<Math.min(6,n);k++){const i=Math.floor(k*n/Math.min(6,n))*2;out.push([x+(f[i]-x)*.8,mid,z+(f[i+1]-z)*.8])}return out})
+    :g.points.map(([x,z])=>[x,15,z]);
+  }
+  return {...findClearView({buildings,target,samples,r,theta,skip:own,phis}),tx:target.x,tz:target.z};
+ }catch{return null}
+}
+
 /* ---------- geometry ---------- */
 const PALE=['#ece9e3','#e4e0d8','#e9e6e1','#dfdcd6','#f0ede7'],WHITE=new THREE.Color('#ffffff');
 function shapeOf(flat){const pts=[];for(let i=0;i<flat.length;i+=2)pts.push(new THREE.Vector2(flat[i],-flat[i+1]));if(THREE.ShapeUtils.isClockWise(pts))pts.reverse();return new THREE.Shape(pts)}
-function buildTile(data){
+function buildTile(data,owners){
  const ctxP=[],ctxC=[],venueParts={};
- data.b.forEach(([h,minH,col,,isPart,flat],i)=>{
-  const owner=VENUES.find(v=>VENUE_GEO[v.id].points.some(([x,z])=>pointInPolygon(x,z,flat)));
+ data.b.forEach((row,i)=>{
+  const [h,minH,col,,,flat]=row,owner=owners.find(o=>o.test(row));
   let g;try{g=new THREE.ExtrudeGeometry(shapeOf(flat),{depth:Math.max(2,h-minH),bevelEnabled:false})}catch{return}
   g.rotateX(-Math.PI/2);g.translate(0,minH,0);
   if(owner){(venueParts[owner.id]=venueParts[owner.id]||[]).push(g);return}
@@ -71,7 +137,7 @@ const MATS={
 
 function Tile({tileKey,index,focus,onVenueBounds}){
  const [built,setBuilt]=useState(null);
- useEffect(()=>{let live=true;loadTile(index,tileKey).then(d=>{if(live&&d)setBuilt(buildTile(d))});return()=>{live=false}},[tileKey,index]);
+ useEffect(()=>{let live=true;loadTile(index,tileKey).then(async d=>{if(!d)return;const owners=await ownersNear(index,tileKey);if(live)setBuilt(buildTile(d,owners))});return()=>{live=false}},[tileKey,index]);
  useEffect(()=>()=>{if(built){built.ctx.dispose();built.roads.dispose();built.green.dispose();built.water.dispose();Object.values(built.venueParts).flat().forEach(g=>g.dispose())}},[built]);
  useEffect(()=>{if(!built)return;Object.entries(built.venueParts).forEach(([id,parts])=>{const box=new THREE.Box3();parts.forEach(g=>{g.computeBoundingBox();box.union(g.boundingBox)});onVenueBounds(id,box)})},[built,onVenueBounds]);
  if(!built)return null;
@@ -174,9 +240,15 @@ export default function VenueExplorer({onOpenSpace,initialVenueId=null}){
  const flyTo=useCallback((to,dur=1600,onArrive)=>{const r=rigRef.current;r.fly={from:{...r.cur},to:{...r.cur,...to},t0:performance.now(),dur};r.onArrive=onArrive},[]);
  const onVenueBounds=useCallback((id,box)=>setHeights(h=>h[id]>=box.max.y?h:{...h,[id]:box.max.y}),[]);
  const venue=VENUES.find(v=>v.id===focus.venueId),space=venue?.spaces.find(s=>s.id===focus.spaceId);
- const select=useCallback(id=>{const g=VENUE_GEO[id];setFocus({venueId:id,spaceId:null});setResultsOpen(false);setQuery(VENUES.find(v=>v.id===id).name);flyTo({tx:g.x,tz:g.z,r:420,phi:.95,theta:rigRef.current.cur.theta+.35})},[flyTo]);
+ const indexRef=useRef(null);indexRef.current=index;
+ const select=useCallback(async id=>{const g=VENUE_GEO[id];setFocus({venueId:id,spaceId:null});setResultsOpen(false);setQuery(VENUES.find(v=>v.id===id).name);
+  const theta=rigRef.current.cur.theta+.35,view=await clearViewFor(indexRef.current,id,{r:420,theta});
+  flyTo({tx:g.x,tz:g.z,r:420,phi:view?.phi??.95,theta:view?.theta??theta})},[flyTo]);
  useEffect(()=>{if(initialVenueId&&VENUE_GEO[initialVenueId])setTimeout(()=>select(initialVenueId),300)},[initialVenueId,select]);
- const pickSpace=s=>{const g=VENUE_GEO[venue.id];setFocus(f=>({...f,spaceId:s.id}));flyTo({tx:g.points[0][0]+s.box.x,tz:g.points[0][1]+s.box.z,r:230,phi:.5,theta:rigRef.current.cur.theta+.25})};
+ const pickSpace=async s=>{const g=VENUE_GEO[venue.id];setFocus(f=>({...f,spaceId:s.id}));
+  // the hotel turns translucent, so only neighbouring buildings can block the ballroom
+  const theta=rigRef.current.cur.theta+.25,view=await clearViewFor(index,venue.id,{r:230,theta,space:s,phis:[.55,.42,.3,.18]});
+  flyTo({tx:g.points[0][0]+s.box.x,tz:g.points[0][1]+s.box.z,r:230,phi:view?.phi??.5,theta:view?.theta??theta})};
  const openSpace=()=>{if(!space)return;const g=VENUE_GEO[venue.id];setDiving(true);flyTo({tx:g.points[0][0]+space.box.x,tz:g.points[0][1]+space.box.z,r:45,phi:.9},1100,()=>onOpenSpace(venue.id,space.id))};
  const close=()=>{setFocus({venueId:null,spaceId:null});flyTo({r:1900,phi:.8})};
  const results=VENUES.filter(v=>(filter==='all'||v.category===filter)&&v.name.toLowerCase().includes(query.toLowerCase()));
