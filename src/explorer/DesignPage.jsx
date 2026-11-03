@@ -6,11 +6,12 @@
 import React,{useEffect,useState,useCallback} from 'react';
 import {ArrowLeft,Plus,Columns2,X,Trash2} from 'lucide-react';
 import VenueExplorer from './VenueExplorer.jsx';
-import {findVenue,findSpace} from '../data/venues.js';
+import {VENUES,findVenue,findSpace} from '../data/venues.js';
 
 const KEY='wedding-design-v1';
 const BASE_STORAGE={'orchard-grand/grand-ballroom':'wedding-room-v1'};
-const LETTERS=['A','B','C'],MAX_DRAFTS=3;
+export const MAX_DRAFTS_PER_VENUE=2;
+const LETTERS=['A','B','C'];
 const read=()=>{try{return JSON.parse(localStorage.getItem(KEY))||{}}catch{return {}}};
 const write=v=>{try{localStorage.setItem(KEY,JSON.stringify(v))}catch{}};
 const storageFor=(studio,letter)=>{const base=BASE_STORAGE[studio]||('wedding-room:'+studio);return letter==='A'?base:base+':draft-'+letter};
@@ -19,6 +20,13 @@ const savedLayout=key=>{try{return JSON.parse(localStorage.getItem(key))}catch{r
 function captureThumbnail(){
  const src=document.querySelector('.viewer canvas');if(!src)return null;
  try{const w=360,h=Math.round(src.height/src.width*w)||200,c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(src,0,0,w,h);return c.toDataURL('image/jpeg',.72)}catch{return null}
+}
+const emptyDrafts={list:['A'],active:'A',thumbs:{},savedAt:{}};
+/** Drafts with a saved layout, per venue (shown on the map under the hotel name). */
+export function savedDraftCounts(state=read()){
+ const out={};
+ for(const v of VENUES){let n=0;for(const sp of v.spaces){const d=state.drafts?.[sp.studio]||emptyDrafts;n+=d.list.filter(l=>savedLayout(storageFor(sp.studio,l))).length}if(n)out[v.id]=n}
+ return out;
 }
 function summarise(layout){
  if(!layout)return null;
@@ -36,8 +44,11 @@ export default function DesignPage({Studio,planner,onPlannerChange,onNavigate,in
  const drafts=(spaceKey&&state.drafts?.[spaceKey])||{list:['A'],active:'A',thumbs:{},savedAt:{}};
  const patchDrafts=useCallback(fn=>setState(s=>{const cur=(s.drafts?.[spaceKey])||{list:['A'],active:'A',thumbs:{},savedAt:{}};return {...s,drafts:{...(s.drafts||{}),[spaceKey]:fn(cur)}}}),[spaceKey]);
 
+ // drafts across every space of this hotel count towards its limit of 2
+ const venueDraftTotal=venue?venue.spaces.reduce((n,sp)=>n+((state.drafts?.[sp.studio]||emptyDrafts).list.length),0):0;
+ const canAddDraft=venueDraftTotal<MAX_DRAFTS_PER_VENUE;
  const openSpace=(venueId,spaceId)=>{setState(s=>({...s,venueId,spaceId}));setMode('studio');window.scrollTo?.(0,0)};
- const newDraft=()=>{if(drafts.list.length>=MAX_DRAFTS)return;const letter=LETTERS.find(l=>!drafts.list.includes(l));
+ const newDraft=()=>{if(!canAddDraft)return;const letter=LETTERS.find(l=>!drafts.list.includes(l));
   // Start the new draft from the current draft's last saved layout.
   const from=savedLayout(storageFor(spaceKey,drafts.active));if(from)localStorage.setItem(storageFor(spaceKey,letter),JSON.stringify(from));
   patchDrafts(d=>({...d,list:[...d.list,letter],active:letter,thumbs:{...d.thumbs,[letter]:d.thumbs[d.active]},savedAt:{...d.savedAt,[letter]:Date.now()}}))};
@@ -45,13 +56,13 @@ export default function DesignPage({Studio,planner,onPlannerChange,onNavigate,in
   patchDrafts(d=>({...d,list:d.list.filter(l=>l!==letter),active:d.active===letter?'A':d.active}))};
  const onSaved=()=>requestAnimationFrame(()=>{const thumb=captureThumbnail();patchDrafts(d=>({...d,thumbs:{...d.thumbs,[d.active]:thumb||d.thumbs[d.active]},savedAt:{...d.savedAt,[d.active]:Date.now()}}))});
 
- if(mode==='map'||!venue||!space)return <VenueExplorer initialVenueId={state.venueId} onOpenSpace={openSpace}/>;
+ if(mode==='map'||!venue||!space)return <VenueExplorer initialVenueId={state.venueId} onOpenSpace={openSpace} draftCounts={savedDraftCounts(state)}/>;
 
  const header=<div className="draft-bar">
   <button type="button" className="draft-back" onClick={()=>setMode('map')}><ArrowLeft size={14}/> {venue.name} on the map</button>
   <div className="draft-chips" role="tablist" aria-label="Drafts">
    {drafts.list.map(l=><button type="button" role="tab" aria-selected={drafts.active===l} key={l} className={drafts.active===l?'on':''} onClick={()=>patchDrafts(d=>({...d,active:l}))}>Draft {l}</button>)}
-   {drafts.list.length<MAX_DRAFTS?<button type="button" className="draft-new" onClick={newDraft}><Plus size={13}/> New draft</button>:<span className="draft-max">3 of 3 drafts</span>}
+   {canAddDraft?<button type="button" className="draft-new" onClick={newDraft}><Plus size={13}/> New draft</button>:<span className="draft-max">{MAX_DRAFTS_PER_VENUE} of {MAX_DRAFTS_PER_VENUE} drafts for this hotel</span>}
    {drafts.list.length>1&&<button type="button" className="draft-compare" onClick={()=>setComparing(true)}><Columns2 size={13}/> Compare</button>}
   </div>
   <p className="draft-hint">Switching drafts keeps only saved changes.</p>
