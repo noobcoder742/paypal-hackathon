@@ -90,9 +90,9 @@ const FIELDS=[
  ['Your taste',[['style','Wedding style','style',true],['venueType','Venue type','venueType',true],['area','Preferred area','area',true]]],
  ['Where you are',[['stage','Planning stage','stage'],['heardFrom','How you found us','heardFrom']]]
 ];
-export function ProfilePage({planner,patch,go}){
+export function ProfilePage({planner,patch,go,signedInEmail}){
  const profile=planner.profile||{},set=(k,v)=>k==='date'?patch({date:v}):patch({profile:{...profile,[k]:v}});
- const val=k=>k==='date'?planner.date:profile[k];
+ const val=k=>k==='date'?planner.date:k==='email'&&signedInEmail?signedInEmail:profile[k];
  const all=FIELDS.flatMap(([,f])=>f),filled=all.filter(([k])=>{const v=val(k);return Array.isArray(v)?v.length:v!==undefined&&v!==''}).length;
  const toggle=(k,o)=>{const cur=Array.isArray(profile[k])?profile[k]:[];set(k,cur.includes(o)?cur.filter(x=>x!==o):[...cur,o])};
  return <main className="acct-page prof">
@@ -107,7 +107,7 @@ export function ProfilePage({planner,patch,go}){
     if(OPTIONS[type])return multi
      ?<div key={k} className="prof-field wide"><span>{label} <small>choose any</small></span><div className="prof-chips">{OPTIONS[type].map(o=>{const on=(profile[k]||[]).includes(o);return <button type="button" key={o} className={on?'on':''} aria-pressed={on} onClick={()=>toggle(k,o)}>{on&&<Check size={13}/>}{o}</button>})}</div></div>
      :<div key={k} className="prof-field wide"><span>{label}</span><div className="prof-chips">{OPTIONS[type].map(o=><button type="button" key={o} className={val(k)===o?'on':''} aria-pressed={val(k)===o} onClick={()=>set(k,val(k)===o?'':o)}>{o}</button>)}</div></div>;
-    return <label key={k} className="prof-field"><span>{label}{k==='email'&&<small> locks to your account after sign-in</small>}</span><input type={type} value={val(k)||''} min={type==='number'?18:undefined} max={type==='number'?100:undefined} placeholder={k==='email'?'you@example.com':''} onChange={e=>set(k,type==='number'?(e.target.value?Math.max(0,Number(e.target.value)):''):e.target.value)}/></label>;
+    return <label key={k} className="prof-field"><span>{label}{k==='email'&&<small>{signedInEmail?' the email you signed in with':' locks to your account after sign-in'}</small>}</span><input readOnly={k==='email'&&!!signedInEmail} type={type} value={val(k)||''} min={type==='number'?18:undefined} max={type==='number'?100:undefined} placeholder={k==='email'?'you@example.com':''} onChange={e=>set(k,type==='number'?(e.target.value?Math.max(0,Number(e.target.value)):''):e.target.value)}/></label>;
    })}</div>
   </Reveal>)}
   <p className="acct-note"><ShieldCheck size={15}/> Stored on this device only for now. Answers are used for anonymised analytics only if you allow it in <button className="text-link" onClick={()=>go('settings')}>Settings</button>.</p>
