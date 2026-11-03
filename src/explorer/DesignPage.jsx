@@ -39,7 +39,7 @@ function summarise(layout){
  return {tables:tables.length,seats:tables.reduce((s,t)=>s+(t.chairs||0),0),theme:layout.theme,lighting:layout.lighting==='warm'?'Warm evening':'Bright daylight',flowers:layout.flowers,items:(layout.inventory||[]).length};
 }
 
-export default function DesignPage({Studio,planner,onPlannerChange,onNavigate,initialMode}){
+export default function DesignPage({Studio,planner,onPlannerChange,onNavigate,initialMode,assignGuestId=null,onAssignDone}){
  const [state,setState]=useState(read);
  const [mode,setMode]=useState(()=>read().venueId?'studio':'map');
  const [comparing,setComparing]=useState(false);
@@ -74,7 +74,7 @@ export default function DesignPage({Studio,planner,onPlannerChange,onNavigate,in
  </div>;
 
  return <>
-  <Studio onMapVenue={id=>{setState(s=>({...s,venueId:id,spaceId:id===s.venueId?s.spaceId:null}));setMode('map')}} key={storageFor(spaceKey,drafts.active)} storageKey={storageFor(spaceKey,drafts.active)} headerExtras={header} onSaved={onSaved} onNavigate={onNavigate} planner={planner} onPlannerChange={onPlannerChange} initialMode={initialMode}/>
+  <Studio assignGuestId={assignGuestId} onAssignDone={onAssignDone} onMapVenue={id=>{setState(s=>({...s,venueId:id,spaceId:id===s.venueId?s.spaceId:null}));setMode('map')}} key={storageFor(spaceKey,drafts.active)} storageKey={storageFor(spaceKey,drafts.active)} headerExtras={header} onSaved={onSaved} onNavigate={onNavigate} planner={planner} onPlannerChange={onPlannerChange} initialMode={initialMode}/>
   {comparing&&<div className="compare-overlay" role="dialog" aria-modal="true" aria-label="Compare drafts" onClick={e=>{if(e.target===e.currentTarget)setComparing(false)}}>
    <div className="compare-sheet">
     <div className="compare-head"><div><span className="label">{venue.name} · {space.name}</span><h2>Compare drafts</h2></div><button type="button" aria-label="Close" onClick={()=>setComparing(false)}><X size={20}/></button></div>

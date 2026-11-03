@@ -5,6 +5,7 @@ import Marketplace from './marketplace/Marketplace.jsx';
 import DesignPage from '../explorer/DesignPage.jsx';
 import {demoListings} from './marketplace/Marketplace.jsx';
 import PlannerPage from './planner/PlannerPage.jsx';
+import {dietLabel} from './planner/GuestsSection.jsx';
 import {MyWeddingPage,ProfilePage,SettingsPage} from './account/AccountPages.jsx';
 import {applyGlobalSettings} from '../data/settings.js';
 /** @prototype STORAGE: Browser localStorage only. No account sync, encryption, server validation or multi-user collaboration. */
@@ -47,17 +48,22 @@ export default function PlatformApp({Studio}){
  const completed=planner.tasks.filter(t=>t.done).length,percent=Math.round(100*completed/Math.max(1,planner.tasks.length));
  const nav=[['market','Marketplace'],['studio','Design'],['plan','Planner']];
  const openPlan=tab=>{setPlanTab(tab);go('plan')};
+ // Seat assignment from the guest list: open the seating studio with the guest
+ // ready, then come back to the list once their seat is confirmed.
+ const [assignGuestId,setAssignGuestId]=useState(null);
+ const startAssign=id=>{setAssignGuestId(id);setStudioStartMode('seating');setPage('studio');setMenu(false);window.scrollTo?.(0,0)};
+ const finishAssign=result=>{setAssignGuestId(null);if(result){setNotice(`${result.guest.name||'Guest'} seated at Table ${result.tableId} · Seat ${result.seatNumber}`);setTimeout(()=>setNotice(''),2800)}setPlanTab('guests');setPage('plan');window.scrollTo?.(0,0)};
  const go=(next,options={})=>{if(next==='studio')setStudioStartMode('design');if(next==='market')setMarketCategory(options.category||null);setPage(next);setMenu(false);window.scrollTo?.(0,0)};
  // @integration MARKETPLACE_SAVES: Save only to local planner; no vendor reservation or stock allocation.
  const addItem=item=>{if(planner.savedItems.some(x=>x.id===item.id))return;patch({savedItems:[...planner.savedItems,item]});setNotice(item.name+' saved to your wedding');setTimeout(()=>setNotice(''),2400)};
  // @prototype FAVOURITES: Category-based order is stored locally; venue listings are excluded.
  const toggleFavourite=item=>setPlanner(prev=>({...prev,favourites:prev.favourites.some(x=>x.id===item.id)?prev.favourites.filter(x=>x.id!==item.id):[...prev.favourites,item]}));
  const moveFavourite=(category,id,direction)=>setPlanner(prev=>{const all=[...prev.favourites];const indices=all.map((x,i)=>x.category===category?i:-1).filter(i=>i>=0);const index=indices.findIndex(i=>all[i].id===id);const other=index+direction;if(other<0||other>=indices.length)return prev;[all[indices[index]],all[indices[other]]]=[all[indices[other]],all[indices[index]]];return {...prev,favourites:all}});
- const addGuest=()=>patch({guests:[...planner.guests,{id:'g'+Date.now(),name:'',side:'',group:'',email:'',rsvp:'Pending',diet:'',tableId:'',seatId:'',checkedIn:false,gift:''}]});
+ const addGuest=(side='')=>patch({guests:[...planner.guests,{id:'g'+Date.now(),name:'',side,diets:[],group:'',email:'',rsvp:'Pending',diet:'',tableId:'',seatId:'',checkedIn:false,gift:''}]});
  const updateGuest=(id,changes)=>patch({guests:planner.guests.map(g=>g.id===id?{...g,...changes}:g)});
  const updateTask=(id,done)=>patch({tasks:planner.tasks.map(t=>t.id===id?{...t,done}:t)});
  // @prototype CSV_EXPORT: Local browser download. No secure sharing, invitation delivery, or server-side retention policy.
- const exportGuests=()=>{const rows=[['Name','Side','Group','Email','RSVP','Diet','Table','Seat','Checked in'],...planner.guests.map(g=>[g.name,g.side,g.group,g.email,g.rsvp,g.diet,g.tableId,g.seatId,g.checkedIn?'Yes':'No'])];const csv=rows.map(r=>r.map(x=>'"'+String(x??'').replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='wedding-guests.csv';a.click();URL.revokeObjectURL(a.href)};
+ const exportGuests=()=>{const rows=[['Name','Side','Group','Email','RSVP','Diet','Table','Seat','Checked in'],...planner.guests.map(g=>[g.name,{hers:'Hers',his:'His',both:'Both sides'}[g.side]||'',g.group,g.email,g.rsvp,dietLabel(g),g.tableId,g.seatId,g.checkedIn?'Yes':'No'])];const csv=rows.map(r=>r.map(x=>'"'+String(x??'').replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='wedding-guests.csv';a.click();URL.revokeObjectURL(a.href)};
  return <div className={"platform-root "+(page==='home'?'platform-home':'platform-interior')}>
  <nav className="platform-nav"><button className="platform-logo" onClick={()=>go('home')}><span>W</span><strong>Wedding Studio</strong></button><div className="platform-links platform-links-centered nav-pill" ref={navRef}><span className="slide-ind" aria-hidden="true"/>{nav.map(([key,label])=><button key={key} onClick={()=>go(key)} className={page===key?'active':''}>{label}</button>)}</div><div className="platform-nav-right"><div className="account-menu"><button aria-label="Account" aria-expanded={menu} className="account-trigger" onClick={()=>setMenu(!menu)}><UserRound size={18}/><ChevronDown size={13}/></button>{menu&&<div className="account-popover">{[['dashboard','My wedding',Heart],['profile','Profile',UserRound],['settings','Settings',Settings]].map(([id,label,Icon])=><button key={id} onClick={()=>go(id)}><Icon size={16}/>{label}</button>)}<button onClick={()=>{setMenu(false);setNotice('Accounts are not connected yet. Sign-out will be available after authentication is added.')}}><LogOut size={16}/>Log out <small>Coming soon</small></button></div>}</div><button className="mobile-nav-toggle" onClick={()=>setMobile(!mobile)} aria-label="Toggle navigation"><Menu size={20}/></button></div></nav>
  {mobile&&<div className="mobile-nav">{nav.map(([id,label])=><button key={id} onClick={()=>{go(id);setMobile(false)}}>{label}</button>)}</div>}
@@ -91,11 +97,11 @@ export default function PlatformApp({Studio}){
  </div>}
  {/* @legacy VENUES_PAGE: Older direct venue preview route. Venue discovery now belongs in Marketplace. */}
  {page==='venues'&&<main className="platform-page"><div className="page-eyebrow">VENUE COLLECTION</div><h1>Find your perfect setting.</h1><p className="page-lede">Explore a venue and design your celebration in 3D. More Singapore venues will be added as models are verified.</p><div className="venue-preview-card"><div className="venue-art"><span>THE ORCHARD GRAND</span><div className="venue-arch"/></div><div className="venue-preview-info"><small>SINGAPORE · ORCHARD</small><h2>Grand Ballroom</h2><p>Interactive concept model. Architectural fixtures and placement remain estimates.</p><button onClick={()=>go('studio')}>Enter 3D studio <ArrowRight size={16}/></button></div></div></main>}
- {page==='studio'&&<div className="embedded-studio"><DesignPage Studio={Studio} onNavigate={go} planner={planner} onPlannerChange={setPlanner} initialMode={studioStartMode}/></div>}
+ {page==='studio'&&<div className="embedded-studio"><DesignPage Studio={Studio} onNavigate={go} planner={planner} onPlannerChange={setPlanner} initialMode={studioStartMode} assignGuestId={assignGuestId} onAssignDone={finishAssign}/></div>}
  {page==='market'&&<Marketplace key={marketCategory||'all'} initialCategory={marketCategory} onBack={()=>go('home')} onAdd={addItem} added={planner.savedItems.map(x=>x.id)} favourites={planner.favourites.map(x=>x.id)} onToggleFavourite={toggleFavourite} onStartDesign={()=>go('studio')} onPlan={()=>{setPlanTab('vendors');go('plan')}}/>}
  {page==='dashboard'&&<MyWeddingPage planner={planner} go={go} openPlan={openPlan} percent={percent} completed={completed}/>}
  {/* @prototype PLANNER: RSVP, guest check-in, vendor payments and notes are local workflows, not production integrations. */}
- {page==='plan'&&<PlannerPage planner={planner} patch={patch} planTab={planTab} setPlanTab={setPlanTab} completed={completed} percent={percent} exportGuests={exportGuests} addGuest={addGuest} updateGuest={updateGuest} updateTask={updateTask} toggleFavourite={toggleFavourite} moveFavourite={moveFavourite} vendorTab={vendorTab} setVendorTab={setVendorTab} go={go} openSeating={()=>{setStudioStartMode('seating');setPage('studio')}}/>}
+ {page==='plan'&&<PlannerPage planner={planner} patch={patch} planTab={planTab} setPlanTab={setPlanTab} completed={completed} percent={percent} exportGuests={exportGuests} addGuest={addGuest} updateGuest={updateGuest} updateTask={updateTask} toggleFavourite={toggleFavourite} moveFavourite={moveFavourite} vendorTab={vendorTab} setVendorTab={setVendorTab} go={go} openSeating={()=>{setStudioStartMode('seating');setPage('studio')}} onAssign={startAssign}/>}
  {page==='profile'&&<ProfilePage planner={planner} patch={patch} go={go}/>}
  {/* @integration AUTH: Profile dropdown Log out is intentionally disabled until account authentication exists. */}
  {page==='settings'&&<SettingsPage planner={planner} resetPlanner={()=>{setPlanner(initial);localStorage.removeItem(KEY)}} notify={t=>{setNotice(t);setTimeout(()=>setNotice(''),2400)}}/>}
