@@ -121,13 +121,14 @@ for await (const line of rl(INPUT)){
  const ctr=p=>{let x=0,z=0;for(let i=0;i<p.length;i+=2){x+=p[i];z+=p[i+1]}return [x*2/p.length,z*2/p.length]};
  const partsByTile=new Map();
  for(const [k,v] of tiles)partsByTile.set(k,v.b.filter(b=>b[4]).map(b=>[...ctr(b[5]),b]));
- let dropped=0;
+ let dropped=0,group=0;
  for(const [k,v] of tiles){const [ix,iz]=k.split('_').map(Number);
   v.b=v.b.filter(b=>{if(b[4])return true;const p=b[5];let x0=1e9,z0=1e9,x1=-1e9,z1=-1e9;for(let i=0;i<p.length;i+=2){x0=Math.min(x0,p[i]);x1=Math.max(x1,p[i]);z0=Math.min(z0,p[i+1]);z1=Math.max(z1,p[i+1])}
-   let has=false;
+   let has=false;const id=++group;
    for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++)for(const [x,z,part] of partsByTile.get((ix+dx)+'_'+(iz+dz))||[])
-    // parts keep the outline's name so landmarks stay searchable
-    if(x>=x0&&x<=x1&&z>=z0&&z<=z1&&inside(x,z,p)){has=true;if(!part[3])part[3]=b[3]}
+    // parts keep the outline's name so landmarks stay searchable, and a shared
+    // building id (7th field) so the map can treat them as one building
+    if(x>=x0&&x<=x1&&z>=z0&&z<=z1&&inside(x,z,p)){has=true;if(!part[3])part[3]=b[3];if(part[6]==null)part[6]=id}
    if(has)dropped++;return !has})}
  stats.outlinesReplacedByParts=dropped;
 }
