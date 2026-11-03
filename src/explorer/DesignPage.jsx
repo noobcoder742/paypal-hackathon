@@ -9,7 +9,7 @@
 // @todo PAYWALL: a later free tier caps drafts at 3 in total across all
 // hotels, with more on a paid plan. Not built yet; see docs/roadmap.md.
 import React,{useEffect,useState,useCallback} from 'react';
-import {ArrowLeft,Plus,Columns2,X,Trash2} from 'lucide-react';
+import {ArrowLeft,ArrowUpRight,Plus,Columns2,X,Trash2,Map as MapIcon} from 'lucide-react';
 import VenueExplorer from './VenueExplorer.jsx';
 import {VENUES,findVenue,findSpace} from '../data/venues.js';
 
@@ -64,7 +64,7 @@ export default function DesignPage({Studio,planner,onPlannerChange,onNavigate,in
  if(mode==='map'||!venue||!space)return <VenueExplorer initialVenueId={state.venueId} onOpenSpace={openSpace} draftCounts={savedDraftCounts(state)}/>;
 
  const header=<div className="draft-bar">
-  <button type="button" className="draft-back" onClick={()=>setMode('map')}><ArrowLeft size={14}/> {venue.name} on the map</button>
+  <button type="button" className="draft-back" onClick={()=>setMode('map')}><span className="draft-back-ic"><MapIcon size={15}/></span><span><b>Hotel selections on the map</b><small>Currently designing at {venue.name}</small></span><ArrowUpRight size={15} className="draft-back-arrow"/></button>
   <div className="draft-chips" role="tablist" aria-label="Drafts">
    {drafts.list.map(l=><button type="button" role="tab" aria-selected={drafts.active===l} key={l} className={drafts.active===l?'on':''} onClick={()=>patchDrafts(d=>({...d,active:l}))}>Draft {l}</button>)}
    {canAddDraft?<button type="button" className="draft-new" onClick={newDraft}><Plus size={13}/> New draft</button>:<span className="draft-max">{MAX_DRAFTS_PER_VENUE} of {MAX_DRAFTS_PER_VENUE} drafts for this hotel</span>}
@@ -74,7 +74,7 @@ export default function DesignPage({Studio,planner,onPlannerChange,onNavigate,in
  </div>;
 
  return <>
-  <Studio key={storageFor(spaceKey,drafts.active)} storageKey={storageFor(spaceKey,drafts.active)} headerExtras={header} onSaved={onSaved} onNavigate={onNavigate} planner={planner} onPlannerChange={onPlannerChange} initialMode={initialMode}/>
+  <Studio onMapVenue={id=>{setState(s=>({...s,venueId:id,spaceId:id===s.venueId?s.spaceId:null}));setMode('map')}} key={storageFor(spaceKey,drafts.active)} storageKey={storageFor(spaceKey,drafts.active)} headerExtras={header} onSaved={onSaved} onNavigate={onNavigate} planner={planner} onPlannerChange={onPlannerChange} initialMode={initialMode}/>
   {comparing&&<div className="compare-overlay" role="dialog" aria-modal="true" aria-label="Compare drafts" onClick={e=>{if(e.target===e.currentTarget)setComparing(false)}}>
    <div className="compare-sheet">
     <div className="compare-head"><div><span className="label">{venue.name} · {space.name}</span><h2>Compare drafts</h2></div><button type="button" aria-label="Close" onClick={()=>setComparing(false)}><X size={20}/></button></div>

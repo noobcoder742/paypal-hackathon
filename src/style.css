@@ -781,8 +781,13 @@ h1,h2,h3{text-wrap:balance}
 
 /* ---------- drafts + compare ---------- */
 .draft-bar{display:grid;gap:8px;margin-top:8px}
-.draft-back{justify-self:start;display:inline-flex;align-items:center;gap:6px;border:0;background:none;padding:0;color:var(--ink-mute);font-size:12.5px}
-.draft-back:hover{color:var(--ink)}
+.draft-back{justify-self:stretch;display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:1px solid rgba(142,59,70,.28);background:var(--accent-soft);border-radius:14px;padding:10px 14px;color:var(--ink);font-size:13px;transition:transform .3s var(--spring),box-shadow .3s,border-color .3s}
+.draft-back:hover{transform:translateY(-1px);box-shadow:0 10px 24px -14px rgba(142,59,70,.6);border-color:var(--accent)}
+.draft-back>span:nth-child(2){flex:1;display:flex;flex-direction:column;gap:1px}
+.draft-back b{font-weight:600;color:var(--accent);font-size:13.5px}
+.draft-back small{color:var(--ink-mute);font-size:11.5px}
+.draft-back-ic{flex:none;width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:#fff;color:var(--accent);box-shadow:0 2px 8px var(--shadow)}
+.draft-back-arrow{color:var(--accent);flex:none}
 .draft-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
 .draft-chips button{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line-strong);background:none;border-radius:999px;padding:6px 12px;font-size:12.5px;color:var(--ink-soft);transition:background .2s,color .2s}
 .draft-chips button.on{background:var(--ink);color:#fff;border-color:var(--ink)}

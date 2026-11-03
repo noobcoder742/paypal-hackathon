@@ -298,6 +298,32 @@ function Pins({focus,heights,onSelect,filter,draftCounts={}}){
   </Html>})}</>;
 }
 
+/**
+ * The city as drawn on the venue map: ground, large parks/water, tiles with
+ * the venue buildings, listed-hotel details, the Orchard district layer and
+ * extra detail around a focused venue. Used by the venue map and by the
+ * studio's Map view so both always show the same thing.
+ * rigRef.current.cur = {tx,tz,r} in map coordinates drives tile loading.
+ */
+export function CityLayers({index,rigRef,focus,details=true,onVenueBounds=()=>{}}){
+ const [venueRows,setVenueRows]=useState({});
+ const onVenueRows=useCallback((id,rows)=>setVenueRows(v=>{const cur=v[id]||[];const add=rows.filter(r=>!cur.includes(r));return add.length?{...v,[id]:[...cur,...add]}:v}),[]);
+ const [nearby,setNearby]=useState(null);
+ useEffect(()=>{if(!index||!focus.venueId){setNearby(null);return}let live=true;const g=VENUE_GEO[focus.venueId];
+  (async()=>{const T=index.tileSize,keys=[];if(index.legacy)keys.push('legacy');else for(let ix=Math.floor((g.x-400)/T);ix<=Math.floor((g.x+400)/T);ix++)for(let iz=Math.floor((g.z-400)/T);iz<=Math.floor((g.z+400)/T);iz++)if(index.tiles[ix+'_'+iz])keys.push(ix+'_'+iz);
+   const tiles=(await Promise.all(keys.map(k=>loadTile(index,k)))).filter(Boolean);const skip=await venueOwnership(index,focus.venueId);if(live)setNearby({tiles,x:g.x,z:g.z,skip})})();
+  return()=>{live=false}},[index,focus.venueId]);
+ return <>
+  <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.05,0]} raycast={()=>null} receiveShadow renderOrder={-4}><planeGeometry args={[80000,80000]}/><meshStandardMaterial color="#ddd6c8" roughness={1} depthWrite={false}/></mesh>
+  {index?.areas&&<AreaLayer/>}
+  {index&&<TileField index={index} rigRef={rigRef} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows}/>}
+  {details&&Object.entries(venueRows).map(([id,rows])=>!(focus.venueId===id&&focus.spaceId)&&<HotelDetails key={id} rows={rows} look={HOTEL_LOOKS[id]}/>)}
+  {details&&<OrchardDetails index={index} rigRef={rigRef}/>}
+  {details&&nearby&&Math.hypot(nearby.x-ORCHARD.x,nearby.z-ORCHARD.z)>ORCHARD.radius*1.4&&<NearbyDetails tiles={nearby.tiles} cx={nearby.x} cz={nearby.z} skip={nearby.skip}/>}
+ </>;
+}
+export {loadIndex,VENUE_GEO,Pins,SUN};
+
 export default function VenueExplorer({onOpenSpace,initialVenueId=null,draftCounts={}}){
  const [index,setIndex]=useState(null),[status,setStatus]=useState('loading');
  const [query,setQuery]=useState(''),[filter,setFilter]=useState('all'),[resultsOpen,setResultsOpen]=useState(false);
@@ -314,15 +340,7 @@ export default function VenueExplorer({onOpenSpace,initialVenueId=null,draftCoun
  useEffect(()=>{loadIndex().then(i=>{setIndex(i);setStatus(i?(i.legacy?'partial':'ready'):'missing')})},[]);
  const flyTo=useCallback((to,dur=1600,onArrive)=>{const r=rigRef.current;r.fly={from:{...r.cur},to:{...r.cur,...to},t0:performance.now(),dur};r.onArrive=onArrive},[]);
  const onVenueBounds=useCallback((id,box)=>setHeights(h=>h[id]>=box.max.y?h:{...h,[id]:box.max.y}),[]);
- // footprints of each listed hotel (for HotelDetails), merged across tiles
- const [venueRows,setVenueRows]=useState({});
- const onVenueRows=useCallback((id,rows)=>setVenueRows(v=>{const cur=v[id]||[];const add=rows.filter(r=>!cur.includes(r));return add.length?{...v,[id]:[...cur,...add]}:v}),[]);
- // richer neighbourhood around the selected venue
- const [nearby,setNearby]=useState(null);
- useEffect(()=>{if(!index||!focus.venueId){setNearby(null);return}let live=true;const g=VENUE_GEO[focus.venueId];
-  (async()=>{const T=index.tileSize,keys=[];if(index.legacy)keys.push('legacy');else for(let ix=Math.floor((g.x-400)/T);ix<=Math.floor((g.x+400)/T);ix++)for(let iz=Math.floor((g.z-400)/T);iz<=Math.floor((g.z+400)/T);iz++)if(index.tiles[ix+'_'+iz])keys.push(ix+'_'+iz);
-   const tiles=(await Promise.all(keys.map(k=>loadTile(index,k)))).filter(Boolean);const skip=await venueOwnership(index,focus.venueId);if(live)setNearby({tiles,x:g.x,z:g.z,skip})})();
-  return()=>{live=false}},[index,focus.venueId]);
+
  const venue=VENUES.find(v=>v.id===focus.venueId),space=venue?.spaces.find(s=>s.id===focus.spaceId);
  const indexRef=useRef(null);indexRef.current=index;
  const select=useCallback(async id=>{const g=VENUE_GEO[id];setFocus({venueId:id,spaceId:null});setResultsOpen(false);setQuery(VENUES.find(v=>v.id===id).name);
@@ -340,13 +358,8 @@ export default function VenueExplorer({onOpenSpace,initialVenueId=null,draftCoun
  return <div className="explorer">
   <Canvas key={mapQuality} className="explorer-canvas" camera={{fov:38,near:1,far:20000,position:[0,2000,2000]}} dpr={mapQuality==='saver'?1:[1,1.75]} shadows={shadows} gl={{antialias:true,powerPreference:'high-performance'}} onCreated={({scene,gl})=>{scene.fog=new THREE.Fog(BG,2000,8000);gl.setClearColor(BG)}}>
    <EveningLight sun={SUN} rigRef={rigRef}/>
-   <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.05,0]} raycast={()=>null} receiveShadow renderOrder={-4}><planeGeometry args={[80000,80000]}/><meshStandardMaterial color="#ddd6c8" roughness={1} depthWrite={false}/></mesh>
    <MapCamera rigRef={rigRef}/>
-   {index?.areas&&<AreaLayer/>}
-   {index&&<TileField index={index} rigRef={rigRef} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows}/>}
-   {details&&Object.entries(venueRows).map(([id,rows])=>!(focus.venueId===id&&focus.spaceId)&&<HotelDetails key={id} rows={rows} look={HOTEL_LOOKS[id]}/>)}
-   {details&&<OrchardDetails index={index} rigRef={rigRef}/>}
-   {details&&nearby&&Math.hypot(nearby.x-ORCHARD.x,nearby.z-ORCHARD.z)>ORCHARD.radius*1.4&&<NearbyDetails tiles={nearby.tiles} cx={nearby.x} cz={nearby.z} skip={nearby.skip}/>}
+   <CityLayers index={index} rigRef={rigRef} focus={focus} details={details} onVenueBounds={onVenueBounds}/>
    {venue&&space&&<SpaceHighlight venueId={venue.id} space={space}/>}
    <Pins focus={focus} heights={heights} onSelect={select} filter={filter} draftCounts={draftCounts}/>
   </Canvas>
