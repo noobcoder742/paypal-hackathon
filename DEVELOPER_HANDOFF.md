@@ -194,3 +194,7 @@ Guest view keeps the camera at eye height inside the room, so it can never zoom 
 - **Light** (`sun.js`, `EveningLight.jsx`): real sun position for 6:20pm Singapore time on today's date (NOAA equations; e.g. 3 Nov: azimuth 255°, elevation 6.5°, sunset 6:51pm). Warm sun with shadows that follow the camera target, cool sky fill, dusk sky gradient and haze.
 - **Hotels** (`hotels.js`, `HotelDetails.jsx`): per-hotel facade overrides and details (floor slabs/balconies, fins/louvres, sky terraces, planters, roof gardens, crown glow). Sources in `docs/map-hotel-references.md`. Add an entry to `HOTEL_LOOKS` for each new partner venue.
 - **Neighbourhood** (`NearbyDetails.jsx`): within 350 m of the selected venue, roof parapets, rooftop plant/AC/water tanks, street trees along main roads and trees in parks.
+
+### Drafts: 2 per hotel
+- `MAX_DRAFTS_PER_VENUE = 2` in `src/explorer/DesignPage.jsx`, counted across all spaces of a hotel. The map pin shows "N drafts" (saved drafts only) under the hotel name (`savedDraftCounts`).
+- Planned paywall (3 drafts total for free users) is documented in `docs/roadmap.md`; not built.

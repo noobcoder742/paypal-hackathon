@@ -244,16 +244,18 @@ function SpaceHighlight({venueId,space}){
  </group>;
 }
 
-function Pins({focus,heights,onSelect,filter}){
+function Pins({focus,heights,onSelect,filter,draftCounts={}}){
  return <>{VENUES.filter(v=>filter==='all'||v.category===filter).map(v=>{const g=VENUE_GEO[v.id],h=(heights[v.id]||60)+8;const dim=focus.venueId&&focus.venueId!==v.id;
   return <Html key={v.id} position={[g.x,h,g.z]} center zIndexRange={[20,0]} style={{pointerEvents:'none'}}>
    <button type="button" className={'map-pin'+(v.status==='3d'?' ready':'')+(dim?' dim':'')} onClick={()=>onSelect(v.id)} style={{pointerEvents:'auto'}}>
-    <span className="map-pin-label">{v.name}{v.status==='3d'&&<em>3D</em>}</span><span className="map-pin-stem"/>
+    <span className="map-pin-label">{v.name}{v.status==='3d'&&<em>3D</em>}</span>
+    {draftCounts[v.id]>0&&<span className="map-pin-drafts">{draftCounts[v.id]} draft{draftCounts[v.id]>1?'s':''}</span>}
+    <span className="map-pin-stem"/>
    </button>
   </Html>})}</>;
 }
 
-export default function VenueExplorer({onOpenSpace,initialVenueId=null}){
+export default function VenueExplorer({onOpenSpace,initialVenueId=null,draftCounts={}}){
  const [index,setIndex]=useState(null),[status,setStatus]=useState('loading');
  const [query,setQuery]=useState(''),[filter,setFilter]=useState('all'),[resultsOpen,setResultsOpen]=useState(false);
  const [focus,setFocus]=useState({venueId:null,spaceId:null});
@@ -296,7 +298,7 @@ export default function VenueExplorer({onOpenSpace,initialVenueId=null}){
    {Object.entries(venueRows).map(([id,rows])=>!(focus.venueId===id&&focus.spaceId)&&<HotelDetails key={id} rows={rows} look={HOTEL_LOOKS[id]}/>)}
    {nearby&&<NearbyDetails tiles={nearby.tiles} cx={nearby.x} cz={nearby.z} skip={nearby.skip}/>}
    {venue&&space&&<SpaceHighlight venueId={venue.id} space={space}/>}
-   <Pins focus={focus} heights={heights} onSelect={select} filter={filter}/>
+   <Pins focus={focus} heights={heights} onSelect={select} filter={filter} draftCounts={draftCounts}/>
   </Canvas>
 
   <div className="finder">

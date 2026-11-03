@@ -876,3 +876,4 @@ h1,h2,h3{text-wrap:balance}
 .landing-video-content .landing-actions button.landing-link{background:none;border:0;border-bottom:1px solid rgba(255,255,255,.85);border-radius:0;padding:0 0 2px;color:#fff;box-shadow:none}
 .editorial-intro h1 em{font-style:italic;color:var(--accent)}
 .editorial-intro .eyebrow{letter-spacing:.02em;text-transform:none;font-size:12px;color:var(--ink-mute)}
+.map-pin-drafts{margin-top:-1px;background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:999px;padding:2px 8px;font-size:10.5px;letter-spacing:.02em;color:var(--ink-soft,#5c5650);box-shadow:0 4px 10px var(--shadow)}
