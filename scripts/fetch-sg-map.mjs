@@ -150,9 +150,20 @@ for await (const line of rl(INPUT)){
    if(has)dropped++;return !has})}
  stats.outlinesReplacedByParts=dropped;
 }
+// Large parks, forests, reservoirs and sea areas span many tiles. Kept in a
+// tile they would pop in and out as that one tile loads, so they go into a
+// single always-loaded layer instead (simplified a little more).
+const areas={g:[],w:[]};
+for(const v of tiles.values())for(const key of ['g','w']){
+ v[key]=v[key].filter(f=>{let x0=1e9,z0=1e9,x1=-1e9,z1=-1e9;for(let i=0;i<f.length;i+=2){x0=Math.min(x0,f[i]);x1=Math.max(x1,f[i]);z0=Math.min(z0,f[i+1]);z1=Math.max(z1,f[i+1])}
+  if(Math.max(x1-x0,z1-z0)<TILE*.8)return true;
+  const pts=[];for(let i=0;i<f.length;i+=2)pts.push([f[i],f[i+1]]);const simple=simplifyRing(pts,4);if(simple.length>=3)areas[key].push(simple.flat());return false});
+}
+stats.largeAreas=areas.g.length+areas.w.length;
 await rm(OUT,{recursive:true,force:true});
 await mkdir(OUT+'/tiles',{recursive:true});
-const index={source:'OpenStreetMap contributors (ODbL) via Geofabrik extract + osmium',generated:new Date().toISOString(),origin:SG_ORIGIN,tileSize:TILE,stats,tiles:{}};
+await writeFile(`${OUT}/areas.json`,JSON.stringify(areas));
+const index={areas:true,source:'OpenStreetMap contributors (ODbL) via Geofabrik extract + osmium',generated:new Date().toISOString(),origin:SG_ORIGIN,tileSize:TILE,stats,tiles:{}};
 let bytes=0;
 for(const [k,v] of tiles){const s=JSON.stringify(v);bytes+=s.length;await writeFile(`${OUT}/tiles/${k}.json`,s);index.tiles[k]=[v.b.length,Math.round(Math.max(0,...v.b.map(b=>b[0])))]}
 await writeFile(`${OUT}/index.json`,JSON.stringify(index));
