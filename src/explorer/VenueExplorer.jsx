@@ -11,6 +11,7 @@ import {findClearView} from './viewFinder.js';
 import {makeBuildingMaterial} from './look/buildingMaterial.js';
 import {buildingLook} from './look/palette.js';
 import {sunDirection} from './look/sun.js';
+import {useSettings} from '../data/settings.js';
 import {EveningLight,SKY} from './look/EveningLight.jsx';
 import {HOTEL_LOOKS} from './look/hotels.js';
 import HotelDetails from './look/HotelDetails.jsx';
@@ -261,6 +262,9 @@ export default function VenueExplorer({onOpenSpace,initialVenueId=null,draftCoun
  const [focus,setFocus]=useState({venueId:null,spaceId:null});
  const [heights,setHeights]=useState({});
  const [diving,setDiving]=useState(false);
+ // Settings › 3D & motion › Map quality: high = shadows + details, balanced = details, saver = plain
+ const [{mapQuality}]=useSettings();
+ const shadows=mapQuality==='high',details=mapQuality!=='saver';
  const start=VENUE_GEO['orchard-grand'];
  const rigRef=useRef({cur:{tx:start.x+200,tz:start.z-150,r:2600,theta:.6,phi:.8},goal:{tx:start.x+200,tz:start.z-150,r:1900,theta:.6,phi:.8},fly:null});
  useEffect(()=>{loadIndex().then(i=>{setIndex(i);setStatus(i?(i.legacy?'partial':'ready'):'missing')})},[]);
@@ -290,13 +294,13 @@ export default function VenueExplorer({onOpenSpace,initialVenueId=null,draftCoun
  const results=VENUES.filter(v=>(filter==='all'||v.category===filter)&&v.name.toLowerCase().includes(query.toLowerCase()));
  const counts=Object.fromEntries(VENUE_CATEGORIES.map(c=>[c.id,c.id==='all'?VENUES.length:VENUES.filter(v=>v.category===c.id).length]));
  return <div className="explorer">
-  <Canvas className="explorer-canvas" camera={{fov:38,near:1,far:20000,position:[0,2000,2000]}} dpr={[1,1.75]} shadows gl={{antialias:true,powerPreference:'high-performance'}} onCreated={({scene,gl})=>{scene.fog=new THREE.Fog(BG,2000,8000);gl.setClearColor(BG)}}>
+  <Canvas key={mapQuality} className="explorer-canvas" camera={{fov:38,near:1,far:20000,position:[0,2000,2000]}} dpr={mapQuality==='saver'?1:[1,1.75]} shadows={shadows} gl={{antialias:true,powerPreference:'high-performance'}} onCreated={({scene,gl})=>{scene.fog=new THREE.Fog(BG,2000,8000);gl.setClearColor(BG)}}>
    <EveningLight sun={SUN} rigRef={rigRef}/>
    <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.05,0]} raycast={()=>null} receiveShadow><planeGeometry args={[80000,80000]}/><meshStandardMaterial color="#ddd6c8" roughness={1}/></mesh>
    <MapCamera rigRef={rigRef}/>
    {index&&<TileField index={index} rigRef={rigRef} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows}/>}
-   {Object.entries(venueRows).map(([id,rows])=>!(focus.venueId===id&&focus.spaceId)&&<HotelDetails key={id} rows={rows} look={HOTEL_LOOKS[id]}/>)}
-   {nearby&&<NearbyDetails tiles={nearby.tiles} cx={nearby.x} cz={nearby.z} skip={nearby.skip}/>}
+   {details&&Object.entries(venueRows).map(([id,rows])=>!(focus.venueId===id&&focus.spaceId)&&<HotelDetails key={id} rows={rows} look={HOTEL_LOOKS[id]}/>)}
+   {details&&nearby&&<NearbyDetails tiles={nearby.tiles} cx={nearby.x} cz={nearby.z} skip={nearby.skip}/>}
    {venue&&space&&<SpaceHighlight venueId={venue.id} space={space}/>}
    <Pins focus={focus} heights={heights} onSelect={select} filter={filter} draftCounts={draftCounts}/>
   </Canvas>
