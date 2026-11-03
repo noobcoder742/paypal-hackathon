@@ -206,3 +206,27 @@ Guest view keeps the camera at eye height inside the room, so it can never zoom 
 - **Settings** (`src/data/settings.js`, key `wedding-settings-v1`): notifications, currency/date format/language, map quality (high / balanced / battery saver; read by the venue map), reduce motion (site-wide), PDPA consent toggles, download data as JSON, clear designs, clear planning data. Account features are marked "Coming soon".
 - **Motion helpers** (`src/components/ui/motion.jsx`): CountUp, Ring, Reveal (with a fallback so content never stays hidden). All respect reduced motion.
 - **Marketplace**: venues and their section removed (venues are chosen on the map). It now follows the approved preview: small uppercase label, large serif headline, search pill, text category tabs with a sliding underline, one 3-column grid with vendor and price above a serif product name, staggered entrance. Old saved venue items are dropped when the planner loads.
+
+### Map fixes and Orchard detail (reference photos)
+- **Name tags over the venue card:** map pins now use z-index 0–5, below the search panel and venue card (6).
+- **Flicker in outer areas:**
+  - Flat layers (ground, parks, water, footpaths, roads) don't write depth and draw in a fixed order, so overlapping OSM areas can't z-fight.
+  - The sun's shadow map is snapped to whole texels and resized in steps.
+  - Large parks, forests and water (392 areas spanning tiles) load once from `public/data/sg/areas.json` instead of popping with their centre tile.
+  - Tiles near the view are kept while panning, and new tiles build one per frame.
+- **Reference photos** (`scripts/fetch-reference-photos.mjs`, Action "Fetch reference photos"): Creative Commons photos from Wikimedia Commons taken in the last five years, saved in `docs/reference-photos` with authors and licences in `ATTRIBUTION.md`. They're team references only, not shipped. Commons has almost no recent free photos of the five hotels themselves, so the set covers the Orchard area: views from ION Orchard (2026), street views (2023–2025), the URA central area model (2025).
+- **What the photos changed:**
+  - **Facades:** two new styles, mall podium (glass shopfronts, pale stone, atrium glass) and office ribbon windows.
+  - **Landmarks by OSM name** (`LANDMARK_LOOKS` in `look/hotels.js`):
+    - Ngee Ann City: maroon granite with stepped crowns and glass pyramids.
+    - Wisma Atria: blue glass.
+    - a nearby hotel: white.
+    - ION Orchard: dark glass.
+    - Paragon and Lucky Plaza: stone and beige.
+    - Tang Plaza: green roof.
+  - **Orchard district layer** (`OrchardDetails` in VenueExplorer, ~2.9 × 1.4 km):
+    - every building gets parapets and rooftop plant;
+    - mall podium roofs get gardens, solar arrays or car-park decks;
+    - large rain trees line Orchard Road and its side streets;
+    - pale footpaths run beside main roads.
+- iStock photos are paid Getty licences, not free to use, and the build environment can't reach them; don't add them to the repo.

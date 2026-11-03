@@ -45,14 +45,25 @@ float facadeLit=0.;float facadeGlass=0.;`)
   float u=dot(vWPos.xz,t),y=vWPos.y;
   float dist=length(vWPos-cameraPosition);
   float detail=1.-smoothstep(uDetailFar*.45,uDetailFar,dist);
-  float cellW=kind<.5?3.2:kind<1.5?1.6:kind<2.5?4.2:9.;
+  float cellW=kind<.5?3.2:kind<1.5?1.6:kind<2.5?4.2:kind<3.5?9.:kind<4.5?3.:1.5;
   vec2 cell=vec2(u/cellW,y/storey);vec2 f=fract(cell);
   float wu=fwidth(cell.x)*1.2,wv=fwidth(cell.y)*1.2;
   float win=0.;
   if(kind<.5){ win=band(f.x,.22,.78,wu)*band(f.y,.32,.82,wv); }
   else if(kind<1.5){ win=(1.-band(f.x,-.03,.03,wu)-band(f.x,.97,1.03,wu))*(1.-band(f.y,-.06,.14,wv)); }
   else if(kind<2.5){ win=band(f.x,.3,.7,wu)*band(f.y,.3,.78,wv); }
-  win*=detail*step(1.2,y);                 // no windows at ground level slab
+  else if(kind>3.5&&kind<4.5){
+   // Orchard-style mall podium: glass shopfronts at street level, mostly blank
+   // stone above with large panel joints and the odd big glass atrium panel
+   float shop=band(y,.6,5.4,fwidth(y))*(1.-band(f.x,-.02,.02,wu));
+   vec2 big=floor(vec2(u/9.,y/(storey*2.)));float atrium=step(.78,hash2(big+seed*13.1))*step(6.,y);
+   float joints=max(band(fract(u/1.5),-.02,.02,fwidth(u/1.5)),band(fract(y/1.5),-.02,.02,fwidth(y/1.5)));
+   diffuseColor.rgb*=1.-.05*joints*detail;
+   win=max(shop,atrium*(1.-band(fract(u/1.5),-.04,.04,fwidth(u/1.5))));
+  }
+  else if(kind>4.5){ win=band(f.y,.30,.96,wv)*(1.-band(f.x,-.04,.04,wu)); }  // office ribbon windows
+  if(kind<3.5||kind>4.5)win*=step(1.2,y);  // no windows at the ground slab (malls have shopfronts there)
+  win*=detail;
   // glass reflects the evening sky: warm on walls facing the sun, cool blue-grey otherwise
   float facing=clamp(dot(normalize(vec3(n.x,0.,n.z)),normalize(vec3(uSun.x,0.,uSun.z))),0.,1.);
   vec3 glass=mix(vec3(.52,.60,.68),vec3(.95,.74,.55),facing*.8);
@@ -62,6 +73,8 @@ float facadeLit=0.;float facadeGlass=0.;`)
   diffuseColor.rgb*=1.-.06*band(f.y,-.02,.02,wv)*detail*step(kind,2.5);
   float r=hash2(floor(cell)+seed*91.7);
   facadeLit=win*step(1.-uLit*(kind>1.5?.6:1.),r)*(1.-facing*.6);
+  // shopfronts are lit by 6:20pm
+  if(kind>3.5&&kind<4.5)facadeLit=max(facadeLit,win*(1.-step(5.6,y))*.75);
   facadeGlass=win;
  }
  diffuseColor.rgb=mix(diffuseColor.rgb,uTint,uTintAmt);
@@ -71,6 +84,6 @@ roughnessFactor=mix(roughnessFactor,.18,facadeGlass);`)
    .replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
 totalEmissiveRadiance+=vec3(1.,.72,.42)*facadeLit*.45;`);
  };
- mat.customProgramCacheKey=()=>'building-facade-v1'+(transparent?'-t':'');
+ mat.customProgramCacheKey=()=>'building-facade-v2'+(transparent?'-t':'');
  return mat;
 }

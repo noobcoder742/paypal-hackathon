@@ -9,7 +9,8 @@
 //
 // Facade kinds drive the window pattern in buildingMaterial.js:
 //  0 punched windows (flats, offices with windows), 1 glass curtain wall,
-//  2 houses/shophouses (few, larger windows), 3 no windows (sheds, car parks).
+//  2 houses/shophouses (few, larger windows), 3 no windows (sheds, car parks),
+//  4 mall podium (shopfronts + stone + atrium glass), 5 office ribbon windows.
 import * as THREE from 'three';
 
 const TYPES={
@@ -18,10 +19,13 @@ const TYPES={
  h:{walls:['#efe0c6','#e6cfb2','#f1e7d6','#dcc0a2','#e7d0c3','#e2d7bb'],roof:['#b0654a','#9f5a42','#a8705a','#8f6a5a'],kind:2,floor:3.6}, // houses & shophouses, clay tile roofs
  c:{walls:['#e3dfd8','#dad6cf','#e6e1d8'],roof:['#aeaaa3','#b6b1a9'],kind:0,floor:3.9},
  cTall:{walls:['#a9b5bd','#9eaab2','#b4bdc1','#c2c6c4','#93a1ab'],roof:['#8e969b','#9aa1a4'],kind:1,floor:3.9}, // glass towers
+ cRibbon:{walls:['#dcdad4','#cfd1d0','#e3e0d9'],roof:['#9a9e9f','#a8aaa8'],kind:5,floor:3.9}, // offices with ribbon windows
  i:{walls:['#d5d8da','#cdd2d5','#dcdad3'],roof:['#9aa6ae','#a3abb0','#b2b0aa'],kind:3,floor:6},
  p:{walls:['#ece3d4','#e5dccd','#efe8dc'],roof:['#b6aea2','#a99b8a'],kind:0,floor:3.8},
  r:{walls:['#f3eee4','#efe6d6'],roof:['#8d4f3b','#7d5a4a','#a2614a'],kind:2,floor:4.5},
  x:{walls:['#d3d0ca','#cbc8c2'],roof:['#a9a59d','#9c9891'],kind:3,floor:3},
+ // mall podiums: pale stone, marble and granite (Orchard Road malls)
+ mall:{walls:['#e8e4dc','#ddd8cf','#d2ccc2','#efebe4','#c9c3b8'],roof:['#a9a59e','#b3aea6'],kind:4,floor:5},
  other:{walls:['#e6e1d8','#ded9d0','#e9e4db'],roof:['#b3aea6','#bab5ad'],kind:0,floor:3.3},
  otherLow:{walls:['#ece4d6','#e4dbcd'],roof:['#aa8e7c','#b3aca2'],kind:2,floor:3.4}
 };
@@ -29,6 +33,7 @@ const cache=new Map(),MUTE=new THREE.Color('#cfc8bc');
 const col=hex=>{if(!cache.has(hex)){const c=new THREE.Color();try{c.set(hex)}catch{c.set('#dddddd')}cache.set(hex,c)}return cache.get(hex)};
 const pick=(arr,seed)=>arr[Math.floor(seed*arr.length)%arr.length];
 
+function flatArea(f){let a=0;for(let i=0,j=f.length-2;i<f.length;j=i,i+=2)a+=(f[j]*f[i+1]-f[i]*f[j+1]);return a/2}
 /** Stable 0..1 number per building from its footprint. */
 export function seedOf(flat){let h=2166136261;for(let i=0;i<Math.min(flat.length,8);i++){h^=Math.round(flat[i]*10);h=Math.imul(h,16777619)}return ((h>>>0)%10007)/10007}
 
@@ -37,8 +42,10 @@ export function buildingLook(row){
  const [h,minH,wallTag,,isPart,flat,,type='',roofTag='']=row;
  const seed=seedOf(flat);
  let t=TYPES[type]||null;
- if(type==='c'&&h>=40)t=TYPES.cTall;
- if(!t)t=h>=45?(seed<.55?TYPES.cTall:TYPES.a):h<=12?TYPES.otherLow:TYPES.other;
+ const area=Math.abs(flatArea(flat));
+ if(type==='c'&&h>=40)t=seed<.5?TYPES.cTall:TYPES.cRibbon;
+ else if(type==='c'&&area>2500)t=TYPES.mall;
+ if(!t)t=h>=45?(seed<.35?TYPES.cTall:seed<.55?TYPES.cRibbon:TYPES.a):h<=12?TYPES.otherLow:(h<=40&&area>4000?TYPES.mall:TYPES.other);
  // Tagged colours are often plain names ("orange", "red"); soften them a little
  // towards weathered paint/stone so they keep their hue without looking cartoonish.
  const wall=wallTag?col(wallTag).clone().lerp(MUTE,.3):col(pick(t.walls,seed)).clone();
