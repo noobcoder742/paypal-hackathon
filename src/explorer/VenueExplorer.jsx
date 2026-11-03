@@ -8,12 +8,21 @@ import {Html} from '@react-three/drei';
 import * as THREE from 'three';
 import {Search,X,ArrowRight,MapPin} from 'lucide-react';
 import {findClearView} from './viewFinder.js';
+import {makeBuildingMaterial} from './look/buildingMaterial.js';
+import {buildingLook} from './look/palette.js';
+import {sunDirection} from './look/sun.js';
+import {EveningLight,SKY} from './look/EveningLight.jsx';
+import {HOTEL_LOOKS} from './look/hotels.js';
+import HotelDetails from './look/HotelDetails.jsx';
+import NearbyDetails from './look/NearbyDetails.jsx';
 import {VENUES,VENUE_CATEGORIES} from '../data/venues.js';
 import {project,pointInPolygon} from './geo.js';
 
 const INDEX_URL='/data/sg/index.json',TILE_URL=k=>`/data/sg/tiles/${k}.json`;
 const LEGACY_URL='/data/orchard-grand-surroundings.json';
-const BG='#fbfaf8';
+const BG=SKY.horizon;
+// 6:20pm sun over Singapore on today's date (see look/sun.js)
+const SUN=sunDirection(1.3521,103.8198);
 
 /* ---------- venue anchors in map metres ---------- */
 const VENUE_GEO=Object.fromEntries(VENUES.map(v=>[v.id,{points:v.points.map(([la,lo])=>project(la,lo))}]));
@@ -107,55 +116,71 @@ async function clearViewFor(index,venueId,{r,theta,space,phis}){
 }
 
 /* ---------- geometry ---------- */
-const PALE=['#ece9e3','#e4e0d8','#e9e6e1','#dfdcd6','#f0ede7'],WHITE=new THREE.Color('#ffffff');
 function shapeOf(flat){const pts=[];for(let i=0;i<flat.length;i+=2)pts.push(new THREE.Vector2(flat[i],-flat[i+1]));if(THREE.ShapeUtils.isClockWise(pts))pts.reverse();return new THREE.Shape(pts)}
+// Collects extruded buildings into one geometry with per-vertex wall/roof
+// colours and facade style for the facade shader.
+function makeBucket(){return {P:[],C:[],R:[],S:[]}}
+function addBuilding(bucket,row,hotel){
+ const [h,minH,,,,flat]=row;
+ let g;try{g=new THREE.ExtrudeGeometry(shapeOf(flat),{depth:Math.max(2,h-minH),bevelEnabled:false})}catch{return false}
+ g.rotateX(-Math.PI/2);g.translate(0,minH,0);
+ let {wall,roof,kind,floor,seed}=buildingLook(row);const a=g.attributes.position.array;
+ // listed hotels use their own facade (look/hotels.js) instead of the type palette
+ if(hotel){wall=new THREE.Color(hotel.wall||wall);roof=new THREE.Color(hotel.roof||roof);kind=hotel.kind??kind;floor=hotel.storey||floor}
+ for(let k=0;k<a.length;k+=3){bucket.P.push(a[k],a[k+1],a[k+2]);bucket.C.push(wall.r,wall.g,wall.b);bucket.R.push(roof.r,roof.g,roof.b);bucket.S.push(kind,floor,seed)}
+ g.dispose();return true;
+}
+function bucketGeometry({P,C,R,S}){
+ const g=new THREE.BufferGeometry();
+ g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('color',new THREE.Float32BufferAttribute(C,3));
+ g.setAttribute('aRoof',new THREE.Float32BufferAttribute(R,3));g.setAttribute('aStyle',new THREE.Float32BufferAttribute(S,3));
+ g.computeVertexNormals();g.computeBoundingBox();g.computeBoundingSphere();return g;
+}
 function buildTile(data,owners){
- const ctxP=[],ctxC=[],venueParts={};
- data.b.forEach((row,i)=>{
-  const [h,minH,col,,,flat]=row,owner=owners.find(o=>o.test(row));
-  let g;try{g=new THREE.ExtrudeGeometry(shapeOf(flat),{depth:Math.max(2,h-minH),bevelEnabled:false})}catch{return}
-  g.rotateX(-Math.PI/2);g.translate(0,minH,0);
-  if(owner){(venueParts[owner.id]=venueParts[owner.id]||[]).push(g);return}
-  const c=new THREE.Color(col||PALE[i%PALE.length]);if(col)c.lerp(WHITE,.6);
-  const a=g.attributes.position.array;
-  for(let k=0;k<a.length;k+=3){ctxP.push(a[k],a[k+1],a[k+2]);ctxC.push(c.r,c.g,c.b)}
-  g.dispose();
+ const ctxB=makeBucket(),venueB={},venueRows={};
+ data.b.forEach(row=>{
+  const owner=owners.find(o=>o.test(row));
+  if(owner){const b=venueB[owner.id]=venueB[owner.id]||makeBucket();if(addBuilding(b,row,HOTEL_LOOKS[owner.id]))(venueRows[owner.id]=venueRows[owner.id]||[]).push(row);return}
+  addBuilding(ctxB,row);
  });
- const ctx=new THREE.BufferGeometry();ctx.setAttribute('position',new THREE.Float32BufferAttribute(ctxP,3));ctx.setAttribute('color',new THREE.Float32BufferAttribute(ctxC,3));ctx.computeVertexNormals();
+ const ctx=bucketGeometry(ctxB);
+ const venueParts=Object.fromEntries(Object.entries(venueB).map(([id,b])=>[id,[bucketGeometry(b)]]));
  const roads=[];data.r.forEach(([w,f])=>{const h=w/2;for(let i=0;i+3<f.length;i+=2){const x1=f[i],z1=f[i+1],x2=f[i+2],z2=f[i+3];let dx=x2-x1,dz=z2-z1;const l=Math.hypot(dx,dz)||1;dx/=l;dz/=l;const ax=-dz*h,az=dx*h;roads.push(x1+ax,.25,z1+az,x2-ax,.25,z2-az,x2+ax,.25,z2+az,x1+ax,.25,z1+az,x1-ax,.25,z1-az,x2-ax,.25,z2-az)}});
  const rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.Float32BufferAttribute(roads,3));rg.computeVertexNormals();
  const flat=(polys,y)=>{const P=[];polys.forEach(f=>{try{const s=new THREE.ShapeGeometry(shapeOf(f)).toNonIndexed();s.rotateX(-Math.PI/2);const a=s.attributes.position.array;for(let k=0;k<a.length;k+=3)P.push(a[k],y,a[k+2]);s.dispose()}catch{}});const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.computeVertexNormals();return g};
- return {ctx,roads:rg,green:flat(data.g||[],.15),water:flat(data.w||[],.1),venueParts};
+ return {ctx,roads:rg,green:flat(data.g||[],.15),water:flat(data.w||[],.1),venueParts,venueRows};
 }
 const MATS={
- ctx:new THREE.MeshLambertMaterial({vertexColors:true}),
- road:new THREE.MeshBasicMaterial({color:'#e6e1d8',side:THREE.DoubleSide}),
- green:new THREE.MeshBasicMaterial({color:'#e2ead8'}),
- water:new THREE.MeshBasicMaterial({color:'#d9e6ec'}),
+ ctx:makeBuildingMaterial({sunDir:SUN}),
+ road:new THREE.MeshStandardMaterial({color:'#a5a29c',roughness:.95,side:THREE.DoubleSide}),
+ green:new THREE.MeshStandardMaterial({color:'#8fa476',roughness:1}),
+ water:new THREE.MeshStandardMaterial({color:'#7f9fae',roughness:.25,metalness:.1}),
  edge:new THREE.LineBasicMaterial({color:'#8e3b46',transparent:true,opacity:.35})
 };
 
-function Tile({tileKey,index,focus,onVenueBounds}){
+function Tile({tileKey,index,focus,onVenueBounds,onVenueRows}){
  const [built,setBuilt]=useState(null);
  useEffect(()=>{let live=true;loadTile(index,tileKey).then(async d=>{if(!d)return;const owners=await ownersNear(index,tileKey);if(live)setBuilt(buildTile(d,owners))});return()=>{live=false}},[tileKey,index]);
  useEffect(()=>()=>{if(built){built.ctx.dispose();built.roads.dispose();built.green.dispose();built.water.dispose();Object.values(built.venueParts).flat().forEach(g=>g.dispose())}},[built]);
- useEffect(()=>{if(!built)return;Object.entries(built.venueParts).forEach(([id,parts])=>{const box=new THREE.Box3();parts.forEach(g=>{g.computeBoundingBox();box.union(g.boundingBox)});onVenueBounds(id,box)})},[built,onVenueBounds]);
+ useEffect(()=>{if(!built)return;Object.entries(built.venueParts).forEach(([id,parts])=>{const box=new THREE.Box3();parts.forEach(g=>{g.computeBoundingBox();box.union(g.boundingBox)});onVenueBounds(id,box)});Object.entries(built.venueRows).forEach(([id,rows])=>onVenueRows(id,rows))},[built,onVenueBounds,onVenueRows]);
  if(!built)return null;
  return <group>
-  <mesh geometry={built.green} material={MATS.green} raycast={()=>null}/>
-  <mesh geometry={built.water} material={MATS.water} raycast={()=>null}/>
-  <mesh geometry={built.roads} material={MATS.road} raycast={()=>null}/>
-  <mesh geometry={built.ctx} material={MATS.ctx} raycast={()=>null}/>
+  <mesh geometry={built.green} material={MATS.green} raycast={()=>null} receiveShadow/>
+  <mesh geometry={built.water} material={MATS.water} raycast={()=>null} receiveShadow/>
+  <mesh geometry={built.roads} material={MATS.road} raycast={()=>null} receiveShadow/>
+  <mesh geometry={built.ctx} material={MATS.ctx} raycast={()=>null} castShadow receiveShadow/>
   {Object.entries(built.venueParts).map(([id,parts])=><VenueBuilding key={id} id={id} parts={parts} focus={focus}/>)}
  </group>;
 }
 function VenueBuilding({id,parts,focus}){
- const mat=useMemo(()=>new THREE.MeshLambertMaterial({color:VENUES.find(v=>v.id===id)?.status==='3d'?'#f6e7e3':'#efe9df',transparent:true}),[id]);
- const edges=useMemo(()=>parts.map(g=>new THREE.EdgesGeometry(g,30)),[parts]);
- useEffect(()=>()=>{mat.dispose();edges.forEach(e=>e.dispose())},[mat,edges]);
- const ghost=focus.venueId===id&&!!focus.spaceId;
- mat.opacity=ghost?.1:1;mat.depthWrite=!ghost;
- return <group>{parts.map((g,i)=><mesh key={i} geometry={g} material={mat} raycast={()=>null}/>)}{edges.map((e,i)=><lineSegments key={'e'+i} geometry={e} material={MATS.edge}/>)}</group>;
+ const mat=useMemo(()=>makeBuildingMaterial({sunDir:SUN,transparent:true,lit:.08}),[]);
+ const focused=focus.venueId===id,ghost=focused&&!!focus.spaceId;
+ const edges=useMemo(()=>focused?parts.map(g=>new THREE.EdgesGeometry(g,30)):[],[parts,focused]);
+ useEffect(()=>()=>mat.dispose(),[mat]);
+ useEffect(()=>()=>edges.forEach(e=>e.dispose()),[edges]);
+ const u=mat.userData.uniforms;u.uTint.value.set('#c98a8f');u.uTintAmt.value=focused&&!ghost?.16:0;
+ mat.opacity=ghost?.12:1;mat.depthWrite=!ghost;
+ return <group>{parts.map((g,i)=><mesh key={i} geometry={g} material={mat} raycast={()=>null} castShadow={!ghost} receiveShadow/>)}{edges.map((e,i)=><lineSegments key={'e'+i} geometry={e} material={MATS.edge}/>)}</group>;
 }
 
 /* ---------- camera ---------- */
@@ -193,7 +218,7 @@ function MapCamera({rigRef}){
 }
 
 /* ---------- tiles around the camera target ---------- */
-function TileField({index,rigRef,focus,onVenueBounds}){
+function TileField({index,rigRef,focus,onVenueBounds,onVenueRows}){
  const [keys,setKeys]=useState([]);
  const last=useRef('');
  useFrame(()=>{
@@ -205,7 +230,7 @@ function TileField({index,rigRef,focus,onVenueBounds}){
   const list=[];for(let i=cx-n;i<=cx+n;i++)for(let j=cz-n;j<=cz+n;j++){const k=i+'_'+j;if(index.tiles[k])list.push([k,Math.hypot(i-cx,j-cz)])}
   list.sort((a,b)=>a[1]-b[1]);setKeys(list.slice(0,180).map(x=>x[0]));
  });
- return <>{keys.map(k=><Tile key={k} tileKey={k} index={index} focus={focus} onVenueBounds={onVenueBounds}/>)}</>;
+ return <>{keys.map(k=><Tile key={k} tileKey={k} index={index} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows}/>)}</>;
 }
 
 function SpaceHighlight({venueId,space}){
@@ -239,6 +264,15 @@ export default function VenueExplorer({onOpenSpace,initialVenueId=null}){
  useEffect(()=>{loadIndex().then(i=>{setIndex(i);setStatus(i?(i.legacy?'partial':'ready'):'missing')})},[]);
  const flyTo=useCallback((to,dur=1600,onArrive)=>{const r=rigRef.current;r.fly={from:{...r.cur},to:{...r.cur,...to},t0:performance.now(),dur};r.onArrive=onArrive},[]);
  const onVenueBounds=useCallback((id,box)=>setHeights(h=>h[id]>=box.max.y?h:{...h,[id]:box.max.y}),[]);
+ // footprints of each listed hotel (for HotelDetails), merged across tiles
+ const [venueRows,setVenueRows]=useState({});
+ const onVenueRows=useCallback((id,rows)=>setVenueRows(v=>{const cur=v[id]||[];const add=rows.filter(r=>!cur.includes(r));return add.length?{...v,[id]:[...cur,...add]}:v}),[]);
+ // richer neighbourhood around the selected venue
+ const [nearby,setNearby]=useState(null);
+ useEffect(()=>{if(!index||!focus.venueId){setNearby(null);return}let live=true;const g=VENUE_GEO[focus.venueId];
+  (async()=>{const T=index.tileSize,keys=[];if(index.legacy)keys.push('legacy');else for(let ix=Math.floor((g.x-400)/T);ix<=Math.floor((g.x+400)/T);ix++)for(let iz=Math.floor((g.z-400)/T);iz<=Math.floor((g.z+400)/T);iz++)if(index.tiles[ix+'_'+iz])keys.push(ix+'_'+iz);
+   const tiles=(await Promise.all(keys.map(k=>loadTile(index,k)))).filter(Boolean);const skip=await venueOwnership(index,focus.venueId);if(live)setNearby({tiles,x:g.x,z:g.z,skip})})();
+  return()=>{live=false}},[index,focus.venueId]);
  const venue=VENUES.find(v=>v.id===focus.venueId),space=venue?.spaces.find(s=>s.id===focus.spaceId);
  const indexRef=useRef(null);indexRef.current=index;
  const select=useCallback(async id=>{const g=VENUE_GEO[id];setFocus({venueId:id,spaceId:null});setResultsOpen(false);setQuery(VENUES.find(v=>v.id===id).name);
@@ -254,12 +288,13 @@ export default function VenueExplorer({onOpenSpace,initialVenueId=null}){
  const results=VENUES.filter(v=>(filter==='all'||v.category===filter)&&v.name.toLowerCase().includes(query.toLowerCase()));
  const counts=Object.fromEntries(VENUE_CATEGORIES.map(c=>[c.id,c.id==='all'?VENUES.length:VENUES.filter(v=>v.category===c.id).length]));
  return <div className="explorer">
-  <Canvas className="explorer-canvas" camera={{fov:38,near:1,far:20000,position:[0,2000,2000]}} dpr={[1,1.75]} gl={{antialias:true,powerPreference:'high-performance'}} onCreated={({scene,gl})=>{scene.fog=new THREE.Fog(BG,2000,8000);gl.setClearColor(BG)}}>
-   <hemisphereLight args={['#ffffff','#d8cfbf',1.9]}/>
-   <directionalLight position={[-3000,6000,2500]} intensity={1.6}/>
-   <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.05,0]} raycast={()=>null}><planeGeometry args={[80000,80000]}/><meshBasicMaterial color="#f4f1ec"/></mesh>
+  <Canvas className="explorer-canvas" camera={{fov:38,near:1,far:20000,position:[0,2000,2000]}} dpr={[1,1.75]} shadows gl={{antialias:true,powerPreference:'high-performance'}} onCreated={({scene,gl})=>{scene.fog=new THREE.Fog(BG,2000,8000);gl.setClearColor(BG)}}>
+   <EveningLight sun={SUN} rigRef={rigRef}/>
+   <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.05,0]} raycast={()=>null} receiveShadow><planeGeometry args={[80000,80000]}/><meshStandardMaterial color="#ddd6c8" roughness={1}/></mesh>
    <MapCamera rigRef={rigRef}/>
-   {index&&<TileField index={index} rigRef={rigRef} focus={focus} onVenueBounds={onVenueBounds}/>}
+   {index&&<TileField index={index} rigRef={rigRef} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows}/>}
+   {Object.entries(venueRows).map(([id,rows])=>!(focus.venueId===id&&focus.spaceId)&&<HotelDetails key={id} rows={rows} look={HOTEL_LOOKS[id]}/>)}
+   {nearby&&<NearbyDetails tiles={nearby.tiles} cx={nearby.x} cz={nearby.z} skip={nearby.skip}/>}
    {venue&&space&&<SpaceHighlight venueId={venue.id} space={space}/>}
    <Pins focus={focus} heights={heights} onSelect={select} filter={filter}/>
   </Canvas>

@@ -1,0 +1,76 @@
+// Building surface shader: a standard (physically lit) material extended with
+// procedural facades, so every building on the map gets floors and windows
+// without textures or extra geometry.
+//
+// Per-vertex inputs (built in VenueExplorer buildTile):
+//  color   wall colour            aRoof   roof colour
+//  aStyle  (facade kind, storey height, per-building seed) – see palette.js
+//
+// Windows are drawn in world space along each wall, fade out with distance
+// (no shimmering when zoomed out) and a few are lit warm, as at 6:20pm.
+import * as THREE from 'three';
+
+export function makeBuildingMaterial({sunDir,lit=.035,transparent=false}={}){
+ const mat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.86,metalness:0,transparent});
+ const uniforms={
+  uSun:{value:new THREE.Vector3(sunDir?.x??-.9,sunDir?.y??.12,sunDir?.z??.3).normalize()},
+  uLit:{value:lit},
+  uDetailFar:{value:1400},
+  uTint:{value:new THREE.Color('#ffffff')},uTintAmt:{value:0}
+ };
+ mat.userData.uniforms=uniforms;
+ mat.onBeforeCompile=shader=>{
+  Object.assign(shader.uniforms,uniforms);
+  shader.vertexShader=shader.vertexShader
+   .replace('#include <common>',`#include <common>
+attribute vec3 aRoof;attribute vec3 aStyle;
+varying vec3 vRoof;varying vec3 vStyle;varying vec3 vWPos;varying vec3 vWNormal;`)
+   .replace('#include <begin_vertex>',`#include <begin_vertex>
+vRoof=aRoof;vStyle=aStyle;vWPos=(modelMatrix*vec4(transformed,1.)).xyz;vWNormal=normalize(mat3(modelMatrix)*objectNormal);`);
+  shader.fragmentShader=shader.fragmentShader
+   .replace('#include <common>',`#include <common>
+uniform vec3 uSun;uniform float uLit;uniform float uDetailFar;uniform vec3 uTint;uniform float uTintAmt;
+varying vec3 vRoof;varying vec3 vStyle;varying vec3 vWPos;varying vec3 vWNormal;
+float hash2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+// Anti-aliased box: 1 inside [a,b] of a repeating cell, softened by pixel footprint.
+float band(float x,float a,float b,float w){return smoothstep(a-w,a+w,x)-smoothstep(b-w,b+w,x);}
+float facadeLit=0.;float facadeGlass=0.;`)
+   .replace('#include <color_fragment>',`#include <color_fragment>
+{
+ vec3 n=normalize(vWNormal);
+ if(n.y>.5){ diffuseColor.rgb=vRoof; }
+ else if(abs(n.y)<.5){
+  float kind=vStyle.x,storey=max(2.5,vStyle.y),seed=vStyle.z;
+  vec2 t=normalize(vec2(-n.z,n.x));
+  float u=dot(vWPos.xz,t),y=vWPos.y;
+  float dist=length(vWPos-cameraPosition);
+  float detail=1.-smoothstep(uDetailFar*.45,uDetailFar,dist);
+  float cellW=kind<.5?3.2:kind<1.5?1.6:kind<2.5?4.2:9.;
+  vec2 cell=vec2(u/cellW,y/storey);vec2 f=fract(cell);
+  float wu=fwidth(cell.x)*1.2,wv=fwidth(cell.y)*1.2;
+  float win=0.;
+  if(kind<.5){ win=band(f.x,.22,.78,wu)*band(f.y,.32,.82,wv); }
+  else if(kind<1.5){ win=(1.-band(f.x,-.03,.03,wu)-band(f.x,.97,1.03,wu))*(1.-band(f.y,-.06,.14,wv)); }
+  else if(kind<2.5){ win=band(f.x,.3,.7,wu)*band(f.y,.3,.78,wv); }
+  win*=detail*step(1.2,y);                 // no windows at ground level slab
+  // glass reflects the evening sky: warm on walls facing the sun, cool blue-grey otherwise
+  float facing=clamp(dot(normalize(vec3(n.x,0.,n.z)),normalize(vec3(uSun.x,0.,uSun.z))),0.,1.);
+  vec3 glass=mix(vec3(.52,.60,.68),vec3(.95,.74,.55),facing*.8);
+  float glassAmt=kind>.5&&kind<1.5?.85:.7;
+  diffuseColor.rgb=mix(diffuseColor.rgb,glass,win*glassAmt);
+  // faint floor lines on plain walls so storeys read even without windows
+  diffuseColor.rgb*=1.-.06*band(f.y,-.02,.02,wv)*detail*step(kind,2.5);
+  float r=hash2(floor(cell)+seed*91.7);
+  facadeLit=win*step(1.-uLit*(kind>1.5?.6:1.),r)*(1.-facing*.6);
+  facadeGlass=win;
+ }
+ diffuseColor.rgb=mix(diffuseColor.rgb,uTint,uTintAmt);
+}`)
+   .replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
+roughnessFactor=mix(roughnessFactor,.18,facadeGlass);`)
+   .replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+totalEmissiveRadiance+=vec3(1.,.72,.42)*facadeLit*.45;`);
+ };
+ mat.customProgramCacheKey=()=>'building-facade-v1'+(transparent?'-t':'');
+ return mat;
+}
