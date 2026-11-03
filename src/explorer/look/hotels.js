@@ -34,3 +34,19 @@ export const HOTEL_LOOKS={
  'scotts-garden-hotel':{wall:'#d9d2c4',roof:'#c2c7c6',kind:1,storey:3.5,
   fins:{spacing:.9,depth:.55,colour:'#f2efe8',minH:6},podiumFins:{colour:'#8a6a4c',height:6},roofGarden:true}
 };
+
+// Orchard landmarks, matched by their OpenStreetMap name (building parts
+// inherit their outline's name). Colours and facade styles from 2023–2026
+// photos in docs/reference-photos (views from ION Orchard, street views).
+export const LANDMARK_LOOKS=[
+ [/ngee ann city|takashimaya/i,{wall:'#6c3b34',roof:'#6f5148',kind:0,storey:3.6,crown:'pyramid'}], // maroon granite twin towers, stepped crowns with glass pyramids
+ [/wisma atria/i,{wall:'#2b5a98',roof:'#7d8a96',kind:1,storey:3.8}],                             // deep-blue glass tower
+ [/hilton|mandarin orchard/i,{wall:'#efede8',roof:'#b9b6af',kind:0,storey:3.3}],                  // white towers with arched crown
+ [/ion orchard|orchard residences/i,{wall:'#5d7180',roof:'#8f9aa2',kind:1,storey:3.6}],           // dark glass tower over a curved glass podium
+ [/lucky plaza/i,{wall:'#c9b791',roof:'#a39a88',kind:4,storey:4.5}],                              // beige podium
+ [/paragon/i,{wall:'#e7e2d8',roof:'#a9a59e',kind:4,storey:5}],                                    // pale stone and glass
+ [/tang plaza|\btangs\b/i,{roof:'#2f6a50'}],                                                      // green Chinese-style roof
+ [/shaw house|shaw centre/i,{wall:'#d9d7d1',kind:4,storey:5}],
+ [/pullman/i,{wall:'#2d2c2b',kind:1,storey:3.4}]                                                  // black-framed hotel block
+];
+export function landmarkLook(name){if(!name)return null;for(const [re,look] of LANDMARK_LOOKS)if(re.test(name))return look;return null}

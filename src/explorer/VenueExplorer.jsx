@@ -13,7 +13,7 @@ import {buildingLook} from './look/palette.js';
 import {sunDirection} from './look/sun.js';
 import {useSettings} from '../data/settings.js';
 import {EveningLight,SKY} from './look/EveningLight.jsx';
-import {HOTEL_LOOKS} from './look/hotels.js';
+import {HOTEL_LOOKS,landmarkLook} from './look/hotels.js';
 import HotelDetails from './look/HotelDetails.jsx';
 import NearbyDetails from './look/NearbyDetails.jsx';
 import {VENUES,VENUE_CATEGORIES} from '../data/venues.js';
@@ -134,8 +134,9 @@ function addBuilding(bucket,row,hotel){
  let g;try{g=new THREE.ExtrudeGeometry(shapeOf(flat),{depth:Math.max(2,h-minH),bevelEnabled:false})}catch{return false}
  g.rotateX(-Math.PI/2);g.translate(0,minH,0);
  let {wall,roof,kind,floor,seed}=buildingLook(row);const a=g.attributes.position.array;
- // listed hotels use their own facade (look/hotels.js) instead of the type palette
- if(hotel){wall=new THREE.Color(hotel.wall||wall);roof=new THREE.Color(hotel.roof||roof);kind=hotel.kind??kind;floor=hotel.storey||floor}
+ // listed hotels and Orchard landmarks use their own facade (look/hotels.js)
+ hotel=hotel||landmarkLook(row[3]);
+ if(hotel){wall=hotel.wall?new THREE.Color(hotel.wall):wall;roof=hotel.roof?new THREE.Color(hotel.roof):roof;kind=hotel.kind??kind;floor=hotel.storey||floor}
  for(let k=0;k<a.length;k+=3){bucket.P.push(a[k],a[k+1],a[k+2]);bucket.C.push(wall.r,wall.g,wall.b);bucket.R.push(roof.r,roof.g,roof.b);bucket.S.push(kind,floor,seed)}
  g.dispose();return true;
 }
@@ -156,11 +157,15 @@ function buildTile(data,owners){
  const venueParts=Object.fromEntries(Object.entries(venueB).map(([id,b])=>[id,[bucketGeometry(b)]]));
  const roads=[];data.r.forEach(([w,f])=>{const h=w/2;for(let i=0;i+3<f.length;i+=2){const x1=f[i],z1=f[i+1],x2=f[i+2],z2=f[i+3];let dx=x2-x1,dz=z2-z1;const l=Math.hypot(dx,dz)||1;dx/=l;dz/=l;const ax=-dz*h,az=dx*h;roads.push(x1+ax,.25,z1+az,x2-ax,.25,z2-az,x2+ax,.25,z2+az,x1+ax,.25,z1+az,x1-ax,.25,z1-az,x2-ax,.25,z2-az)}});
  const rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.Float32BufferAttribute(roads,3));rg.computeVertexNormals();
+ // pale paved footpaths beside main roads (Orchard Road's wide promenades)
+ const walk=[];data.r.forEach(([w,f])=>{if(w<8)return;const h=w/2+(w>=10?4.5:2.5);for(let i=0;i+3<f.length;i+=2){const x1=f[i],z1=f[i+1],x2=f[i+2],z2=f[i+3];let dx=x2-x1,dz=z2-z1;const l=Math.hypot(dx,dz)||1;dx/=l;dz/=l;const ax=-dz*h,az=dx*h;walk.push(x1+ax,.2,z1+az,x2-ax,.2,z2-az,x2+ax,.2,z2+az,x1+ax,.2,z1+az,x1-ax,.2,z1-az,x2-ax,.2,z2-az)}});
+ const wg=new THREE.BufferGeometry();wg.setAttribute('position',new THREE.Float32BufferAttribute(walk,3));wg.computeVertexNormals();
  const flat=(polys,y)=>{const P=[];polys.forEach(f=>{try{const s=new THREE.ShapeGeometry(shapeOf(f)).toNonIndexed();s.rotateX(-Math.PI/2);const a=s.attributes.position.array;for(let k=0;k<a.length;k+=3)P.push(a[k],y,a[k+2]);s.dispose()}catch{}});const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.computeVertexNormals();return g};
- return {ctx,roads:rg,green:flat(data.g||[],.15),water:flat(data.w||[],.1),venueParts,venueRows};
+ return {ctx,roads:rg,walk:wg,green:flat(data.g||[],.15),water:flat(data.w||[],.1),venueParts,venueRows};
 }
 const MATS={
  ctx:makeBuildingMaterial({sunDir:SUN}),
+ walk:new THREE.MeshStandardMaterial({color:'#cfc6b6',roughness:.95,side:THREE.DoubleSide,depthWrite:false}),
  road:new THREE.MeshStandardMaterial({color:'#a5a29c',roughness:.95,side:THREE.DoubleSide,depthWrite:false}),
  green:new THREE.MeshStandardMaterial({color:'#8fa476',roughness:1,side:THREE.DoubleSide,depthWrite:false}),
  water:new THREE.MeshStandardMaterial({color:'#7f9fae',roughness:.25,metalness:.1,side:THREE.DoubleSide,depthWrite:false}),
@@ -170,7 +175,7 @@ const MATS={
 function Tile({tileKey,index,focus,onVenueBounds,onVenueRows}){
  const [built,setBuilt]=useState(null);
  useEffect(()=>{let live=true;loadTile(index,tileKey).then(async d=>{if(!d)return;const owners=await ownersNear(index,tileKey);if(live)queueBuild(()=>{if(live)setBuilt(buildTile(d,owners))})});return()=>{live=false}},[tileKey,index]);
- useEffect(()=>()=>{if(built){built.ctx.dispose();built.roads.dispose();built.green.dispose();built.water.dispose();Object.values(built.venueParts).flat().forEach(g=>g.dispose())}},[built]);
+ useEffect(()=>()=>{if(built){built.ctx.dispose();built.roads.dispose();built.walk.dispose();built.green.dispose();built.water.dispose();Object.values(built.venueParts).flat().forEach(g=>g.dispose())}},[built]);
  useEffect(()=>{if(!built)return;Object.entries(built.venueParts).forEach(([id,parts])=>{const box=new THREE.Box3();parts.forEach(g=>{g.computeBoundingBox();box.union(g.boundingBox)});onVenueBounds(id,box)});Object.entries(built.venueRows).forEach(([id,rows])=>onVenueRows(id,rows))},[built,onVenueBounds,onVenueRows]);
  if(!built)return null;
  return <group>
@@ -179,6 +184,7 @@ function Tile({tileKey,index,focus,onVenueBounds,onVenueRows}){
       flicker; buildings still hide them correctly. */}
   <mesh geometry={built.green} material={MATS.green} raycast={()=>null} receiveShadow renderOrder={-3}/>
   <mesh geometry={built.water} material={MATS.water} raycast={()=>null} receiveShadow renderOrder={-2}/>
+  <mesh geometry={built.walk} material={MATS.walk} raycast={()=>null} receiveShadow renderOrder={-1.5}/>
   <mesh geometry={built.roads} material={MATS.road} raycast={()=>null} receiveShadow renderOrder={-1}/>
   <mesh geometry={built.ctx} material={MATS.ctx} raycast={()=>null} castShadow receiveShadow/>
   {Object.entries(built.venueParts).map(([id,parts])=><VenueBuilding key={id} id={id} parts={parts} focus={focus}/>)}
@@ -258,6 +264,18 @@ function AreaLayer(){
  return <><mesh geometry={geo.g} material={MATS.green} raycast={()=>null} receiveShadow renderOrder={-3}/><mesh geometry={geo.w} material={MATS.water} raycast={()=>null} receiveShadow renderOrder={-2}/></>;
 }
 
+// Orchard district (Tanglin to Dhoby Ghaut): richer detail for the whole area
+// around the listed hotels, built once and hidden when zoomed far out.
+const ORCHARD=(()=>{const [x,z]=project(1.3045,103.8318);return {x,z,radius:900}})();
+function OrchardDetails({index,rigRef}){
+ const [tiles,setTiles]=useState(null),group=useRef();
+ useEffect(()=>{if(!index||index.legacy)return;let live=true;const T=index.tileSize,keys=[];
+  for(let ix=Math.floor((ORCHARD.x-1500)/T);ix<=Math.floor((ORCHARD.x+1500)/T);ix++)for(let iz=Math.floor((ORCHARD.z-800)/T);iz<=Math.floor((ORCHARD.z+800)/T);iz++)if(index.tiles[ix+'_'+iz])keys.push(ix+'_'+iz);
+  Promise.all([Promise.all(keys.map(k=>loadTile(index,k))),Promise.all(VENUES.map(v=>venueOwnership(index,v.id)))]).then(([t,tests])=>{if(live)setTiles({list:t.filter(Boolean),skip:row=>tests.some(test=>test(row))})});return()=>{live=false}},[index]);
+ useFrame(()=>{if(!group.current)return;const {cur}=rigRef.current;group.current.visible=cur.r<3200&&Math.hypot(cur.tx-ORCHARD.x,cur.tz-ORCHARD.z)<4000});
+ return tiles?<NearbyDetails tiles={tiles.list} cx={ORCHARD.x} cz={ORCHARD.z} skip={tiles.skip} radius={ORCHARD.radius} orchard groupRef={group}/>:null;
+}
+
 function SpaceHighlight({venueId,space}){
  const ref=useRef();
  useFrame(({clock})=>{if(ref.current)ref.current.material.opacity=.32+.14*Math.sin(clock.elapsedTime*2.4)});
@@ -327,7 +345,8 @@ export default function VenueExplorer({onOpenSpace,initialVenueId=null,draftCoun
    {index?.areas&&<AreaLayer/>}
    {index&&<TileField index={index} rigRef={rigRef} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows}/>}
    {details&&Object.entries(venueRows).map(([id,rows])=>!(focus.venueId===id&&focus.spaceId)&&<HotelDetails key={id} rows={rows} look={HOTEL_LOOKS[id]}/>)}
-   {details&&nearby&&<NearbyDetails tiles={nearby.tiles} cx={nearby.x} cz={nearby.z} skip={nearby.skip}/>}
+   {details&&<OrchardDetails index={index} rigRef={rigRef}/>}
+   {details&&nearby&&Math.hypot(nearby.x-ORCHARD.x,nearby.z-ORCHARD.z)>ORCHARD.radius*1.4&&<NearbyDetails tiles={nearby.tiles} cx={nearby.x} cz={nearby.z} skip={nearby.skip}/>}
    {venue&&space&&<SpaceHighlight venueId={venue.id} space={space}/>}
    <Pins focus={focus} heights={heights} onSelect={select} filter={filter} draftCounts={draftCounts}/>
   </Canvas>
