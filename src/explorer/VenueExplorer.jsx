@@ -51,6 +51,14 @@ function loadTile(index,key){
  return tileCache.get(key);
 }
 
+// Tiles are built one per frame so panning into new areas doesn't stall.
+const buildQueue=[];let building=false;
+function queueBuild(job){buildQueue.push(job);if(!building){building=true;requestAnimationFrame(runQueue)}}
+function runQueue(){const job=buildQueue.shift();if(job)job();if(buildQueue.length)requestAnimationFrame(runQueue);else building=false}
+// Large parks, forests and water bodies (scripts/fetch-sg-map.mjs puts them in areas.json).
+let areasRequest=null;
+const loadAreas=()=>areasRequest||(areasRequest=fetch('/data/sg/areas.json').then(r=>r.ok?r.json():null).catch(()=>null));
+
 /* ---------- which buildings belong to a venue ---------- */
 // A venue's map point may land on one piece of a building that OSM splits
 // into parts (podium, tower...), or just outside its footprint. A venue owns:
@@ -153,22 +161,25 @@ function buildTile(data,owners){
 }
 const MATS={
  ctx:makeBuildingMaterial({sunDir:SUN}),
- road:new THREE.MeshStandardMaterial({color:'#a5a29c',roughness:.95,side:THREE.DoubleSide}),
- green:new THREE.MeshStandardMaterial({color:'#8fa476',roughness:1}),
- water:new THREE.MeshStandardMaterial({color:'#7f9fae',roughness:.25,metalness:.1}),
+ road:new THREE.MeshStandardMaterial({color:'#a5a29c',roughness:.95,side:THREE.DoubleSide,depthWrite:false}),
+ green:new THREE.MeshStandardMaterial({color:'#8fa476',roughness:1,side:THREE.DoubleSide,depthWrite:false}),
+ water:new THREE.MeshStandardMaterial({color:'#7f9fae',roughness:.25,metalness:.1,side:THREE.DoubleSide,depthWrite:false}),
  edge:new THREE.LineBasicMaterial({color:'#8e3b46',transparent:true,opacity:.35})
 };
 
 function Tile({tileKey,index,focus,onVenueBounds,onVenueRows}){
  const [built,setBuilt]=useState(null);
- useEffect(()=>{let live=true;loadTile(index,tileKey).then(async d=>{if(!d)return;const owners=await ownersNear(index,tileKey);if(live)setBuilt(buildTile(d,owners))});return()=>{live=false}},[tileKey,index]);
+ useEffect(()=>{let live=true;loadTile(index,tileKey).then(async d=>{if(!d)return;const owners=await ownersNear(index,tileKey);if(live)queueBuild(()=>{if(live)setBuilt(buildTile(d,owners))})});return()=>{live=false}},[tileKey,index]);
  useEffect(()=>()=>{if(built){built.ctx.dispose();built.roads.dispose();built.green.dispose();built.water.dispose();Object.values(built.venueParts).flat().forEach(g=>g.dispose())}},[built]);
  useEffect(()=>{if(!built)return;Object.entries(built.venueParts).forEach(([id,parts])=>{const box=new THREE.Box3();parts.forEach(g=>{g.computeBoundingBox();box.union(g.boundingBox)});onVenueBounds(id,box)});Object.entries(built.venueRows).forEach(([id,rows])=>onVenueRows(id,rows))},[built,onVenueBounds,onVenueRows]);
  if(!built)return null;
  return <group>
-  <mesh geometry={built.green} material={MATS.green} raycast={()=>null} receiveShadow/>
-  <mesh geometry={built.water} material={MATS.water} raycast={()=>null} receiveShadow/>
-  <mesh geometry={built.roads} material={MATS.road} raycast={()=>null} receiveShadow/>
+  {/* Flat layers don't write depth and draw in a fixed order (ground, green,
+      water, roads), so overlapping parks/forests/reservoirs can't z-fight and
+      flicker; buildings still hide them correctly. */}
+  <mesh geometry={built.green} material={MATS.green} raycast={()=>null} receiveShadow renderOrder={-3}/>
+  <mesh geometry={built.water} material={MATS.water} raycast={()=>null} receiveShadow renderOrder={-2}/>
+  <mesh geometry={built.roads} material={MATS.road} raycast={()=>null} receiveShadow renderOrder={-1}/>
   <mesh geometry={built.ctx} material={MATS.ctx} raycast={()=>null} castShadow receiveShadow/>
   {Object.entries(built.venueParts).map(([id,parts])=><VenueBuilding key={id} id={id} parts={parts} focus={focus}/>)}
  </group>;
@@ -229,9 +240,22 @@ function TileField({index,rigRef,focus,onVenueBounds,onVenueRows}){
   const cx=Math.floor(cur.tx/T),cz=Math.floor(cur.tz/T),n=Math.ceil(R/T);
   const sig=cx+','+cz+','+n;if(sig===last.current)return;last.current=sig;
   const list=[];for(let i=cx-n;i<=cx+n;i++)for(let j=cz-n;j<=cz+n;j++){const k=i+'_'+j;if(index.tiles[k])list.push([k,Math.hypot(i-cx,j-cz)])}
-  list.sort((a,b)=>a[1]-b[1]);setKeys(list.slice(0,180).map(x=>x[0]));
+  list.sort((a,b)=>a[1]-b[1]);const want=list.slice(0,180).map(x=>x[0]);
+  // keep tiles that are still fairly close, so panning back and forth doesn't
+  // drop and rebuild them (that reads as flicker at the edges of the view)
+  setKeys(prev=>{const keep=prev.filter(k=>{if(want.includes(k))return false;const [i,j]=k.split('_').map(Number);return Math.hypot(i-cx,j-cz)<=n+2});return [...want,...keep].slice(0,240)});
  });
  return <>{keys.map(k=><Tile key={k} tileKey={k} index={index} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows}/>)}</>;
+}
+
+function AreaLayer(){
+ const [geo,setGeo]=useState(null);
+ useEffect(()=>{let live=true;loadAreas().then(a=>{if(!a||!live)return;
+  const flat=(polys,y)=>{const P=[];polys.forEach(f=>{try{const s=new THREE.ShapeGeometry(shapeOf(f)).toNonIndexed();s.rotateX(-Math.PI/2);const p=s.attributes.position.array;for(let k=0;k<p.length;k+=3)P.push(p[k],y,p[k+2]);s.dispose()}catch{}});const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.computeVertexNormals();return g};
+  setGeo({g:flat(a.g||[],.12),w:flat(a.w||[],.08)})});return()=>{live=false}},[]);
+ useEffect(()=>()=>{geo?.g.dispose();geo?.w.dispose()},[geo]);
+ if(!geo)return null;
+ return <><mesh geometry={geo.g} material={MATS.green} raycast={()=>null} receiveShadow renderOrder={-3}/><mesh geometry={geo.w} material={MATS.water} raycast={()=>null} receiveShadow renderOrder={-2}/></>;
 }
 
 function SpaceHighlight({venueId,space}){
@@ -247,7 +271,7 @@ function SpaceHighlight({venueId,space}){
 
 function Pins({focus,heights,onSelect,filter,draftCounts={}}){
  return <>{VENUES.filter(v=>filter==='all'||v.category===filter).map(v=>{const g=VENUE_GEO[v.id],h=(heights[v.id]||60)+8;const dim=focus.venueId&&focus.venueId!==v.id;
-  return <Html key={v.id} position={[g.x,h,g.z]} center zIndexRange={[20,0]} style={{pointerEvents:'none'}}>
+  return <Html key={v.id} position={[g.x,h,g.z]} center zIndexRange={[5,0]} style={{pointerEvents:'none'}}>
    <button type="button" className={'map-pin'+(v.status==='3d'?' ready':'')+(dim?' dim':'')} onClick={()=>onSelect(v.id)} style={{pointerEvents:'auto'}}>
     <span className="map-pin-label">{v.name}{v.status==='3d'&&<em>3D</em>}</span>
     {draftCounts[v.id]>0&&<span className="map-pin-drafts">{draftCounts[v.id]} draft{draftCounts[v.id]>1?'s':''}</span>}
@@ -267,6 +291,8 @@ export default function VenueExplorer({onOpenSpace,initialVenueId=null,draftCoun
  const shadows=mapQuality==='high',details=mapQuality!=='saver';
  const start=VENUE_GEO['orchard-grand'];
  const rigRef=useRef({cur:{tx:start.x+200,tz:start.z-150,r:2600,theta:.6,phi:.8},goal:{tx:start.x+200,tz:start.z-150,r:1900,theta:.6,phi:.8},fly:null});
+ // dev-only handle for automated visual tests
+ useEffect(()=>{if(import.meta.env.DEV)window.__mapRig=rigRef.current},[]);
  useEffect(()=>{loadIndex().then(i=>{setIndex(i);setStatus(i?(i.legacy?'partial':'ready'):'missing')})},[]);
  const flyTo=useCallback((to,dur=1600,onArrive)=>{const r=rigRef.current;r.fly={from:{...r.cur},to:{...r.cur,...to},t0:performance.now(),dur};r.onArrive=onArrive},[]);
  const onVenueBounds=useCallback((id,box)=>setHeights(h=>h[id]>=box.max.y?h:{...h,[id]:box.max.y}),[]);
@@ -296,8 +322,9 @@ export default function VenueExplorer({onOpenSpace,initialVenueId=null,draftCoun
  return <div className="explorer">
   <Canvas key={mapQuality} className="explorer-canvas" camera={{fov:38,near:1,far:20000,position:[0,2000,2000]}} dpr={mapQuality==='saver'?1:[1,1.75]} shadows={shadows} gl={{antialias:true,powerPreference:'high-performance'}} onCreated={({scene,gl})=>{scene.fog=new THREE.Fog(BG,2000,8000);gl.setClearColor(BG)}}>
    <EveningLight sun={SUN} rigRef={rigRef}/>
-   <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.05,0]} raycast={()=>null} receiveShadow><planeGeometry args={[80000,80000]}/><meshStandardMaterial color="#ddd6c8" roughness={1}/></mesh>
+   <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.05,0]} raycast={()=>null} receiveShadow renderOrder={-4}><planeGeometry args={[80000,80000]}/><meshStandardMaterial color="#ddd6c8" roughness={1} depthWrite={false}/></mesh>
    <MapCamera rigRef={rigRef}/>
+   {index?.areas&&<AreaLayer/>}
    {index&&<TileField index={index} rigRef={rigRef} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows}/>}
    {details&&Object.entries(venueRows).map(([id,rows])=>!(focus.venueId===id&&focus.spaceId)&&<HotelDetails key={id} rows={rows} look={HOTEL_LOOKS[id]}/>)}
    {details&&nearby&&<NearbyDetails tiles={nearby.tiles} cx={nearby.x} cz={nearby.z} skip={nearby.skip}/>}

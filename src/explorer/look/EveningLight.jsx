@@ -32,11 +32,21 @@ export function EveningLight({sun,rigRef}){
   l.target=target;l.shadow.mapSize.set(2048,2048);l.shadow.bias=-.0004;l.shadow.normalBias=.8;
   l.shadow.camera.near=10;l.shadow.camera.far=9000;
  },[target]);
+ // Shadow-map stability: the shadow area is resized only in steps, and its
+ // centre is snapped to whole shadow-map texels in the light's own frame, so
+ // shadows don't shimmer or flicker while the camera moves or zooms.
+ const basis=useMemo(()=>{const d=new THREE.Vector3(-sun.x,-sun.y,-sun.z).normalize(),right=new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0),d).normalize(),up=new THREE.Vector3().crossVectors(d,right).normalize();return {right,up}},[sun]);
+ const centre=useMemo(()=>new THREE.Vector3(),[]);
  useFrame(()=>{
   const l=light.current;if(!l)return;const {cur}=rigRef.current;
-  const D=4000,half=THREE.MathUtils.clamp(cur.r*1.15,160,2600);
-  target.position.set(cur.tx,0,cur.tz);
-  l.position.set(cur.tx+sun.x*D,sun.y*D,cur.tz+sun.z*D);
+  const D=4000,want=THREE.MathUtils.clamp(cur.r*1.15,160,2600);
+  const half=Math.min(2600,160*Math.pow(1.5,Math.ceil(Math.log(want/160)/Math.log(1.5))));
+  const texel=2*half/l.shadow.mapSize.x;
+  centre.set(cur.tx,0,cur.tz);
+  const u=centre.dot(basis.right),v=centre.dot(basis.up);
+  centre.addScaledVector(basis.right,Math.round(u/texel)*texel-u).addScaledVector(basis.up,Math.round(v/texel)*texel-v);
+  target.position.copy(centre);
+  l.position.set(centre.x+sun.x*D,centre.y+sun.y*D,centre.z+sun.z*D);
   const cam=l.shadow.camera;
   if(cam.right!==half){cam.left=-half;cam.right=half;cam.top=half;cam.bottom=-half;cam.updateProjectionMatrix()}
  });
