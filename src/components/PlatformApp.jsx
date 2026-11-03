@@ -8,6 +8,8 @@ import PlannerPage from './planner/PlannerPage.jsx';
 import {dietLabel} from './planner/GuestsSection.jsx';
 import {MyWeddingPage,ProfilePage,SettingsPage} from './account/AccountPages.jsx';
 import {applyGlobalSettings} from '../data/settings.js';
+import {useAuth,signOut} from '../data/auth.js';
+import {SignInDialog,SignInBar,Teaser} from './account/SignedOut.jsx';
 const KEY='wedding-platform-planner-v1';
 const seedTasks=[
  {id:'venue',title:'Shortlist and confirm a venue',group:'Venue & date',done:false},
@@ -36,9 +38,16 @@ const money=n=>'S$'+Number(n||0).toLocaleString('en-SG');
 function IconButton({children,onClick,...props}){return <button type="button" onClick={onClick} {...props}>{children}</button>}
 export default function PlatformApp({Studio}){
  const navRef=useRef(null);
- const [marketCategory,setMarketCategory]=useState(null),[vendorTab,setVendorTab]=useState('inventory'),[page,setPage]=useState('home'),[studioStartMode,setStudioStartMode]=useState('design'),[planner,setPlanner]=useState(load),[planTab,setPlanTab]=useState('tasks'),[menu,setMenu]=useState(false),[mobile,setMobile]=useState(false),[notice,setNotice]=useState('');
+ const [marketCategory,setMarketCategory]=useState(null),[vendorTab,setVendorTab]=useState('inventory'),[page,setPage]=useState(()=>{try{return localStorage.getItem('wedding-session-v1')?'dashboard':'home'}catch{return 'home'}}),[studioStartMode,setStudioStartMode]=useState('design'),[planner,setPlanner]=useState(load),[planTab,setPlanTab]=useState('tasks'),[menu,setMenu]=useState(false),[mobile,setMobile]=useState(false),[notice,setNotice]=useState('');
  useEffect(()=>{localStorage.setItem(KEY,JSON.stringify(planner))},[planner]);
- useSlidingIndicator(navRef,[page]);
+ const session=useAuth();const sessionRef=useRef(session);sessionRef.current=session;
+ // Sign-in: members-only pages show a teaser when signed out; saving actions
+ // ask to sign in first and then carry on.
+ const [signin,setSignin]=useState(null);const pendingAfterSignIn=useRef(null);
+ const askSignIn=(reason,after)=>{pendingAfterSignIn.current=after||null;setSignin({reason})};
+ const onSignedIn=s=>{sessionRef.current=s;setSignin(null);setPlanner(prev=>({...prev,profile:{...(prev.profile||{}),email:s.email,name:prev.profile?.name||s.name}}));const after=pendingAfterSignIn.current;pendingAfterSignIn.current=null;if(after)after();else{setPage('dashboard');window.scrollTo?.(0,0)}setNotice('Welcome'+(s.name?', '+s.name:'')+'. Your plans now save to your account.');setTimeout(()=>setNotice(''),2600)};
+ const membersOnly=['studio','plan','dashboard','profile','settings'];
+ useSlidingIndicator(navRef,[page,!!session]);
  useEffect(()=>applyGlobalSettings(),[]);
  const patch=changes=>setPlanner(prev=>({...prev,...changes}));
  const completed=planner.tasks.filter(t=>t.done).length,percent=Math.round(100*completed/Math.max(1,planner.tasks.length));
@@ -49,20 +58,20 @@ export default function PlatformApp({Studio}){
  const [assignGuestId,setAssignGuestId]=useState(null);
  const startAssign=id=>{setAssignGuestId(id);setStudioStartMode('seating');setPage('studio');setMenu(false);window.scrollTo?.(0,0)};
  const finishAssign=result=>{setAssignGuestId(null);if(result){setNotice(`${result.guest.name||'Guest'} seated at Table ${result.tableId} · Seat ${result.seatNumber}`);setTimeout(()=>setNotice(''),2800)}setPlanTab('guests');setPage('plan');window.scrollTo?.(0,0)};
- const go=(next,options={})=>{if(next==='studio')setStudioStartMode('design');if(next==='market')setMarketCategory(options.category||null);setPage(next);setMenu(false);window.scrollTo?.(0,0)};
- const addItem=item=>{if(planner.savedItems.some(x=>x.id===item.id))return;patch({savedItems:[...planner.savedItems,item]});setNotice(item.name+' saved to your wedding');setTimeout(()=>setNotice(''),2400)};
- const toggleFavourite=item=>setPlanner(prev=>({...prev,favourites:prev.favourites.some(x=>x.id===item.id)?prev.favourites.filter(x=>x.id!==item.id):[...prev.favourites,item]}));
+ const go=(next,options={})=>{if(next==='home'&&sessionRef.current)next='dashboard';if(!sessionRef.current&&(next==='profile'||next==='settings')){askSignIn('Sign in to see your profile.',()=>go(next));return}if(next==='studio')setStudioStartMode('design');if(next==='market')setMarketCategory(options.category||null);setPage(next);setMenu(false);window.scrollTo?.(0,0)};
+ const addItem=item=>{if(!sessionRef.current){askSignIn(<>Sign in to save <em>{item.name}</em>.</>,()=>addItem(item));return}if(planner.savedItems.some(x=>x.id===item.id))return;patch({savedItems:[...planner.savedItems,item]});setNotice(item.name+' saved to your wedding');setTimeout(()=>setNotice(''),2400)};
+ const toggleFavourite=item=>!sessionRef.current?askSignIn(<>Sign in to keep your <em>favourites</em>.</>,()=>toggleFavourite(item)):setPlanner(prev=>({...prev,favourites:prev.favourites.some(x=>x.id===item.id)?prev.favourites.filter(x=>x.id!==item.id):[...prev.favourites,item]}));
  const moveFavourite=(category,id,direction)=>setPlanner(prev=>{const all=[...prev.favourites];const indices=all.map((x,i)=>x.category===category?i:-1).filter(i=>i>=0);const index=indices.findIndex(i=>all[i].id===id);const other=index+direction;if(other<0||other>=indices.length)return prev;[all[indices[index]],all[indices[other]]]=[all[indices[other]],all[indices[index]]];return {...prev,favourites:all}});
  const addGuest=(side='')=>patch({guests:[...planner.guests,{id:'g'+Date.now(),name:'',side,diets:[],group:'',email:'',rsvp:'Pending',diet:'',tableId:'',seatId:'',checkedIn:false,gift:''}]});
  const updateGuest=(id,changes)=>patch({guests:planner.guests.map(g=>g.id===id?{...g,...changes}:g)});
  const updateTask=(id,done)=>patch({tasks:planner.tasks.map(t=>t.id===id?{...t,done}:t)});
  const exportGuests=()=>{const rows=[['Name','Side','Group','Email','RSVP','Diet','Table','Seat','Checked in'],...planner.guests.map(g=>[g.name,{hers:'Hers',his:'His',both:'Both sides'}[g.side]||'',g.group,g.email,g.rsvp,dietLabel(g),g.tableId,g.seatId,g.checkedIn?'Yes':'No'])];const csv=rows.map(r=>r.map(x=>'"'+String(x??'').replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='wedding-guests.csv';a.click();URL.revokeObjectURL(a.href)};
  return <div className={"platform-root "+(page==='home'?'platform-home':'platform-interior')}>
- <nav className="platform-nav"><button className="platform-logo" onClick={()=>go('home')}><span>W</span><strong>Wedding Studio</strong></button><div className="platform-links platform-links-centered nav-pill" ref={navRef}><span className="slide-ind" aria-hidden="true"/>{nav.map(([key,label])=><button key={key} onClick={()=>go(key)} className={page===key?'active':''}>{label}</button>)}</div><div className="platform-nav-right"><div className="account-menu"><button aria-label="Account" aria-expanded={menu} className="account-trigger" onClick={()=>setMenu(!menu)}><UserRound size={18}/><ChevronDown size={13}/></button>{menu&&<div className="account-popover">{[['dashboard','My wedding',Heart],['profile','Profile',UserRound],['settings','Settings',Settings]].map(([id,label,Icon])=><button key={id} onClick={()=>go(id)}><Icon size={16}/>{label}</button>)}<button onClick={()=>{setMenu(false);setNotice('Accounts are not connected yet. Sign-out will be available after authentication is added.')}}><LogOut size={16}/>Log out <small>Coming soon</small></button></div>}</div><button className="mobile-nav-toggle" onClick={()=>setMobile(!mobile)} aria-label="Toggle navigation"><Menu size={20}/></button></div></nav>
+ <nav className="platform-nav"><button className="platform-logo" onClick={()=>go('home')}><span>W</span><strong>Wedding Studio</strong></button><div className="platform-links platform-links-centered nav-pill" ref={navRef}><span className="slide-ind" aria-hidden="true"/>{nav.map(([key,label])=><button key={key} onClick={()=>go(key)} className={page===key?'active':''}>{label}</button>)}</div><div className="platform-nav-right">{!session&&<div className="nav-auth"><button className="nav-signin" onClick={()=>askSignIn()}>Sign in</button><button className="nav-start" onClick={()=>askSignIn(<>Create your free <em>wedding space</em>.</>)}>Get started</button></div>}{session&&<div className="account-menu"><button aria-label="Account" aria-expanded={menu} className="account-trigger" onClick={()=>setMenu(!menu)}><UserRound size={18}/><ChevronDown size={13}/></button>{menu&&<div className="account-popover">{[['dashboard','My wedding',Heart],['profile','Profile',UserRound],['settings','Settings',Settings]].map(([id,label,Icon])=><button key={id} onClick={()=>go(id)}><Icon size={16}/>{label}</button>)}<div className="account-who">{session?.name||'Signed in'}<small>{session?.email}</small></div><button onClick={()=>{setMenu(false);signOut();setPage('home');window.scrollTo?.(0,0)}}><LogOut size={16}/>Log out</button></div>}</div>}<button className="mobile-nav-toggle" onClick={()=>setMobile(!mobile)} aria-label="Toggle navigation"><Menu size={20}/></button></div></nav>
  {mobile&&<div className="mobile-nav">{nav.map(([id,label])=><button key={id} onClick={()=>{go(id);setMobile(false)}}>{label}</button>)}</div>}
  {page==='home'&&<main className="landing landing-video-home">
   <div className="landing-video-layer" aria-hidden="true"><video autoPlay muted loop playsInline preload="metadata" poster="/media/wedding-hero-poster.jpg"><source src="/media/wedding-hero.mp4" type="video/mp4"/></video><div className="landing-video-fallback"/><div className="landing-video-shade"/></div>
-  <div className="landing-video-content"><div className="landing-kicker">A MORE BEAUTIFUL WAY TO PLAN</div><h1><span className="rise-line"><span>Imagine it.</span></span><span className="rise-line"><span><em>Make it yours.</em></span></span></h1><p>Explore beautiful venues, design every detail, and plan your celebration in one place.</p><div className="landing-actions"><button className="landing-primary" onClick={()=>go('studio')}>Find your venue <ArrowRight size={17}/></button><button className="landing-link" onClick={()=>go('market')}>Browse vendors</button><button className="landing-link" onClick={()=>go('dashboard')}>Start planning</button></div></div>
+  <div className="landing-video-content"><div className="landing-kicker">A MORE BEAUTIFUL WAY TO PLAN</div><h1><span className="rise-line"><span>Imagine it.</span></span><span className="rise-line"><span><em>Make it yours.</em></span></span></h1><p>Explore beautiful venues, design every detail, and plan your celebration in one place.</p><div className="landing-actions"><button className="landing-primary" onClick={()=>go('studio')}>Find your venue <ArrowRight size={17}/></button><button className="landing-link" onClick={()=>go('market')}>Browse vendors</button><button className="landing-link" onClick={()=>session?go('dashboard'):askSignIn(<>Sign in to start <em>planning</em>.</>,()=>go('plan'))}>Start planning</button></div></div>
   <div className="landing-video-footnote">YOUR WEDDING, YOUR VISION <span>DISCOVER · DESIGN · PLAN</span></div>
  </main>}
  {page==='home'&&<div className="home-sections">
@@ -88,13 +97,18 @@ export default function PlatformApp({Studio}){
  </div>}
  {/* @legacy VENUES_PAGE: Older direct venue preview route. Venue discovery now belongs in Marketplace. */}
  {page==='venues'&&<main className="platform-page"><div className="page-eyebrow">VENUE COLLECTION</div><h1>Find your perfect setting.</h1><p className="page-lede">Explore a venue and design your celebration in 3D. More Singapore venues will be added as models are verified.</p><div className="venue-preview-card"><div className="venue-art"><span>THE ORCHARD GRAND</span><div className="venue-arch"/></div><div className="venue-preview-info"><small>SINGAPORE · ORCHARD</small><h2>Grand Ballroom</h2><p>Interactive concept model. Architectural fixtures and placement remain estimates.</p><button onClick={()=>go('studio')}>Enter 3D studio <ArrowRight size={16}/></button></div></div></main>}
- {page==='studio'&&<div className="embedded-studio"><DesignPage Studio={Studio} onNavigate={go} planner={planner} onPlannerChange={setPlanner} initialMode={studioStartMode} assignGuestId={assignGuestId} onAssignDone={finishAssign}/></div>}
+ {page==='studio'&&!session&&<Teaser page="studio" go={go} onSignIn={()=>askSignIn(<>Sign in to start <em>designing</em>.</>,()=>go('studio'))}/>}
+ {page==='studio'&&session&&<div className="embedded-studio"><DesignPage Studio={Studio} onNavigate={go} planner={planner} onPlannerChange={setPlanner} initialMode={studioStartMode} assignGuestId={assignGuestId} onAssignDone={finishAssign}/></div>}
  {page==='market'&&<Marketplace key={marketCategory||'all'} initialCategory={marketCategory} onBack={()=>go('home')} onAdd={addItem} added={planner.savedItems.map(x=>x.id)} favourites={planner.favourites.map(x=>x.id)} onToggleFavourite={toggleFavourite} onStartDesign={()=>go('studio')} onPlan={()=>{setPlanTab('vendors');go('plan')}}/>}
- {page==='dashboard'&&<MyWeddingPage planner={planner} go={go} openPlan={openPlan} percent={percent} completed={completed}/>}
- {page==='plan'&&<PlannerPage planner={planner} patch={patch} planTab={planTab} setPlanTab={setPlanTab} completed={completed} percent={percent} exportGuests={exportGuests} addGuest={addGuest} updateGuest={updateGuest} updateTask={updateTask} toggleFavourite={toggleFavourite} moveFavourite={moveFavourite} vendorTab={vendorTab} setVendorTab={setVendorTab} go={go} openSeating={()=>{setStudioStartMode('seating');setPage('studio')}} onAssign={startAssign}/>}
- {page==='profile'&&<ProfilePage planner={planner} patch={patch} go={go}/>}
- {page==='settings'&&<SettingsPage planner={planner} resetPlanner={()=>{setPlanner(initial);localStorage.removeItem(KEY)}} notify={t=>{setNotice(t);setTimeout(()=>setNotice(''),2400)}}/>}
+ {page==='dashboard'&&!session&&<Teaser page="dashboard" go={go} onSignIn={()=>askSignIn()}/>}
+ {page==='dashboard'&&session&&<MyWeddingPage planner={planner} go={go} openPlan={openPlan} percent={percent} completed={completed}/>}
+ {page==='plan'&&!session&&<Teaser page="plan" go={go} onSignIn={()=>askSignIn(<>Sign in to start <em>planning</em>.</>,()=>go('plan'))}/>}
+ {page==='plan'&&session&&<PlannerPage planner={planner} patch={patch} planTab={planTab} setPlanTab={setPlanTab} completed={completed} percent={percent} exportGuests={exportGuests} addGuest={addGuest} updateGuest={updateGuest} updateTask={updateTask} toggleFavourite={toggleFavourite} moveFavourite={moveFavourite} vendorTab={vendorTab} setVendorTab={setVendorTab} go={go} openSeating={()=>{setStudioStartMode('seating');setPage('studio')}} onAssign={startAssign}/>}
+ {page==='profile'&&session&&<ProfilePage planner={planner} patch={patch} go={go} signedInEmail={session.email}/>}
+ {page==='settings'&&session&&<SettingsPage planner={planner} resetPlanner={()=>{setPlanner(initial);localStorage.removeItem(KEY)}} notify={t=>{setNotice(t);setTimeout(()=>setNotice(''),2400)}}/>}
  {notice&&<div className="platform-toast">{notice}</div>}
  <footer className="platform-footer"><span>Wedding Studio · Unofficial concept</span><span>Designed for meaningful celebrations</span></footer>
- </div>;
+  <SignInDialog open={!!signin} reason={signin?.reason} onClose={()=>{setSignin(null);pendingAfterSignIn.current=null}} onSignedIn={onSignedIn}/>
+ {!session&&['home','market','studio','plan','dashboard'].includes(page)&&<SignInBar onSignIn={()=>askSignIn()}/>}
+</div>;
 }

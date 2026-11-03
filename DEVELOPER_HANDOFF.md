@@ -230,3 +230,19 @@ Guest view keeps the camera at eye height inside the room, so it can never zoom 
     - large rain trees line Orchard Road and its side streets;
     - pale footpaths run beside main roads.
 - iStock photos are paid Getty licences, not free to use, and the build environment can't reach them; don't add them to the repo.
+
+### Studio map = venue map; guests by side; seat assignment; sign-in
+- **Studio Map view** (`src/studio/city/StudioCity.jsx`) renders `CityLayers` from `explorer/VenueExplorer.jsx`, the same layers the venue map uses, shifted so the ballroom sits at the venue's first map point.
+  - While the city is in view: 6:20pm light, the hotel drawn see-through, indoor lights dimmed and the reflection map off.
+  - Clicking a hotel name tag opens it on the venue map.
+- The back link is now a "Hotel selections on the map" button in the studio sidebar.
+- **Guests** (`src/components/planner/GuestsSection.jsx`):
+  - Sections Hers (pink), His (blue), Both sides (green), plus "Not sorted yet" for older guests.
+  - `guest.side` is one of `hers`, `his` or `both`; `guest.diets` is an array of ids shared with the studio's seat badges.
+  - "Assign →" calls `startAssign` in PlatformApp, which opens the studio in seating mode with `assignGuestId`. The user picks a chair and presses "Assign seat": the planner guest gets its table/seat, the seat gets the guest's diets, then the app returns to the guest list.
+  - The Seating tab was removed (old `seating` links fall back to Guests).
+- **Table sides** in the studio: `table.side` (`his`, `hers`, `mixed`) colours the 3D table title. It's set in the Selected item panel or the seating table panel, with a suggestion from the seated guests.
+- **Planner tabs** are static (no sticky bar, no sideways scroll). Wedding day promotes the upcoming NFC check-in kit.
+- **Sign-in** (`src/data/auth.js`, `src/components/account/SignedOut.jsx`) is a prototype that keeps the session in localStorage (`wedding-session-v1`). Replace `signIn`/`signOut` with the real provider.
+  - Signed out: homepage, marketplace browsing, and teaser screens for Design, Planner and My Wedding. Profile and Settings ask to sign in. Saving or favouriting a product asks to sign in, then completes the action. A dismissible sign-in bar shows on public pages, and the nav has "Sign in" and "Get started".
+  - Signed in: the logo and home go to **My Wedding** (kept over "Dashboard"). The account menu shows the email and a working Log out. The profile email is the sign-in email, read-only.
