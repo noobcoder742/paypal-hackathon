@@ -26,6 +26,22 @@ const project=(lat,lon)=>[Math.round((lon-SG_ORIGIN.lon)*111320*cosLat),Math.rou
 
 const metres=v=>{if(v==null)return NaN;const s=String(v),n=parseFloat(s.replace(',','.'));return /ft|'/.test(s)?n*.3048:n};
 const MATERIAL={glass:'#8fa3b1',brick:'#a8644f',concrete:'#c4beb3',plaster:'#e6dfd1',stone:'#cbbfa8',metal:'#a9adb1',wood:'#9b7653'};
+// Building type codes used by the map's colour palette (src/explorer/look/palette.js)
+//  d HDB flats · a apartments/condos · h houses/shophouses · c commercial/office/hotel
+//  i industrial · p public/civic/school/hospital · r religious · x roof/shed/carpark · '' other
+function typeCode(t){
+ const b=(t.building==='yes'||!t.building?t['building:part']&&t['building:part']!=='yes'?t['building:part']:'':t.building)||'';
+ const use=(t['building:use']||t.amenity||t.shop||t.tourism||'')+'';
+ if(/hdb/i.test(t.residential||'')||/hdb/i.test(t['building:use']||'')||/^(blk|block) \d/i.test(t.name||'')||/hdb/i.test(t.operator||''))return 'd';
+ if(/^(apartments|residential|flats|dormitory|condominium)$/.test(b))return 'a';
+ if(/^(house|detached|semidetached_house|terrace|bungalow|shophouse)$/.test(b))return 'h';
+ if(/^(commercial|office|retail|hotel|supermarket|kiosk|mall)$/.test(b)||/^(hotel|mall|office|retail)/.test(use))return 'c';
+ if(/^(industrial|warehouse|factory|manufacture|hangar)$/.test(b))return 'i';
+ if(/^(church|chapel|cathedral|mosque|temple|shrine|synagogue|religious)$/.test(b)||/place_of_worship/.test(use))return 'r';
+ if(/^(public|civic|school|university|college|hospital|government|train_station|transportation|stadium|sports_hall|kindergarten|library)$/.test(b)||/^(school|hospital|college|university|library|townhall|community_centre)$/.test(use))return 'p';
+ if(/^(roof|shed|garage|garages|carport|service|canopy|parking|hut)$/.test(b))return 'x';
+ return '';
+}
 const ROAD_W={motorway:16,trunk:14,primary:12,secondary:10,tertiary:8,unclassified:6,residential:6,service:4,living_street:5,pedestrian:4};
 
 // Douglas-Peucker in metres; keeps footprints faithful while trimming noise points.
@@ -104,7 +120,9 @@ for await (const line of rl(INPUT)){
     let minH=metres(t.min_height);if(isNaN(minH))minH=!isNaN(minLevel)?minLevel*FLOOR:0;
     if(t.building==='roof'&&!t.min_height)minH=Math.max(minH,h-1.5);
     const colour=t['building:colour']||t.colour||MATERIAL[(t['building:material']||'').toLowerCase()]||'';
-    tile(tileOf(centroid(poly))).b.push([+h.toFixed(1),+minH.toFixed(1),colour,t.name||'',t['building:part']?1:0,poly.flat()]);
+    // Row: [height, minHeight, OSM wall colour, name, isPart, footprint,
+    //       building id (set below for parts), type code, OSM roof colour]
+    tile(tileOf(centroid(poly))).b.push([+h.toFixed(1),+minH.toFixed(1),colour,t.name||'',t['building:part']?1:0,poly.flat(),null,typeCode(t),t['roof:colour']||'']);
     stats.buildings++;stats[src==='height'?'withHeight':src==='levels'?'withLevels':'estimated']++;if(t['building:part'])stats.parts++;
    }else{
     const water=t.natural==='water'||t.water||t.natural==='wetland';
@@ -128,7 +146,7 @@ for await (const line of rl(INPUT)){
    for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++)for(const [x,z,part] of partsByTile.get((ix+dx)+'_'+(iz+dz))||[])
     // parts keep the outline's name so landmarks stay searchable, and a shared
     // building id (7th field) so the map can treat them as one building
-    if(x>=x0&&x<=x1&&z>=z0&&z<=z1&&inside(x,z,p)){has=true;if(!part[3])part[3]=b[3];if(part[6]==null)part[6]=id}
+    if(x>=x0&&x<=x1&&z>=z0&&z<=z1&&inside(x,z,p)){has=true;if(!part[3])part[3]=b[3];if(part[6]==null)part[6]=id;if(!part[7])part[7]=b[7]}
    if(has)dropped++;return !has})}
  stats.outlinesReplacedByParts=dropped;
 }
