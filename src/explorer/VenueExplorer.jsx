@@ -18,6 +18,8 @@ import HotelDetails from './look/HotelDetails.jsx';
 import NearbyDetails from './look/NearbyDetails.jsx';
 import {VENUES,VENUE_CATEGORIES} from '../data/venues.js';
 import {project,pointInPolygon} from './geo.js';
+import {matchVenue} from './venueMatch.js';
+import {CityStream,loadLatest,getCityStream,baseReady} from './stream/cityStream.js';
 
 const INDEX_URL='/data/sg/index.json',TILE_URL=k=>`/data/sg/tiles/${k}.json`;
 const LEGACY_URL='/data/orchard-grand-surroundings.json';
@@ -57,29 +59,19 @@ function queueBuild(job){buildQueue.push(job);if(!building){building=true;reques
 function runQueue(){const job=buildQueue.shift();if(job)job();if(buildQueue.length)requestAnimationFrame(runQueue);else building=false}
 // Large parks, forests and water bodies (scripts/fetch-sg-map.mjs puts them in areas.json).
 let areasRequest=null;
-const loadAreas=()=>areasRequest||(areasRequest=fetch('/data/sg/areas.json').then(r=>r.ok?r.json():null).catch(()=>null));
+// waits for the base layer so it doesn't compete for bandwidth on first load
+const loadAreas=()=>areasRequest||(areasRequest=Promise.race([baseReady,new Promise(r=>setTimeout(r,4000))]).then(()=>fetch('/data/sg/areas.json')).then(r=>r.ok?r.json():null).catch(()=>null));
 
 /* ---------- which buildings belong to a venue ---------- */
 // A venue's map point may land on one piece of a building that OSM splits
 // into parts (podium, tower...), or just outside its footprint. A venue owns:
 // every building containing one of its points (or the nearest one within
 // 40 m), plus every other part of the same building (shared id, 7th field).
-function distToPoly(x,z,f){let d=Infinity;for(let i=0,j=f.length-2;i<f.length;j=i,i+=2){const ax=f[j],az=f[j+1],bx=f[i],bz=f[i+1],dx=bx-ax,dz=bz-az,l=dx*dx+dz*dz||1,t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/l));d=Math.min(d,Math.hypot(x-ax-t*dx,z-az-t*dz))}return d}
-const normName=n=>(n||'').toLowerCase().replace(/\b(the|singapore|hotel)\b/g,'').replace(/[^a-z0-9]/g,'');
 const ownerCache=new Map();
 function venueOwnership(index,id){
  if(!ownerCache.has(id))ownerCache.set(id,(async()=>{
-  const g=VENUE_GEO[id],buildings=await buildingsAround(index,g.x,g.z,250),hits=new Set();
-  for(const [px,pz] of g.points){
-   let found=buildings.filter(b=>pointInPolygon(px,pz,b[5]));
-   if(!found.length){let best=null,bd=40;for(const b of buildings){const d=distToPoly(px,pz,b[5]);if(d<bd){bd=d;best=b}}if(best)found=[best]}
-   found.forEach(b=>hits.add(b));
-  }
-  // plus buildings nearby that carry the venue's name in OpenStreetMap
-  const key=normName(VENUES.find(v=>v.id===id).name);
-  if(key.length>=4)for(const b of buildings){const n=normName(b[3]);if(n.length>=4&&(n.includes(key)||key.includes(n))&&b[5].length&&distToPoly(g.x,g.z,b[5])<150)hits.add(b)}
-  const groups=new Set([...hits].map(b=>b[6]).filter(v=>v!=null));
-  return b=>hits.has(b)||(b[6]!=null&&groups.has(b[6]));
+  const g=VENUE_GEO[id],buildings=await buildingsAround(index,g.x,g.z,250);
+  return matchVenue(buildings,g.points,g,VENUES.find(v=>v.id===id).name);
  })());
  return ownerCache.get(id);
 }
@@ -165,19 +157,22 @@ function buildTile(data,owners){
 }
 const MATS={
  ctx:makeBuildingMaterial({sunDir:SUN}),
- walk:new THREE.MeshStandardMaterial({color:'#cfc6b6',roughness:.95,side:THREE.DoubleSide,depthWrite:false}),
- road:new THREE.MeshStandardMaterial({color:'#a5a29c',roughness:.95,side:THREE.DoubleSide,depthWrite:false}),
- green:new THREE.MeshStandardMaterial({color:'#8fa476',roughness:1,side:THREE.DoubleSide,depthWrite:false}),
- water:new THREE.MeshStandardMaterial({color:'#7f9fae',roughness:.25,metalness:.1,side:THREE.DoubleSide,depthWrite:false}),
+ walk:new THREE.MeshStandardMaterial({flatShading:true,color:'#cfc6b6',roughness:.95,side:THREE.DoubleSide,depthWrite:false}),
+ road:new THREE.MeshStandardMaterial({flatShading:true,color:'#a5a29c',roughness:.95,side:THREE.DoubleSide,depthWrite:false}),
+ green:new THREE.MeshStandardMaterial({flatShading:true,color:'#8fa476',roughness:1,side:THREE.DoubleSide,depthWrite:false}),
+ water:new THREE.MeshStandardMaterial({flatShading:true,color:'#7f9fae',roughness:.25,metalness:.1,side:THREE.DoubleSide,depthWrite:false}),
  edge:new THREE.LineBasicMaterial({color:'#8e3b46',transparent:true,opacity:.35})
 };
 
-function Tile({tileKey,index,focus,onVenueBounds,onVenueRows}){
+function Tile({tileKey,index,focus,onVenueBounds,onVenueRows,venueOnly=false,onBuilt}){
  const [built,setBuilt]=useState(null);
  useEffect(()=>{let live=true;loadTile(index,tileKey).then(async d=>{if(!d)return;const owners=await ownersNear(index,tileKey);if(live)queueBuild(()=>{if(live)setBuilt(buildTile(d,owners))})});return()=>{live=false}},[tileKey,index]);
  useEffect(()=>()=>{if(built){built.ctx.dispose();built.roads.dispose();built.walk.dispose();built.green.dispose();built.water.dispose();Object.values(built.venueParts).flat().forEach(g=>g.dispose())}},[built]);
  useEffect(()=>{if(!built)return;Object.entries(built.venueParts).forEach(([id,parts])=>{const box=new THREE.Box3();parts.forEach(g=>{g.computeBoundingBox();box.union(g.boundingBox)});onVenueBounds(id,box)});Object.entries(built.venueRows).forEach(([id,rows])=>onVenueRows(id,rows))},[built,onVenueBounds,onVenueRows]);
+ useEffect(()=>{if(built)onBuilt?.()},[built,onBuilt]);
  if(!built)return null;
+ // streamed city: the cell's context, roads and parks come from the pre-built file; only the venue's own buildings are drawn here
+ if(venueOnly)return <group>{Object.entries(built.venueParts).map(([id,parts])=><VenueBuilding key={id} id={id} parts={parts} focus={focus}/>)}</group>;
  return <group>
   {/* Flat layers don't write depth and draw in a fixed order (ground, green,
       water, roads), so overlapping parks/forests/reservoirs can't z-fight and
@@ -208,6 +203,8 @@ function MapCamera({rigRef}){
  const rig=rigRef.current;
  useFrame(()=>{
   const {cur,goal}=rig;
+  // the descent waits (up to 0.6 s) until the destination shows full detail
+  if(rig.fly?.waitFor){const f=rig.fly,el=(performance.now()-f.t0)/f.dur;if(el>.82&&(f.held||0)<600&&!f.waitFor()){const step=Math.min(50,performance.now()-(f.lastT||performance.now()));f.t0+=step;f.held=(f.held||0)+step}f.lastT=performance.now()}
   if(rig.fly){const p=Math.min(1,(performance.now()-rig.fly.t0)/rig.fly.dur),k=ease(p);for(const key in rig.fly.to)cur[key]=rig.fly.from[key]+(rig.fly.to[key]-rig.fly.from[key])*k;Object.assign(goal,cur);if(p>=1){rig.fly=null;rig.onArrive?.();rig.onArrive=null}}
   else for(const key in goal)cur[key]+=(goal[key]-cur[key])*.12;
   camera.position.set(cur.tx+cur.r*Math.sin(cur.phi)*Math.sin(cur.theta),cur.r*Math.cos(cur.phi),cur.tz+cur.r*Math.sin(cur.phi)*Math.cos(cur.theta));
@@ -290,7 +287,7 @@ function SpaceHighlight({venueId,space}){
 function Pins({focus,heights,onSelect,filter,draftCounts={}}){
  return <>{VENUES.filter(v=>filter==='all'||v.category===filter).map(v=>{const g=VENUE_GEO[v.id],h=(heights[v.id]||60)+8;const dim=focus.venueId&&focus.venueId!==v.id;
   return <Html key={v.id} position={[g.x,h,g.z]} center zIndexRange={[5,0]} style={{pointerEvents:'none'}}>
-   <button type="button" className={'map-pin'+(v.status==='3d'?' ready':'')+(dim?' dim':'')} onClick={()=>onSelect(v.id)} style={{pointerEvents:'auto'}}>
+   <button type="button" className={'map-pin'+(v.status==='3d'?' ready':'')+(dim?' dim':'')} onClick={()=>onSelect(v.id)} onPointerEnter={()=>getCityStream()?.boost(g.x,g.z)} style={{pointerEvents:'auto'}}>
     <span className="map-pin-label">{v.name}{v.status==='3d'&&<em>3D</em>}</span>
     {draftCounts[v.id]>0&&<span className="map-pin-drafts">{draftCounts[v.id]} draft{draftCounts[v.id]>1?'s':''}</span>}
     <span className="map-pin-stem"/>
@@ -305,7 +302,20 @@ function Pins({focus,heights,onSelect,filter,draftCounts={}}){
  * studio's Map view so both always show the same thing.
  * rigRef.current.cur = {tx,tz,r} in map coordinates drives tile loading.
  */
+/* ---------- pre-built, streamed city (scripts/build-city-3d.mjs) ---------- */
+function StreamedCity({meta,index,rigRef,focus,onVenueBounds,onVenueRows}){
+ const stream=useMemo(()=>new CityStream(meta,{sun:SUN,mats:{roads:MATS.road,walk:MATS.walk,green:MATS.green,water:MATS.water}}),[meta]);
+ useEffect(()=>()=>stream.dispose(),[stream]);
+ // cells holding a listed venue: the venue's own buildings are drawn from the source rows
+ const venueCells=useMemo(()=>Object.entries(meta.cells).filter(([,c])=>c[2]?.length).map(([k])=>k),[meta]);
+ const ready=useMemo(()=>Object.fromEntries(venueCells.map(k=>[k,()=>stream.markVenueReady(k)])),[venueCells,stream]);
+ useFrame((_,dt)=>{const {cur}=rigRef.current;stream.update({x:cur.tx,z:cur.tz},cur.r,Math.min(dt,.1))});
+ return <><primitive object={stream.group}/>{venueCells.map(k=><Tile key={k} tileKey={k} index={index} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows} venueOnly onBuilt={ready[k]}/>)}</>;
+}
+
 export function CityLayers({index,rigRef,focus,details=true,onVenueBounds=()=>{}}){
+ const [meta,setMeta]=useState(undefined);
+ useEffect(()=>{let live=true;loadLatest().then(m=>{if(live)setMeta(m||null)});return()=>{live=false}},[]);
  const [venueRows,setVenueRows]=useState({});
  const onVenueRows=useCallback((id,rows)=>setVenueRows(v=>{const cur=v[id]||[];const add=rows.filter(r=>!cur.includes(r));return add.length?{...v,[id]:[...cur,...add]}:v}),[]);
  const [nearby,setNearby]=useState(null);
@@ -316,7 +326,8 @@ export function CityLayers({index,rigRef,focus,details=true,onVenueBounds=()=>{}
  return <>
   <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.05,0]} raycast={()=>null} receiveShadow renderOrder={-4}><planeGeometry args={[80000,80000]}/><meshStandardMaterial color="#ddd6c8" roughness={1} depthWrite={false}/></mesh>
   {index?.areas&&<AreaLayer/>}
-  {index&&<TileField index={index} rigRef={rigRef} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows}/>}
+  {index&&meta&&!index.legacy&&<StreamedCity meta={meta} index={index} rigRef={rigRef} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows}/>}
+  {index&&meta===null&&<TileField index={index} rigRef={rigRef} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows}/>}
   {details&&Object.entries(venueRows).map(([id,rows])=>!(focus.venueId===id&&focus.spaceId)&&<HotelDetails key={id} rows={rows} look={HOTEL_LOOKS[id]}/>)}
   {details&&<OrchardDetails index={index} rigRef={rigRef}/>}
   {details&&nearby&&Math.hypot(nearby.x-ORCHARD.x,nearby.z-ORCHARD.z)>ORCHARD.radius*1.4&&<NearbyDetails tiles={nearby.tiles} cx={nearby.x} cz={nearby.z} skip={nearby.skip}/>}
@@ -338,7 +349,13 @@ export default function VenueExplorer({onOpenSpace,initialVenueId=null,draftCoun
  // dev-only handle for automated visual tests
  useEffect(()=>{if(import.meta.env.DEV)window.__mapRig=rigRef.current},[]);
  useEffect(()=>{loadIndex().then(i=>{setIndex(i);setStatus(i?(i.legacy?'partial':'ready'):'missing')})},[]);
- const flyTo=useCallback((to,dur=1600,onArrive)=>{const r=rigRef.current;r.fly={from:{...r.cur},to:{...r.cur,...to},t0:performance.now(),dur};r.onArrive=onArrive},[]);
+ const flyTo=useCallback((to,dur=1600,onArrive)=>{const r=rigRef.current;const st=getCityStream();
+  // start loading the destination now; the descent holds until it's ready
+  if(st&&to.tx!=null){st.boost(to.tx,to.tz)}
+  r.fly={from:{...r.cur},to:{...r.cur,...to},t0:performance.now(),dur,waitFor:st&&to.tx!=null?()=>st.readyAround(to.tx,to.tz,Math.min(600,(to.r||400)*1.2)):null};r.onArrive=onArrive;
+  if(window.__cityMetrics&&to.tx!=null)window.__cityMetrics.lastFly={start:performance.now(),tx:to.tx,tz:to.tz}},[]);
+ // hovering a venue starts loading its area before it's even selected
+ const prefetch=useCallback(id=>{const g=VENUE_GEO[id];getCityStream()?.boost(g.x,g.z)},[]);
  const onVenueBounds=useCallback((id,box)=>setHeights(h=>h[id]>=box.max.y?h:{...h,[id]:box.max.y}),[]);
 
  const venue=VENUES.find(v=>v.id===focus.venueId),space=venue?.spaces.find(s=>s.id===focus.spaceId);
@@ -367,7 +384,7 @@ export default function VenueExplorer({onOpenSpace,initialVenueId=null,draftCoun
   <div className="finder">
    <label className="finder-box"><Search size={16}/><input value={query} placeholder="Search venues, e.g. Orchard Grand" onFocus={()=>setResultsOpen(true)} onChange={e=>{setQuery(e.target.value);setResultsOpen(true)}} aria-label="Search venues"/>{query&&<button type="button" className="finder-clear" aria-label="Clear search" onClick={()=>{setQuery('');setResultsOpen(true)}}><X size={15}/></button>}</label>
    <div className={'finder-results'+(resultsOpen?' open':'')}><div>
-    {results.length?results.map(v=><button type="button" key={v.id} onClick={()=>select(v.id)}><span className="finder-ic"><MapPin size={16}/></span><span>{v.name}<small>{v.area}</small></span><span className="finder-tag">{v.status==='3d'?'3D ready':'Example'}</span></button>)
+    {results.length?results.map(v=><button type="button" key={v.id} onClick={()=>select(v.id)} onPointerEnter={()=>prefetch(v.id)} onFocus={()=>prefetch(v.id)}><span className="finder-ic"><MapPin size={16}/></span><span>{v.name}<small>{v.area}</small></span><span className="finder-tag">{v.status==='3d'?'3D ready':'Example'}</span></button>)
      :<p className="finder-empty">No venues match yet. More partners are on the way.</p>}
    </div></div>
    <div className="finder-filters">{VENUE_CATEGORIES.map(c=><button type="button" key={c.id} className={filter===c.id?'on':''} onClick={()=>{setFilter(c.id);setResultsOpen(true)}}>{c.label} <b>{counts[c.id]}</b></button>)}</div>
