@@ -1,1 +1,26 @@
-{"name":"wedding-studio","version":"1.0.0","private":true,"type":"module","scripts":{"dev":"vite --host 0.0.0.0","build":"vite build","preview":"vite preview"},"dependencies":{"@react-three/drei":"^9.122.0","@react-three/fiber":"^8.17.10","three":"^0.171.0","react":"^18.3.1","react-dom":"^18.3.1","lucide-react":"^0.468.0"},"devDependencies":{"vite":"^6.0.5"}}
+{
+ "name": "wedding-studio",
+ "version": "1.0.0",
+ "private": true,
+ "type": "module",
+ "scripts": {
+  "build:city": "node scripts/build-city-3d.mjs",
+  "predev": "node scripts/build-city-3d.mjs --if-missing",
+  "dev": "vite --host 0.0.0.0",
+  "prebuild": "node scripts/build-city-3d.mjs --if-missing",
+  "build": "vite build",
+  "preview": "vite preview",
+  "test:map": "node scripts/perf/map-performance.mjs"
+ },
+ "dependencies": {
+  "@react-three/drei": "^9.122.0",
+  "@react-three/fiber": "^8.17.10",
+  "three": "^0.171.0",
+  "react": "^18.3.1",
+  "react-dom": "^18.3.1",
+  "lucide-react": "^0.468.0"
+ },
+ "devDependencies": {
+  "vite": "^6.0.5"
+ }
+}

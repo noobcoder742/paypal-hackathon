@@ -246,3 +246,23 @@ Guest view keeps the camera at eye height inside the room, so it can never zoom 
 - **Sign-in** (`src/data/auth.js`, `src/components/account/SignedOut.jsx`) is a prototype that keeps the session in localStorage (`wedding-session-v1`). Replace `signIn`/`signOut` with the real provider.
   - Signed out: homepage, marketplace browsing, and teaser screens for Design, Planner and My Wedding. Profile and Settings ask to sign in. Saving or favouriting a product asks to sign in, then completes the action. A dismissible sign-in bar shows on public pages, and the nav has "Sign in" and "Get started".
   - Signed in: the logo and home go to **My Wedding** (kept over "Dashboard"). The account menu shows the email and a working Log out. The profile email is the sign-in email, read-only.
+
+### Pre-built, streamed city (Phase 1 of docs/superpowers/specs/2026-11-04-city-streaming-design.md)
+- **`npm run build:city`** (`scripts/build-city-3d.mjs`) turns `public/data/sg` into `public/data/sg3d/<version>/`. The output is generated and gitignored, and runs automatically before `dev` and `build`.
+  - `base.bin.gz`: every building as one block, 159,748 buildings, 1.8 MB.
+  - `t/<cell>.glb`: 1,129 full-detail glTF cells (KHR_mesh_quantization), 107 MB in total, the largest 0.64 MB.
+  - `tileset.json` (3D Tiles 1.1) and `latest.json`.
+  - Size budgets fail the build. It takes about 5 s.
+- **Loader** (`src/explorer/stream/cityStream.js`):
+  - The base loads first and is **never unloaded**, so the island is always visible.
+  - Cells load by priority (camera distance, hovered or selected venue, fly-to destination), at most 6 downloads at a time and 3 cells per frame.
+  - A per-cell mask dissolves base and detail over 0.3 s.
+  - The rest of the island fills in the background (except on data saver or slow connections).
+  - A memory budget (120 MB on low-memory devices, 400 MB otherwise) drops only far cells.
+  - The base layer starts downloading while the app is idle, before Design is opened.
+- **Venue buildings** are excluded from the cells and drawn from source rows (as before), so highlights, see-through views and hotel details still work. Matching rules are shared in `src/explorer/venueMatch.js`.
+- **Fly-to:** hovering a search result or name tag preloads the area, and the descent holds up to 0.6 s until detail is shown.
+- **Offline cache:** `public/sw.js` serves versioned city files cache-first.
+- **Fallback:** if `latest.json` is missing, the old JSON tile path runs unchanged. The studio's Map view uses the same `CityLayers`.
+- **Check:** `npm run test:map` (and the "Map performance" Action) opens the production build at about 9 Mbps, 150 ms latency, 4× CPU slowdown. It fails if the island isn't visible within 2.5 s, detail isn't shown within 1 s of landing, or the base is evicted. Local runs: island at about 1.0–1.3 s, detail at about 10 ms after landing.
+- **Hosting:** serve `public/data/sg3d` from a CDN with long cache lifetimes (files are versioned). Later the Blender and Tripo outputs plug into the same build script.

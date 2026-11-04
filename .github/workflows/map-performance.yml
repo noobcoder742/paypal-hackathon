@@ -1,0 +1,45 @@
+name: Map performance (no buffering)
+# Spec section 4: builds the city and the site, opens the venue map on a
+# simulated mid-range phone connection (~9 Mbps, 150 ms) with 4x CPU slowdown,
+# and fails if the whole island isn't visible within 2.5 s, detail isn't shown
+# within 1 s of landing after a fly-to, or the base layer is ever unloaded.
+on:
+  workflow_dispatch:
+  push:
+    branches: [updates_claude]
+    paths:
+      - src/explorer/**
+      - src/main.jsx
+      - public/sw.js
+      - public/data/sg/**
+      - scripts/build-city-3d.mjs
+      - scripts/perf/**
+      - .github/workflows/map-performance.yml
+concurrency:
+  group: map-performance
+  cancel-in-progress: true
+jobs:
+  perf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - name: Install Playwright Chromium
+        run: npm i --no-save playwright@1.49.1 && npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Serve the production build
+        run: |
+          npx vite preview --port 4173 --strictPort &
+          for i in $(seq 1 30); do curl -sf http://localhost:4173/ >/dev/null && break; sleep 1; done
+      - run: node scripts/perf/map-performance.mjs
+        env:
+          BASE_URL: http://localhost:4173
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: map-performance-report
+          path: map-performance-report.json
