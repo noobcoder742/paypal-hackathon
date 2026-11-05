@@ -19,7 +19,7 @@ import NearbyDetails from './look/NearbyDetails.jsx';
 import {VENUES,VENUE_CATEGORIES} from '../data/venues.js';
 import {project,pointInPolygon} from './geo.js';
 import {matchVenue} from './venueMatch.js';
-import {CityStream,loadLatest,getCityStream,baseReady} from './stream/cityStream.js';
+import {CityStream,loadLatest,getCityStream,baseReady,onCityChange} from './stream/cityStream.js';
 
 const INDEX_URL='/data/sg/index.json',TILE_URL=k=>`/data/sg/tiles/${k}.json`;
 const LEGACY_URL='/data/orchard-grand-surroundings.json';
@@ -200,6 +200,24 @@ function VenueBuilding({id,parts,focus}){
  return <group>{parts.map((g,i)=><mesh key={i} geometry={g} material={mat} raycast={()=>null} castShadow={!ghost} receiveShadow/>)}{edges.map((e,i)=><lineSegments key={'e'+i} geometry={e} material={MATS.edge}/>)}</group>;
 }
 
+/* ---------- drawing only when something changes ---------- */
+// The map draws on demand: after 1.5 s without input, camera motion, fades or
+// a pulsing highlight it stops drawing until the next change (saves battery).
+let wakeMap=null,lastActivity=0,pulses=0;
+const TEST_HOOKS=import.meta.env.DEV||(typeof location!=='undefined'&&/[?&]perf\b/.test(location.search));
+/** Something on the map changed: draw again (and keep drawing for 1.5 s). */
+export function markMapActivity(){lastActivity=performance.now();wakeMap?.()}
+function KeepAwake({rigRef}){
+ const {invalidate,gl}=useThree();
+ useEffect(()=>{wakeMap=()=>invalidate();onCityChange(markMapActivity);if(TEST_HOOKS)window.__mapGl=gl;markMapActivity();return()=>{wakeMap=null;onCityChange(null)}},[invalidate,gl]);
+ useFrame(()=>{const rig=rigRef.current,st=getCityStream(),{cur,goal}=rig;
+  const settling=Math.abs(goal.tx-cur.tx)+Math.abs(goal.tz-cur.tz)+Math.abs(goal.r-cur.r)>.05||Math.abs(goal.phi-cur.phi)+Math.abs(goal.theta-cur.theta)>1e-4;
+  if(performance.now()-lastActivity<1500||rig.fly||settling||st?.fading||pulses>0)invalidate();
+  else if(st)st.metrics.idleStops=(st.metrics.idleStops||0)+1;
+ });
+ return null;
+}
+
 /* ---------- camera ---------- */
 const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
 function MapCamera({rigRef}){
@@ -218,17 +236,17 @@ function MapCamera({rigRef}){
  });
  useEffect(()=>{
   const el=gl.domElement;let drag=null;const pointers=new Map();let pinch=0;
-  const down=e=>{pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});el.setPointerCapture(e.pointerId);rig.fly=null;if(pointers.size===2){const [a,b]=[...pointers.values()];pinch=Math.hypot(a.x-b.x,a.y-b.y);drag=null;return}drag={x:e.clientX,y:e.clientY,rot:e.button===2||e.shiftKey}};
-  const move=e=>{if(pointers.has(e.pointerId))pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  const down=e=>{markMapActivity();pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});el.setPointerCapture(e.pointerId);rig.fly=null;if(pointers.size===2){const [a,b]=[...pointers.values()];pinch=Math.hypot(a.x-b.x,a.y-b.y);drag=null;return}drag={x:e.clientX,y:e.clientY,rot:e.button===2||e.shiftKey}};
+  const move=e=>{if(pointers.size)markMapActivity();if(pointers.has(e.pointerId))pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
    if(pointers.size===2){const [a,b]=[...pointers.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(pinch)zoom(pinch/d);pinch=d;return}
    if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;const g=rig.goal;
    if(drag.rot){g.theta-=dx*.005;g.phi=Math.min(1.3,Math.max(.12,g.phi-dy*.004))}
    else{const s=g.r*.0016,ct=Math.cos(rig.cur.theta),st=Math.sin(rig.cur.theta);g.tx+=(-dx*ct-dy*st)*s;g.tz+=(dx*st-dy*ct)*s}};
   const up=e=>{pointers.delete(e.pointerId);if(!pointers.size){drag=null;pinch=0}};
-  const zoom=f=>{rig.goal.r=Math.min(14000,Math.max(70,rig.goal.r*f))};
+  const zoom=f=>{markMapActivity();rig.goal.r=Math.min(14000,Math.max(70,rig.goal.r*f))};
   const wheel=e=>{e.preventDefault();rig.fly=null;zoom(1+Math.max(-120,Math.min(120,e.deltaY))*.0012)};
   const keys=e=>{const t=e.target;if(t&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))return;const d={arrowup:[0,1],w:[0,1],arrowdown:[0,-1],s:[0,-1],arrowleft:[-1,0],a:[-1,0],arrowright:[1,0],d:[1,0]}[e.key.toLowerCase()];
-   if(e.key==='+'||e.key==='='){zoom(.85);return}if(e.key==='-'){zoom(1.18);return}if(!d)return;e.preventDefault();const g=rig.goal,s=g.r*.08,ct=Math.cos(rig.cur.theta),st=Math.sin(rig.cur.theta);g.tx+=(d[0]*ct-d[1]*st)*s;g.tz+=(-d[0]*st-d[1]*ct)*s};
+   if(e.key==='+'||e.key==='='){zoom(.85);return}if(e.key==='-'){zoom(1.18);return}if(!d)return;e.preventDefault();markMapActivity();const g=rig.goal,s=g.r*.08,ct=Math.cos(rig.cur.theta),st=Math.sin(rig.cur.theta);g.tx+=(d[0]*ct-d[1]*st)*s;g.tz+=(-d[0]*st-d[1]*ct)*s};
   const ctx=e=>e.preventDefault();
   el.addEventListener('pointerdown',down);el.addEventListener('pointermove',move);el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up);el.addEventListener('wheel',wheel,{passive:false});el.addEventListener('contextmenu',ctx);window.addEventListener('keydown',keys);
   return()=>{el.removeEventListener('pointerdown',down);el.removeEventListener('pointermove',move);el.removeEventListener('pointerup',up);el.removeEventListener('pointercancel',up);el.removeEventListener('wheel',wheel);el.removeEventListener('contextmenu',ctx);window.removeEventListener('keydown',keys)};
@@ -255,11 +273,22 @@ function TileField({index,rigRef,focus,onVenueBounds,onVenueRows}){
  return <>{keys.map(k=><Tile key={k} tileKey={k} index={index} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows}/>)}</>;
 }
 
-function AreaLayer(){
+const LAND_MAT=new THREE.MeshStandardMaterial({color:'#ddd6c8',roughness:1,side:THREE.DoubleSide,depthWrite:false});
+/** Land, main roads, large parks and water from the versioned build: always loaded, never evicted. */
+function StreamExtras({stream}){
+ const [ex,setEx]=useState(null);
+ useEffect(()=>{let live=true;stream.baseReady.then(()=>stream.loadExtras()).then(e=>{if(live)setEx(e)}).catch(()=>{});return()=>{live=false}},[stream]);
+ useEffect(()=>()=>{ex?.land?.dispose();ex?.roads?.dispose()},[ex]);
+ if(!ex)return null;
+ return <>{ex.land&&<mesh geometry={ex.land} material={LAND_MAT} raycast={()=>null} receiveShadow renderOrder={-4.5}/>}
+  {ex.roads&&<mesh geometry={ex.roads} material={MATS.road} raycast={()=>null} receiveShadow renderOrder={-1.1}/>}
+  {ex.areas&&<AreaLayer data={ex.areas}/>}</>;
+}
+function AreaLayer({data}){
  const [geo,setGeo]=useState(null);
- useEffect(()=>{let live=true;loadAreas().then(a=>{if(!a||!live)return;
+ useEffect(()=>{let live=true;(data?Promise.resolve(data):loadAreas()).then(a=>{if(!a||!live)return;
   const flat=(polys,y)=>{const P=[];polys.forEach(f=>{try{const s=new THREE.ShapeGeometry(shapeOf(f)).toNonIndexed();s.rotateX(-Math.PI/2);const p=s.attributes.position.array;for(let k=0;k<p.length;k+=3)P.push(p[k],y,p[k+2]);s.dispose()}catch{}});const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.computeVertexNormals();return g};
-  setGeo({g:flat(a.g||[],.12),w:flat(a.w||[],.08)})});return()=>{live=false}},[]);
+  setGeo({g:flat(a.g||[],.12),w:flat(a.w||[],.08)})});return()=>{live=false}},[data]);
  useEffect(()=>()=>{geo?.g.dispose();geo?.w.dispose()},[geo]);
  if(!geo)return null;
  return <><mesh geometry={geo.g} material={MATS.green} raycast={()=>null} receiveShadow renderOrder={-3}/><mesh geometry={geo.w} material={MATS.water} raycast={()=>null} receiveShadow renderOrder={-2}/></>;
@@ -284,6 +313,7 @@ function OrchardDetails({index,rigRef}){
 
 function SpaceHighlight({venueId,space}){
  const ref=useRef();
+ useEffect(()=>{pulses++;markMapActivity();return()=>{pulses--}},[]);
  useFrame(({clock})=>{if(ref.current)ref.current.material.opacity=.32+.14*Math.sin(clock.elapsedTime*2.4)});
  if(!space?.box)return null;
  const g=VENUE_GEO[venueId],b=space.box;
@@ -312,6 +342,16 @@ function Pins({focus,heights,onSelect,filter,draftCounts={}}){
  * rigRef.current.cur = {tx,tz,r} in map coordinates drives tile loading.
  */
 /* ---------- pre-built, streamed city (scripts/build-city-3d.mjs) ---------- */
+/** Compiles every city shader during idle time once the island is in, so the
+ *  first cell, district or fly-to never waits for graphics preparation. */
+function WarmShaders({stream}){
+ const {gl,scene,camera}=useThree();
+ useEffect(()=>{let live=true;
+  stream.baseReady.then(()=>{const idle=window.requestIdleCallback||(f=>setTimeout(f,50));idle(()=>{if(!live)return;const done=stream.warmUp();
+   Promise.resolve(gl.compileAsync?gl.compileAsync(scene,camera):gl.compile(scene,camera)).catch(()=>{}).then(()=>{done();const m=stream.metrics;if(m.shadersReadyMs==null)m.shadersReadyMs=Math.round(performance.now()-m.started)})},{timeout:1500})}).catch(()=>{});
+  return()=>{live=false}},[stream,gl,scene,camera]);
+ return null;
+}
 function StreamedCity({meta,index,rigRef,focus,onVenueBounds,onVenueRows}){
  const stream=useMemo(()=>new CityStream(meta,{sun:SUN,mats:{roads:MATS.road,walk:MATS.walk,green:MATS.green,water:MATS.water}}),[meta]);
  useEffect(()=>()=>stream.dispose(),[stream]);
@@ -324,6 +364,8 @@ function StreamedCity({meta,index,rigRef,focus,onVenueBounds,onVenueRows}){
  // older builds without venueRows fall back to drawing venues from the JSON tiles
  const legacyVenueCells=useMemo(()=>meta.venueRows?[]:Object.entries(meta.cells).filter(([,c])=>c[2]?.length).map(([k])=>k),[meta]);
  return <><primitive object={stream.group}/>
+  <StreamExtras stream={stream}/>
+  <WarmShaders stream={stream}/>
   {venueGeo.map(([id,geo])=><VenueBuilding key={id} id={id} parts={[geo]} focus={focus}/>)}
   {index&&legacyVenueCells.map(k=><Tile key={k} tileKey={k} index={index} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows} venueOnly/>)}</>;
 }
@@ -339,8 +381,9 @@ export function CityLayers({index,rigRef,focus,details=true,onVenueBounds=()=>{}
    const tiles=(await Promise.all(keys.map(k=>loadTile(index,k)))).filter(Boolean);const skip=await venueOwnership(index,focus.venueId);if(live)setNearby({tiles,x:g.x,z:g.z,skip})})();
   return()=>{live=false}},[index,focus.venueId]);
  return <>
-  <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.05,0]} raycast={()=>null} receiveShadow renderOrder={-4}><planeGeometry args={[80000,80000]}/><meshStandardMaterial color="#ddd6c8" roughness={1} depthWrite={false}/></mesh>
-  {index?.areas&&<AreaLayer/>}
+  {/* with land polygons the ground plane is the sea and land is drawn on top; without them it stays flat land */}
+  <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.05,0]} raycast={()=>null} receiveShadow renderOrder={-5}><planeGeometry args={[80000,80000]}/><meshStandardMaterial color={meta?.land?'#7f9fae':'#ddd6c8'} roughness={meta?.land?.4:1} depthWrite={false}/></mesh>
+  {index?.areas&&!(meta&&!index.legacy&&meta.areas)&&<AreaLayer/>}
   {meta&&!index?.legacy&&<StreamedCity meta={meta} index={index} rigRef={rigRef} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows}/>}
   {index&&meta===null&&<TileField index={index} rigRef={rigRef} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows}/>}
   {details&&Object.entries(venueRows).map(([id,rows])=>!(focus.venueId===id&&focus.spaceId)&&<HotelDetails key={id} rows={rows} look={HOTEL_LOOKS[id]}/>)}
@@ -364,12 +407,13 @@ export default function VenueExplorer({onOpenSpace,initialVenueId=null,draftCoun
  const start=VENUE_GEO['orchard-grand'];
  const rigRef=useRef({cur:{tx:start.x+200,tz:start.z-150,r:2600,theta:.6,phi:.8},goal:{tx:start.x+200,tz:start.z-150,r:1900,theta:.6,phi:.8},fly:null});
  // dev-only handle for automated visual tests
- useEffect(()=>{if(import.meta.env.DEV)window.__mapRig=rigRef.current},[]);
+ // camera handle for scripted checks: dev builds, and the speed test (?perf) on production builds
+ useEffect(()=>{if(TEST_HOOKS){window.__mapRig=rigRef.current;window.__mapWake=markMapActivity}},[]);
  useEffect(()=>{loadIndex().then(i=>{setIndex(i);setStatus(i?(i.legacy?'partial':'ready'):'missing')})},[]);
  const flyTo=useCallback((to,dur=1600,onArrive)=>{const r=rigRef.current;const st=getCityStream();
   // start loading the destination now; the descent holds until it's ready
   if(st&&to.tx!=null){st.boost(to.tx,to.tz)}
-  r.fly={from:{...r.cur},to:{...r.cur,...to},t0:performance.now(),dur,waitFor:st&&to.tx!=null?()=>st.readyAround(to.tx,to.tz,Math.min(600,(to.r||400)*1.2)):null};r.onArrive=onArrive;
+  markMapActivity();r.fly={from:{...r.cur},to:{...r.cur,...to},t0:performance.now(),dur,waitFor:st&&to.tx!=null?()=>st.readyAround(to.tx,to.tz,Math.min(600,(to.r||400)*1.2)):null};r.onArrive=onArrive;
   if(window.__cityMetrics&&to.tx!=null)window.__cityMetrics.lastFly={start:performance.now(),tx:to.tx,tz:to.tz}},[]);
  // hovering a venue starts loading its area before it's even selected
  const prefetch=useCallback(id=>{const g=VENUE_GEO[id];getCityStream()?.boost(g.x,g.z)},[]);
@@ -390,9 +434,10 @@ export default function VenueExplorer({onOpenSpace,initialVenueId=null,draftCoun
  const results=VENUES.filter(v=>(filter==='all'||v.category===filter)&&v.name.toLowerCase().includes(query.toLowerCase()));
  const counts=Object.fromEntries(VENUE_CATEGORIES.map(c=>[c.id,c.id==='all'?VENUES.length:VENUES.filter(v=>v.category===c.id).length]));
  return <div className="explorer">
-  <Canvas key={mapQuality} className="explorer-canvas" camera={{fov:38,near:1,far:20000,position:[0,2000,2000]}} dpr={mapQuality==='saver'?1:[1,1.75]} shadows={shadows} gl={{antialias:true,powerPreference:'high-performance'}} onCreated={({scene,gl})=>{window.__mapMarks={...(window.__mapMarks||{}),canvas:performance.now()};scene.fog=new THREE.Fog(BG,2000,8000);gl.setClearColor(BG)}}>
+  <Canvas key={mapQuality} className="explorer-canvas" frameloop="demand" camera={{fov:38,near:1,far:20000,position:[0,2000,2000]}} dpr={mapQuality==='saver'?1:[1,1.75]} shadows={shadows} gl={{antialias:true,powerPreference:'high-performance'}} onCreated={({scene,gl})=>{window.__mapMarks={...(window.__mapMarks||{}),canvas:performance.now()};scene.fog=new THREE.Fog(BG,2000,8000);gl.setClearColor(BG)}}>
    <EveningLight sun={SUN} rigRef={rigRef}/>
    <MapCamera rigRef={rigRef}/>
+   <KeepAwake rigRef={rigRef}/>
    <CityLayers index={index} rigRef={rigRef} focus={focus} details={details} onVenueBounds={onVenueBounds}/>
    {venue&&space&&<SpaceHighlight venueId={venue.id} space={space}/>}
    <Pins focus={focus} heights={heights} onSelect={select} filter={filter} draftCounts={draftCounts}/>
