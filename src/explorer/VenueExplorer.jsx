@@ -7,7 +7,7 @@ import {Canvas,useFrame,useThree} from '@react-three/fiber';
 import {Html} from '@react-three/drei';
 import * as THREE from 'three';
 import {Search,X,ArrowRight,MapPin} from 'lucide-react';
-import {findClearView} from './viewFinder.js';
+import {venueView,fitDistance,venueFraming,BIRDS_EYE} from './viewFinder.js';
 import {makeBuildingMaterial} from './look/buildingMaterial.js';
 import {buildingLook} from './look/palette.js';
 import {sunDirection} from './look/sun.js';
@@ -94,29 +94,29 @@ async function buildingsAround(index,x,z,radius){
 }
 // Camera angle that sees the venue (or one of its spaces) without a
 // neighbouring building in the way. Falls back to the current angle.
-async function clearViewFor(index,venueId,{r,theta,space,phis}){
+// Bird's-eye view of a venue (or one of its spaces): 40–65° tilt, framed to
+// its size, not blocked by neighbours (viewFinder.js › venueView).
+async function clearViewFor(index,venueId,{theta,space,aspect=1.6}){
  const g=VENUE_GEO[venueId];
  try{
-  // streamed city: neighbours from the always-loaded base, the venue from its shipped rows (no downloads)
-  const st=getCityStream(),rows=st?.meta.venueRows?.[venueId],boxes=st?.boxesAround(g.x,g.z,Math.min(r,700));
-  let buildings,own;
-  if(boxes&&rows){const inVenue=([,,,,,f])=>{let x=0,z=0;for(let i=0;i<8;i+=2){x+=f[i];z+=f[i+1]}x/=4;z/=4;return rows.some(rw=>pointInPolygon(x,z,rw[5]))};
-   const set=new Set(rows);buildings=[...boxes.filter(b=>!inVenue(b)),...rows];own=row=>set.has(row)}
-  else{buildings=await buildingsAround(index,g.x,g.z,Math.min(r,700));own=await venueOwnership(index,venueId)}
-  let target,samples;
-  if(space){
-   const b=space.box,cx=g.points[0][0]+b.x,cz=g.points[0][1]+b.z,y=b.y,hw=b.width/2,hd=b.depth/2;
-   target={x:cx,z:cz};samples=[[cx,y,cz],[cx-hw,y,cz-hd],[cx+hw,y,cz-hd],[cx-hw,y,cz+hd],[cx+hw,y,cz+hd]];
-  }else{
-   // points through the middle and near the top of each part of the venue
-   const mine=buildings.filter(own);target={x:g.x,z:g.z};
-   // (centre plus up to 6 corners pulled slightly inwards, so the whole
-   // building is in view rather than just its middle)
-   samples=mine.length?mine.slice(0,10).flatMap(([h,minH,,,,f])=>{let x=0,z=0;const n=f.length/2;for(let i=0;i<f.length;i+=2){x+=f[i];z+=f[i+1]}x/=n;z/=n;const mid=minH+(h-minH)*.5,out=[[x,mid,z],[x,h*.95,z]];
-    for(let k=0;k<Math.min(6,n);k++){const i=Math.floor(k*n/Math.min(6,n))*2;out.push([x+(f[i]-x)*.8,mid,z+(f[i+1]-z)*.8])}return out})
-    :g.points.map(([x,z])=>[x,15,z]);
-  }
-  return {...findClearView({buildings,target,samples,r,theta,skip:own,phis}),tx:target.x,tz:target.z};
+  const st=getCityStream(),rows=st?.meta.venueRows?.[venueId];
+  let target,box,samples,own,mineRows;
+  // the venue's own rows: shipped with the city, else from the JSON tiles
+  if(rows)mineRows=rows;
+  else{const around=await buildingsAround(index,g.x,g.z,300),test=await venueOwnership(index,venueId);mineRows=around.filter(test)}
+  if(space){const b=space.box,cx=g.points[0][0]+b.x,cz=g.points[0][1]+b.z,y=b.y,hw=b.width/2,hd=b.depth/2;
+   target={x:cx,z:cz};box={w:b.width,d:b.depth,h:b.y+b.height};samples=[[cx,y,cz],[cx-hw,y,cz-hd],[cx+hw,y,cz-hd],[cx-hw,y,cz+hd],[cx+hw,y,cz+hd]]}
+  else if(mineRows.length)({target,box,samples}=venueFraming(mineRows));
+  else{target={x:g.x,z:g.z};box={w:40,d:40,h:40};samples=g.points.map(([x,z])=>[x,15,z])}
+  const r0=fitDistance({box,aspect}),reach=Math.min(1800,r0*2.5);
+  // neighbours: always-loaded base blocks (no downloads), else JSON tiles
+  const boxes=st?.boxesAround(target.x,target.z,reach);let buildings;
+  if(boxes){const inVenue=([,,,,,f])=>{let x=0,z=0;for(let i=0;i<8;i+=2){x+=f[i];z+=f[i+1]}x/=4;z/=4;return mineRows.some(rw=>pointInPolygon(x,z,rw[5]))};
+   buildings=[...boxes.filter(b=>!inVenue(b)),...mineRows]}
+  else buildings=await buildingsAround(index,target.x,target.z,reach);
+  const set=new Set(mineRows);own=row=>set.has(row);
+  // inside a ballroom the hotel itself is see-through, so only neighbours count
+  return {...venueView({buildings,own,target,samples,theta,r0}),tx:target.x,tz:target.z};
  }catch{return null}
 }
 
@@ -378,13 +378,13 @@ export default function VenueExplorer({onOpenSpace,initialVenueId=null,draftCoun
  const venue=VENUES.find(v=>v.id===focus.venueId),space=venue?.spaces.find(s=>s.id===focus.spaceId);
  const indexRef=useRef(null);indexRef.current=index;
  const select=useCallback(async id=>{const g=VENUE_GEO[id];setFocus({venueId:id,spaceId:null});setResultsOpen(false);setQuery(VENUES.find(v=>v.id===id).name);
-  const theta=rigRef.current.cur.theta+.35,view=await clearViewFor(indexRef.current,id,{r:420,theta});
-  flyTo({tx:g.x,tz:g.z,r:420,phi:view?.phi??.95,theta:view?.theta??theta})},[flyTo]);
+  const theta=rigRef.current.cur.theta+.35,aspect=innerWidth/Math.max(1,innerHeight),view=await clearViewFor(indexRef.current,id,{theta,aspect});
+  flyTo({tx:view?.tx??g.x,tz:view?.tz??g.z,r:view?.r??420,phi:view?.phi??.95,theta:view?.theta??theta})},[flyTo]);
  useEffect(()=>{if(initialVenueId&&VENUE_GEO[initialVenueId])setTimeout(()=>select(initialVenueId),300)},[initialVenueId,select]);
  const pickSpace=async s=>{const g=VENUE_GEO[venue.id];setFocus(f=>({...f,spaceId:s.id}));
   // the hotel turns translucent, so only neighbouring buildings can block the ballroom
-  const theta=rigRef.current.cur.theta+.25,view=await clearViewFor(index,venue.id,{r:230,theta,space:s,phis:[.55,.42,.3,.18]});
-  flyTo({tx:g.points[0][0]+s.box.x,tz:g.points[0][1]+s.box.z,r:230,phi:view?.phi??.5,theta:view?.theta??theta})};
+  const theta=rigRef.current.cur.theta+.25,view=await clearViewFor(index,venue.id,{theta,space:s,aspect:innerWidth/Math.max(1,innerHeight)});
+  flyTo({tx:g.points[0][0]+s.box.x,tz:g.points[0][1]+s.box.z,r:view?.r??230,phi:Math.max(BIRDS_EYE.min,view?.phi??.95),theta:view?.theta??theta})};
  const openSpace=()=>{if(!space)return;const g=VENUE_GEO[venue.id];setDiving(true);flyTo({tx:g.points[0][0]+space.box.x,tz:g.points[0][1]+space.box.z,r:45,phi:.9},1100,()=>onOpenSpace(venue.id,space.id))};
  const close=()=>{setFocus({venueId:null,spaceId:null});flyTo({r:1900,phi:.8})};
  const results=VENUES.filter(v=>(filter==='all'||v.category===filter)&&v.name.toLowerCase().includes(query.toLowerCase()));
