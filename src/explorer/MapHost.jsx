@@ -36,7 +36,8 @@ export function MapSlot({onOpenSpace,initialVenueId=null,draftCounts={}}){
  const ref=useRef(null),open=useRef(onOpenSpace);open.current=onOpenSpace;
  const counts=JSON.stringify(draftCounts);
  useLayoutEffect(()=>{store.props={onOpenSpace:(...a)=>open.current?.(...a),initialVenueId,draftCounts:JSON.parse(counts)};notify()},[initialVenueId,counts]);
- useLayoutEffect(()=>{const h=host();ref.current.appendChild(h);store.slot=ref.current;store.released=false;const m=metrics();m.activatedAt=performance.now();m.framesSinceActive=0;m.framesDrawnAtActivation=m.framesDrawn;notify();
+ useLayoutEffect(()=>{const h=host();ref.current.appendChild(h);store.slot=ref.current;store.released=false;store.warmAsked=true;   // once shown, it stays ready
+  const m=metrics();m.activatedAt=performance.now();m.framesSinceActive=0;m.framesDrawnAtActivation=m.framesDrawn;notify();
   return()=>{park();store.slot=null;metrics().activatedAt=null;notify()}},[]);
  return <div ref={ref} className="map-slot"/>;
 }

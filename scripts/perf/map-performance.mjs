@@ -100,6 +100,7 @@ async function warmRun(){
   await page.evaluate(()=>document.addEventListener('pointerdown',e=>{if(e.target.closest?.('.nav-pill button'))window.__designClick=performance.now()},{capture:true,once:true}));
   await page.click('.nav-pill button:has-text("Design")');
   out.visibleMs=await page.waitForFunction(()=>{const h=window.__mapHost,c=document.querySelector('.map-slot canvas'),t=window.__designClick;if(t==null||!h?.activatedAt||!c||!c.offsetWidth)return false;return (h.framesSinceActive>0||h.framesDrawnAtActivation>0)&&Math.max(1,performance.now()-t)},null,{timeout:10000,polling:10}).then(h=>h.jsonValue()).then(v=>Math.round(v)).catch(()=>null);
+  out.slotMovedMs=await page.evaluate(()=>Math.round(window.__mapHost.activatedAt-window.__designClick));
   // the picture really is on screen (not a blank canvas)
   const shot=await page.locator('.map-slot canvas').screenshot();out.pictureBytes=shot.length;
   for(let i=0;i<3;i++){await page.click('.nav-pill button:has-text("Marketplace")');await page.waitForTimeout(300);await page.click('.nav-pill button:has-text("Design")');await page.waitForTimeout(300)}
@@ -112,6 +113,15 @@ async function warmRun(){
   out.lowMemWarmBeforeHover=await page.evaluate(()=>!!window.__mapHost?.warm);
   await page.hover('.nav-pill button:has-text("Design")');
   out.lowMemWarmAfterHover=await page.waitForFunction(()=>window.__mapHost?.warm===true,null,{timeout:5000}).then(()=>true).catch(()=>false);await ctx.close()}
+ // the same phone, opening Design by a tap (no hover, as on the mobile menu), then leaving and coming back
+ {const ctx=await browser.newContext({viewport:{width:VW,height:VH}});await ctx.addInitScript(()=>Object.defineProperty(navigator,'deviceMemory',{get:()=>2}));
+  const page=await ctx.newPage();await page.route(u=>!u.href.startsWith(BASE),r=>r.abort());
+  await page.goto(BASE+'/?perf');await page.evaluate(()=>{localStorage.clear();localStorage.setItem('wedding-session-v1',JSON.stringify({email:'perf@test.sg',name:'Perf'}))});
+  await page.goto(BASE+'/?perf',{waitUntil:'load'});
+  const tap=label=>page.evaluate(l=>[...document.querySelectorAll('.nav-pill button')].find(b=>b.textContent.trim()===l).click(),label);
+  await tap('Design');await page.waitForSelector('.map-slot canvas');await page.waitForTimeout(1500);
+  for(let i=0;i<2;i++){await tap('Marketplace');await page.waitForTimeout(400);await tap('Design');await page.waitForTimeout(400)}
+  out.lowMemContexts=await page.evaluate(()=>window.__mapHost?.contexts);await ctx.close()}
  // instant picture (spec B2): on a cold start the pre-made picture is up within 300 ms of the click;
  // when the map opens on a saved venue it is skipped
  {const ctx=await browser.newContext({viewport:{width:VW,height:VH}});await ctx.addInitScript(()=>Object.defineProperty(navigator,'deviceMemory',{get:()=>2}));
@@ -122,6 +132,8 @@ async function warmRun(){
   await page.evaluate(()=>document.addEventListener('pointerdown',e=>{if(e.target.closest?.('.nav-pill button'))window.__designClick=performance.now()},{capture:true,once:true}));
   await page.click('.nav-pill button:has-text("Design")');
   out.snapshotMs=await page.waitForFunction(()=>{const i=document.querySelector('.map-slot img.map-snapshot');return i&&i.complete&&i.naturalWidth>0&&i.offsetWidth>0&&window.__designClick!=null&&Math.max(1,performance.now()-window.__designClick)},null,{timeout:10000,polling:10}).then(h=>h.jsonValue()).then(Math.round).catch(()=>null);
+  await page.waitForFunction(()=>window.__cityMetrics?.landDrawn,null,{timeout:60000}).catch(()=>{});
+  out.seaBeforeLand=await page.evaluate(()=>!!window.__cityMetrics?.seaWithoutLand);
   await page.goto(BASE+'/?perf');await page.evaluate(()=>localStorage.setItem('wedding-design-v1',JSON.stringify({venueId:'orchard-grand'})));
   await page.goto(BASE+'/?perf',{waitUntil:'load'});await page.click('.nav-pill button:has-text("Design")');await page.waitForSelector('.map-slot canvas');await page.waitForTimeout(500);
   out.snapshotOnSavedVenue=await page.evaluate(()=>window.__mapHost?.snapshotShown);await ctx.close()}
@@ -144,6 +156,8 @@ if(warm.pictureBytes<20000)fails.push(`the prepared map showed a blank canvas ($
 if(warm.snapshotMs==null||warm.snapshotMs>LIMITS.snapshotMs)fails.push(`instant picture took ${warm.snapshotMs??'forever'} ms (limit ${LIMITS.snapshotMs})`);
 if(warm.snapshotOnSavedVenue!==false)fails.push('instant picture should be skipped when the map opens on a saved venue');
 if(warm.contexts!==1)fails.push(`switching pages made ${warm.contexts} 3D views (want 1)`);
+if(warm.seaBeforeLand!==false)fails.push('cold open drew the island on a sea-coloured ground before the land arrived');
+if(warm.lowMemContexts!==1)fails.push(`low-memory phone: leaving and re-entering Design made ${warm.lowMemContexts} 3D views (want 1)`);
 if(warm.lowMemWarmBeforeHover||!warm.lowMemWarmAfterHover)fails.push('low-memory device: map should wait for a Design hover');
 if(runs.some(r=>r.idleFrames==null||r.idleFrames>2))fails.push('map kept drawing while still: '+runs.map(r=>r.idleFrames).join(', ')+' frames in 2 s');
 if(runs.some(r=>r.shadersBeforeFly==null))fails.push('graphics were not prepared before the fly-to');

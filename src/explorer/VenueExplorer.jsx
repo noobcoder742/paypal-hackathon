@@ -7,7 +7,7 @@ import {Canvas,useFrame,useThree} from '@react-three/fiber';
 import {Html} from '@react-three/drei';
 import * as THREE from 'three';
 import {Search,X,ArrowRight,MapPin} from 'lucide-react';
-import {venueView,fitDistance,venueFraming,BIRDS_EYE} from './viewFinder.js';
+import {venueView,fitDistance,venueFraming,withoutVenueBlocks,BIRDS_EYE} from './viewFinder.js';
 import {makeBuildingMaterial} from './look/buildingMaterial.js';
 import {buildingLook} from './look/palette.js';
 import {sunDirection} from './look/sun.js';
@@ -113,8 +113,7 @@ async function clearViewFor(index,venueId,{theta,space,aspect=1.6}){
   const r0=fitDistance({box,aspect}),reach=Math.min(1800,r0*2.5);
   // neighbours: always-loaded base blocks (no downloads), else JSON tiles
   const boxes=st?.boxesAround(target.x,target.z,reach);let buildings;
-  if(boxes){const inVenue=([,,,,,f])=>{let x=0,z=0;for(let i=0;i<8;i+=2){x+=f[i];z+=f[i+1]}x/=4;z/=4;return mineRows.some(rw=>pointInPolygon(x,z,rw[5]))};
-   buildings=[...boxes.filter(b=>!inVenue(b)),...mineRows]}
+  if(boxes)buildings=[...withoutVenueBlocks(boxes,mineRows),...mineRows];
   else buildings=await buildingsAround(index,target.x,target.z,reach);
   const set=new Set(mineRows);own=row=>set.has(row);
   // inside a ballroom the hotel itself is see-through, so only neighbours count
@@ -211,8 +210,9 @@ const TEST_HOOKS=import.meta.env.DEV||(typeof location!=='undefined'&&/[?&]perf\
 export function markMapActivity(){lastActivity=performance.now();wakeMap?.()}
 function KeepAwake({rigRef,active}){
  const {invalidate,gl}=useThree();
- // shown again after waiting in the background: draw at once
- useEffect(()=>{if(active)markMapActivity()},[active]);
+ // shown again after waiting in the background: let the browser paint the picture it already has,
+ // then draw live (on a slow device a live frame first would hold that paint back)
+ useEffect(()=>{if(!active)return;let t=null;const f=requestAnimationFrame(()=>{t=setTimeout(markMapActivity,0)});return()=>{cancelAnimationFrame(f);clearTimeout(t)}},[active]);
  // while waiting in the background it draws at most one frame every 2 s, only when
  // something new arrived, so its picture is current the moment Design opens
  useEffect(()=>{let last=0,t=null;wakeMap=active?()=>invalidate():()=>{const now=performance.now();if(now-last>2000){last=now;invalidate()}else if(!t)t=setTimeout(()=>{t=null;last=performance.now();invalidate()},2000-(now-last))};
@@ -314,12 +314,15 @@ function TileField({index,rigRef,focus,onVenueBounds,onVenueRows}){
  return <>{keys.map(k=><Tile key={k} tileKey={k} index={index} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows}/>)}</>;
 }
 
+/** Records whether the ground is drawn as sea before any land was drawn (speed test). */
+function GroundProbe({sea}){useFrame(()=>{const m=getCityStream()?.metrics;if(m&&sea&&!m.landDrawn)m.seaWithoutLand=true});return null}
 const LAND_MAT=new THREE.MeshStandardMaterial({color:'#ddd6c8',roughness:1,side:THREE.DoubleSide,depthWrite:false});
 /** Land, main roads, large parks and water from the versioned build: always loaded, never evicted. */
-function StreamExtras({stream}){
+function StreamExtras({stream,onLand}){
  const [ex,setEx]=useState(null);
- useEffect(()=>{let live=true;stream.baseReady.then(()=>stream.loadExtras()).then(e=>{if(live)setEx(e)}).catch(()=>{});return()=>{live=false}},[stream]);
+ useEffect(()=>{let live=true;stream.firstIsland.then(()=>stream.loadExtras()).then(e=>{if(live)setEx(e)}).catch(()=>{});return()=>{live=false}},[stream]);
  useEffect(()=>()=>{ex?.land?.dispose();ex?.roads?.dispose()},[ex]);
+ useEffect(()=>{if(ex?.land){stream.metrics.landDrawn=true;onLand?.()}},[ex,stream,onLand]);
  if(!ex)return null;
  return <>{ex.land&&<mesh geometry={ex.land} material={LAND_MAT} raycast={()=>null} receiveShadow renderOrder={-4.5}/>}
   {ex.roads&&<mesh geometry={ex.roads} material={MATS.road} raycast={()=>null} receiveShadow renderOrder={-1.1}/>}
@@ -393,10 +396,12 @@ function WarmShaders({stream}){
   return()=>{live=false}},[stream,gl,scene,camera]);
  return null;
 }
-function StreamedCity({meta,index,rigRef,focus,onVenueBounds,onVenueRows,onCityChange}){
+function StreamedCity({meta,index,rigRef,focus,onVenueBounds,onVenueRows,onCityChange,fill=true,onLand}){
  const changeRef=useRef(onCityChange);changeRef.current=onCityChange;
  const stream=useMemo(()=>new CityStream(meta,{sun:SUN,mats:{roads:MATS.road,walk:MATS.walk,green:MATS.green,water:MATS.water},onChange:k=>changeRef.current?.(k)}),[meta]);
  useEffect(()=>()=>stream.dispose(),[stream]);
+ // parked behind another page: keep what's near the view, don't fill the rest of the island
+ useEffect(()=>{stream.fillIsland=fill;if(fill)stream.kick()},[stream,fill]);
  // the listed venues' own buildings ship with the city as source rows: build them here, at once
  const venueGeo=useMemo(()=>Object.entries(meta.venueRows||{}).map(([id,rows])=>{const b=makeBucket();rows.forEach(row=>addBuilding(b,row,HOTEL_LOOKS[id]));return [id,bucketGeometry(b),rows]}),[meta]);
  useEffect(()=>{Object.keys(meta.cells).forEach(k=>stream.markVenueReady(k));
@@ -406,17 +411,19 @@ function StreamedCity({meta,index,rigRef,focus,onVenueBounds,onVenueRows,onCityC
  // older builds without venueRows fall back to drawing venues from the JSON tiles
  const legacyVenueCells=useMemo(()=>meta.venueRows?[]:Object.entries(meta.cells).filter(([,c])=>c[2]?.length).map(([k])=>k),[meta]);
  return <><primitive object={stream.group}/>
-  <StreamExtras stream={stream}/>
+  <StreamExtras stream={stream} onLand={onLand}/>
   <WarmShaders stream={stream}/>
   {venueGeo.map(([id,geo])=><VenueBuilding key={id} id={id} parts={[geo]} focus={focus}/>)}
   {index&&legacyVenueCells.map(k=><Tile key={k} tileKey={k} index={index} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows} venueOnly/>)}</>;
 }
 
 /** onCityChange(kind): for a view that draws on demand, called when newly loaded city can be seen. */
-export function CityLayers({index,rigRef,focus,details=true,onVenueBounds=()=>{},onCityChange}){
+export function CityLayers({index,rigRef,focus,details=true,onVenueBounds=()=>{},onCityChange,fill=true}){
  const [meta,setMeta]=useState(undefined);
  useEffect(()=>{let live=true;loadLatest().then(m=>{if(live)setMeta(m||null)});return()=>{live=false}},[]);
  const [venueRows,setVenueRows]=useState({});
+ // the ground turns to sea only once the land is drawn on it (until then it stays flat land)
+ const [landOn,setLandOn]=useState(false);const onLand=useCallback(()=>setLandOn(true),[]);
  const onVenueRows=useCallback((id,rows)=>setVenueRows(v=>{const cur=v[id]||[];const add=rows.filter(r=>!cur.includes(r));return add.length?{...v,[id]:[...cur,...add]}:v}),[]);
  const [nearby,setNearby]=useState(null);
  useEffect(()=>{if(!index||!focus.venueId){setNearby(null);return}let live=true;const g=VENUE_GEO[focus.venueId];
@@ -425,9 +432,10 @@ export function CityLayers({index,rigRef,focus,details=true,onVenueBounds=()=>{}
   return()=>{live=false}},[index,focus.venueId]);
  return <>
   {/* with land polygons the ground plane is the sea and land is drawn on top; without them it stays flat land */}
-  <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.05,0]} raycast={()=>null} receiveShadow renderOrder={-5}><planeGeometry args={[80000,80000]}/><meshStandardMaterial color={meta?.land?'#7f9fae':'#ddd6c8'} roughness={meta?.land?.4:1} depthWrite={false}/></mesh>
+  <GroundProbe sea={landOn}/>
+  <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.05,0]} raycast={()=>null} receiveShadow renderOrder={-5}><planeGeometry args={[80000,80000]}/><meshStandardMaterial color={landOn?'#7f9fae':'#ddd6c8'} roughness={landOn?.4:1} depthWrite={false}/></mesh>
   {index?.areas&&!(meta&&!index.legacy&&meta.areas)&&<AreaLayer/>}
-  {meta&&!index?.legacy&&<StreamedCity meta={meta} index={index} rigRef={rigRef} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows} onCityChange={onCityChange}/>}
+  {meta&&!index?.legacy&&<StreamedCity meta={meta} index={index} rigRef={rigRef} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows} onCityChange={onCityChange} fill={fill} onLand={onLand}/>}
   {index&&meta===null&&<TileField index={index} rigRef={rigRef} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows}/>}
   {details&&Object.entries(venueRows).map(([id,rows])=>!(focus.venueId===id&&focus.spaceId)&&<HotelDetails key={id} rows={rows} look={HOTEL_LOOKS[id]}/>)}
   {details&&<OrchardDetails index={index} rigRef={rigRef}/>}
@@ -495,7 +503,7 @@ export default function VenueExplorer({onOpenSpace,initialVenueId=null,draftCoun
    <KeepAwake rigRef={rigRef} active={active}/>
    <QualityGovernor rigRef={rigRef} mapQuality={mapQuality} active={active}/>
    {snapshot==='on'&&<SnapshotRelease onDone={releaseSnapshot}/>}
-   <CityLayers index={index} rigRef={rigRef} focus={focus} details={details} onVenueBounds={onVenueBounds} onCityChange={onCityChange}/>
+   <CityLayers index={index} rigRef={rigRef} focus={focus} details={details} onVenueBounds={onVenueBounds} onCityChange={onCityChange} fill={active}/>
    {venue&&space&&<SpaceHighlight venueId={venue.id} space={space}/>}
    <Pins focus={focus} heights={heights} onSelect={select} filter={filter} draftCounts={draftCounts}/>
   </Canvas>

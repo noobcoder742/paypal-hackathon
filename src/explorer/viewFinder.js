@@ -108,3 +108,12 @@ export function venueFraming(rows){
   for(let k=0;k<Math.min(6,n);k++){const i=Math.floor(k*n/Math.min(6,n))*2;out.push([x+(f[i]-x)*.8,mid,z+(f[i+1]-z)*.8])}return out});
  return {target:{x:(x0+x1)/2,z:(z0+z1)/2},box:{w:x1-x0,d:z1-z0,h},samples};
 }
+
+/** Base blocks around a venue, minus the venue's own (rows: the venue's source buildings). */
+export function withoutVenueBlocks(boxes,rows){
+ // a block is the venue's own when they overlap at all: any corner or its centre inside a venue
+ // footprint, or a venue corner inside the block (concave and split footprints have centres outside)
+ const inVenue=([,,,,,f])=>{let x=0,z=0;for(let i=0;i<8;i+=2){x+=f[i];z+=f[i+1]}const pts=[[x/4,z/4],[f[0],f[1]],[f[2],f[3]],[f[4],f[5]],[f[6],f[7]]];
+  return rows.some(rw=>{const p=rw[5];if(pts.some(([px,pz])=>pointInPolygon(px,pz,p)))return true;for(let i=0;i<p.length;i+=2)if(pointInPolygon(p[i],p[i+1],f))return true;return false})};
+ return boxes.filter(b=>!inVenue(b));
+}
