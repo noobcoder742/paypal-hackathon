@@ -1245,3 +1245,4 @@ h1,h2,h3{text-wrap:balance}
 .map-snapshot.fading{opacity:0}
 .snapshot-mode .finder,.snapshot-mode .explorer-legend,.snapshot-mode .map-pin,.snapshot-mode .venue-card{display:none!important}
 .footer-link{border:0;background:none;padding:0;font:inherit;color:inherit;text-decoration:underline;cursor:pointer}
+.signin-demo{font-size:.8rem;color:var(--ink-mute);background:var(--well);border-radius:10px;padding:8px 10px;margin:6px 0 0}
