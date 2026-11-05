@@ -1,4 +1,5 @@
-import React,{useState,useEffect,useRef} from 'react';
+import React,{useState,useEffect,useRef,Suspense,lazy} from 'react';
+const HotelDashboard=lazy(()=>import('../hotel/HotelDashboard.jsx'));
 import useSlidingIndicator from './ui/useSlidingIndicator.js';
 import {Flower2,ArrowRight,ArrowUpRight,Check,CalendarDays,Users,Wallet,ClipboardList,Store,Building2,Heart,Settings,LogOut,UserRound,ChevronDown,Menu,Plus,Trash2,Search,Mail,Download,Save,Clock,MapPin} from 'lucide-react';
 import Marketplace from './marketplace/Marketplace.jsx';
@@ -110,8 +111,9 @@ export default function PlatformApp({Studio}){
  {page==='profile'&&session&&<ProfilePage planner={planner} patch={patch} go={go} signedInEmail={session.email}/>}
  {page==='settings'&&session&&<SettingsPage planner={planner} resetPlanner={()=>{setPlanner(initial);localStorage.removeItem(KEY)}} notify={t=>{setNotice(t);setTimeout(()=>setNotice(''),2400)}}/>}
  {notice&&<div className="platform-toast">{notice}</div>}
+ {page==='hotel'&&<Suspense fallback={<main className="platform-page"><p>Loading the venue dashboard…</p></main>}><HotelDashboard/></Suspense>}
  <MapStage enabled={!!session}/>
- <footer className="platform-footer"><span>Wedding Studio · Unofficial concept</span><span>Designed for meaningful celebrations</span></footer>
+ <footer className="platform-footer"><span>Wedding Studio · Unofficial concept · <button type="button" className="footer-link" onClick={()=>go('hotel')}>For venues (demo)</button></span><span>Designed for meaningful celebrations</span></footer>
   <SignInDialog open={!!signin} reason={signin?.reason} onClose={()=>{setSignin(null);pendingAfterSignIn.current=null}} onSignedIn={onSignedIn}/>
  {!session&&['home','market','studio','plan','dashboard'].includes(page)&&<SignInBar onSignIn={()=>askSignIn()}/>}
 </div>;
