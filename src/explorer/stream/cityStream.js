@@ -17,16 +17,21 @@ const MAX_FETCH=6,MAX_BUILD_PER_FRAME=3,FADE_S=.3;
 let current=null;
 export const getCityStream=()=>current;
 
-let latestRequest=null,baseRequest=null;
-export function loadLatest(){return latestRequest||(latestRequest=fetch(ROOT+'latest.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(async l=>{
- if(!l)return null;
- if(l.meta)return {...l.meta,dir:ROOT+l.version+'/'};
- const ts=await fetch(ROOT+l.tileset).then(r=>r.ok?r.json():null);return ts?{...ts.extras,dir:ROOT+l.version+'/'}:null}).catch(()=>null))}
-/** The base layer bytes (unpacked), fetched once and shared. */
-function fetchBase(meta){return baseRequest||(baseRequest=fetch(meta.dir+meta.base.uri).then(r=>{if(!r.ok)throw new Error('base '+r.status);return r.arrayBuffer()}).then(async buf=>{
- const h=new Uint8Array(buf,0,2);if(h[0]===0x1f&&h[1]===0x8b)return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();return buf}).catch(e=>{baseRequest=null;throw e}))}
-/** Start downloading the map while the person is elsewhere in the app (skipped on data saver / slow connections). */
-export function prefetchCity(){const c=navigator.connection;if(c&&(c.saveData||/2g|3g/.test(c.effectiveType||'')))return;loadLatest().then(m=>{if(m)fetchBase(m).catch(()=>{})})}
+let pointerRequest=null,latestRequest=null,baseRequest=null;
+const unpack=async buf=>{const h=new Uint8Array(buf,0,2);if(h[0]===0x1f&&h[1]===0x8b)return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();return buf};
+// latest.json: a tiny pointer to the current build
+const loadPointer=()=>pointerRequest||(pointerRequest=fetch(ROOT+'latest.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).catch(()=>null));
+/** The city metadata (grid, cells, venues), or null if there is no pre-built city. */
+export function loadLatest(){return latestRequest||(latestRequest=loadPointer().then(async l=>{
+ if(!l)return null;const dir=ROOT+l.version+'/';
+ if(l.meta&&typeof l.meta==='object')return {...l.meta,dir};          // older builds
+ const m=await fetch(ROOT+(l.meta||l.tileset)).then(r=>r.ok?r.json():null);
+ return m?{...(m.extras||m),dir}:null}).catch(()=>null))}
+/** The base layer bytes (unpacked), fetched once and shared; starts in parallel with the metadata. */
+function fetchBase(){return baseRequest||(baseRequest=loadPointer().then(l=>{if(!l)throw new Error('no city');return fetch(ROOT+(l.base||l.version+'/base.bin.gz'))})
+ .then(r=>{if(!r.ok)throw new Error('base '+r.status);return r.arrayBuffer()}).then(unpack).catch(e=>{baseRequest=null;throw e}))}
+/** Start downloading the map early (skipped on data saver / slow connections). Safe to call repeatedly. */
+export function prefetchCity(){const c=navigator.connection;if(c&&(c.saveData||/2g|3g/.test(c.effectiveType||'')))return;fetchBase().catch(()=>{});loadLatest()}
 let baseReadyResolve;export const baseReady=new Promise(r=>{baseReadyResolve=r});
 
 function memoryBudget(){const gb=navigator.deviceMemory||8;return (gb<=4?120:400)*1e6}
@@ -51,7 +56,7 @@ export class CityStream{
  // ---------- base layer ----------
  async loadBase(){
   const {base,dir}=this.meta;
-  const buf=await fetchBase(this.meta);
+  const buf=await fetchBase();
   const since=()=>Math.round(performance.now()-this.metrics.started);this.metrics.baseFetchedMs=since();
   const n=base.count,S=base.stride,u8=new Uint8Array(buf),i16=new Int16Array(buf),u16=new Uint16Array(buf);
   // one shared box; every building's position, size and colours are read on the GPU from the file as is

@@ -41,7 +41,7 @@ const BUDGET={baseRaw:4.5e6,baseGzip:3e6,cell:2e6};
 const index=JSON.parse(await readFile(`${SRC}/index.json`,'utf8'));
 const version=createHash('sha1').update(String(index.generated)+':'+BUILDER_VERSION+':'+JSON.stringify(VENUES.map(v=>[v.id,v.points]))).digest('hex').slice(0,10);
 if(process.argv.includes('--if-missing')&&existsSync(`${OUT}/latest.json`)){
- try{const cur=JSON.parse(await readFile(`${OUT}/latest.json`,'utf8'));if(cur.version===version&&existsSync(`${OUT}/${version}/tileset.json`)){console.log('city 3D build is up to date:',version);process.exit(0)}}catch{}
+ try{const cur=JSON.parse(await readFile(`${OUT}/latest.json`,'utf8'));if(cur.version===version&&existsSync(`${OUT}/${version}/tileset.json`)&&existsSync(`${OUT}/${version}/meta.json`)){console.log('city 3D build is up to date:',version);process.exit(0)}}catch{}
 }
 const T=index.tileSize;
 const t0=Date.now();
@@ -179,7 +179,9 @@ const tileset={asset:{version:'1.1',generator:'wedding-studio build-city-3d'},ge
  extras:{venueRows:Object.fromEntries(VENUES.map(v=>[v.id,[...venueOf].filter(([,id])=>id===v.id).map(([row])=>row)]).filter(([,r])=>r.length)),version,builder:BUILDER_VERSION,source:index.source,sourceGenerated:index.generated,localFrame:'metres from origin: x east, y up, z south',origin:index.origin,
   tileSize:T,quantization:Q,grid,base:{uri:'base.bin.gz',encoding:'gzip',count:baseCount,stride:BASE_STRIDE,bytes:base.length,gzipBytes:baseGz},cells:cellMeta}};
 await writeFile(`${dir}/tileset.json`,JSON.stringify(tileset));
-// latest.json carries what the website needs, so opening the map costs one small request before the base
-await writeFile(`${OUT}/latest.json`,JSON.stringify({version,tileset:`${version}/tileset.json`,meta:tileset.extras}));
+// latest.json is a tiny pointer, so the base layer and meta.json (what the
+// website needs from the tileset) can download in parallel straight after it
+await writeFile(`${dir}/meta.json`,JSON.stringify(tileset.extras));
+await writeFile(`${OUT}/latest.json`,JSON.stringify({version,tileset:`${version}/tileset.json`,meta:`${version}/meta.json`,base:`${version}/base.bin.gz`}));
 console.log(`city 3D ${version}: ${baseCount} buildings in base (${(base.length/1e6).toFixed(2)} MB raw, ${(baseGz/1e6).toFixed(2)} MB gzip); ${cells.size} cells, ${(cellBytes/1e6).toFixed(1)} MB total, largest ${biggest[0]} ${(biggest[1]/1e6).toFixed(2)} MB; venue buildings ${venueOf.size}; ${((Date.now()-t0)/1000).toFixed(1)} s`);
 if(failures.length){console.error('Size budget exceeded:\n - '+failures.join('\n - '));process.exit(1)}
