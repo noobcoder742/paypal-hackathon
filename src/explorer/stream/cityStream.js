@@ -47,6 +47,15 @@ export function decodeLite(planes,stride=24){
 export function prefetchCity(){const c=navigator.connection;if(c&&(c.saveData||/2g|3g/.test(c.effectiveType||'')))return;fetchLite();fetchBase().catch(()=>{});loadLatest()}
 let baseReadyResolve;export const baseReady=new Promise(r=>{baseReadyResolve=r});
 
+/** Whether a cell or district should be downloaded now. near: inside the range where it is never
+ *  evicted. fill: the island is filling in the background (not while parked, not over budget).
+ *  A file evicted for memory is only fetched again once it is near, so eviction can't loop. */
+export function isDue(c,{near,fill,now}){
+ if(c&&c.state==='failed')return c.tries<3&&now>c.retryAt&&(near||fill);
+ if(c&&c.state==='evicted')return near;
+ if(c&&c.state!=='idle')return false;
+ return near||fill;
+}
 function memoryBudget(){const gb=navigator.deviceMemory||8;return (gb<=4?120:400)*1e6}
 
 export class CityStream{
@@ -71,6 +80,8 @@ export class CityStream{
   this.boosts=[];this.fetching=0;this.readyQueue=[];this.usedBytes=0;this.lastPlan=0;this.venueReady=new Set();
   this.metrics=window.__cityMetrics={started:performance.now(),baseFetchedMs:null,baseLoadedMs:null,baseReadyMs:null,cellsLoaded:0,cellsShown:0,baseEvictions:0,cellsEvicted:0,baseLiteMs:null,shadersReadyMs:null,landLoaded:false,districtsLoaded:0,districtsShown:0,districtsEvicted:0,frames:[]};
   live.push(this);window.__cityStream=this;current=this;
+  // resolves when the island first stands in the scene (lite base, or the full base if there is none)
+  this.firstIsland=new Promise(r=>{this._firstIsland=r});
   this.baseReady=this.loadBase();
  }
  dispose(){this.group.traverse(o=>{if(o.geometry)o.geometry.dispose()});this.disposed=true;clearTimeout(this._kick);clearTimeout(this._pump);this.cellMat.dispose();this.baseMat.dispose();this.midMat?.dispose();this.maskTex.dispose();this.midTex?.dispose();const i=live.indexOf(this);if(i>=0)live.splice(i,1);if(current===this){current=live[live.length-1]||null;window.__cityStream=current;if(current)window.__cityMetrics=current.metrics}}
@@ -100,7 +111,7 @@ export class CityStream{
   // the full base swaps in under the same mesh: the same blocks, more of them
   if(this.base){const old=this.base.geometry;this.base.geometry=g;old.dispose()}
   else{const mesh=new THREE.Mesh(g,this.baseMat);mesh.name='city-base';mesh.frustumCulled=false;mesh.receiveShadow=true;mesh.raycast=()=>null;this.group.add(mesh);this.base=mesh}
-  this.baseData={i16,u16,u8,n,S};const mesh=this.base;this.onChange?.('base');
+  this.baseData={i16,u16,u8,n,S};const mesh=this.base;this._firstIsland?.();this.onChange?.('base');
   if(isLite){this.whenDrawn();return mesh}
   // baseLoadedMs: downloaded, unpacked and in the scene; baseReadyMs: first frame drawn with it
   this.metrics.baseLoadedMs=since();
@@ -194,12 +205,13 @@ export class CityStream{
   // background fill of the whole island unless the connection is slow or data saver is on
   const conn=navigator.connection,slow=conn&&(conn.saveData||/2g|3g/.test(conn.effectiveType||''));
   const limit=slow?showR*1.3:Infinity;
-  const due=c=>!c||c.state==='idle'||(c.state==='failed'&&c.tries<3&&performance.now()>c.retryAt);
-  const todo=keys.filter(k=>due(this.cells.get(k))&&pr(k)<limit).sort((a,b)=>pr(a)-pr(b));
+  // background fill: not while the map is parked behind another page, and never past the memory budget
+  const budget=memoryBudget(),now=performance.now(),fill=this.fillIsland!==false&&this.usedBytes<budget*.85;
+  const todo=keys.filter(k=>pr(k)<limit&&isDue(this.cells.get(k),{near:pr(k)<showR*1.5,fill,now})).sort((a,b)=>pr(a)-pr(b));
   // order: nearby full detail, then districts in view, then the rest of the island (districts before far cells)
   const D=this.meta.districts,dpr=k=>{const [dx,dz]=k.split('_').map(Number),x=(dx+.5)*D.size,z=(dz+.5)*D.size;let d=Math.hypot(x-target.x,z-target.z);for(const b of this.boosts)d=Math.min(d,Math.hypot(x-b.x,z-b.z));return d};
   const dlimit=slow?midR*1.3:Infinity;
-  const dtodo=D?Object.keys(D.cells).filter(k=>due(this.districts.get(k))&&dpr(k)<dlimit&&!this.cellsCover(...k.split('_').map(Number))).sort((a,b)=>dpr(a)-dpr(b)):[];
+  const dtodo=D?Object.keys(D.cells).filter(k=>dpr(k)<dlimit&&isDue(this.districts.get(k),{near:dpr(k)<midR*1.2,fill,now})&&!this.cellsCover(...k.split('_').map(Number))).sort((a,b)=>dpr(a)-dpr(b)):[];
   // (when zoomed far out, the districts in view come before the outer ring of full detail, so the view is covered first)
   const nearR=Math.min(showR,2500);
   const queue=[...todo.filter(k=>pr(k)<nearR).map(k=>['c',k]),...dtodo.filter(k=>dpr(k)<midR).map(k=>['m',k]),...todo.filter(k=>pr(k)>=nearR&&pr(k)<showR).map(k=>['c',k]),...dtodo.filter(k=>dpr(k)>=midR).map(k=>['m',k]),...todo.filter(k=>pr(k)>=showR).map(k=>['c',k])];
@@ -208,7 +220,6 @@ export class CityStream{
   const near=k=>k.startsWith('m:')?dpr(k.slice(2)):pr(k);
   this.readyQueue.sort((a,b)=>near(a)-near(b));
   // memory budget: drop the farthest cells first (the base keeps covering them)
-  const budget=memoryBudget();
   // districts go first (the base still covers them), farthest first, never ones in view
   if(this.usedBytes>budget&&D){const loaded=[...this.districts].filter(([,c])=>c.state==='ready').sort((a,b)=>dpr(b[0])-dpr(a[0]));
    for(const [k,c] of loaded){if(this.usedBytes<=budget*.9)break;if(dpr(k)<midR*1.2)break;this.evictDistrict(k,c)}}
@@ -274,8 +285,8 @@ export class CityStream{
   }
   c.bytes=c.buffer.byteLength;c.buffer=null;c.group=g;c.state='ready';this.usedBytes+=c.bytes;this.group.add(g);this.metrics.districtsLoaded++;
  }
- evictDistrict(key,c){this.group.remove(c.group);c.group.traverse(o=>o.geometry?.dispose());c.group=null;c.state='idle';this.usedBytes-=c.bytes||0;this.metrics.districtsEvicted++;
+ evictDistrict(key,c){this.group.remove(c.group);c.group.traverse(o=>o.geometry?.dispose());c.group=null;c.state='evicted';this.usedBytes-=c.bytes||0;this.metrics.districtsEvicted++;
   const D=this.meta.districts,[dx,dz]=key.split('_').map(Number),idx=(dx-D.grid.dx0)+(dz-D.grid.dz0)*D.grid.w;this.midFade[idx]=0;this.midMaskData[idx]=0;this.midTex.needsUpdate=true}
- evict(key,c){this.group.remove(c.group);c.group.traverse(o=>o.geometry?.dispose());c.group=null;c.state='idle';this.usedBytes-=c.bytes||0;this.metrics.cellsEvicted++;
+ evict(key,c){this.group.remove(c.group);c.group.traverse(o=>o.geometry?.dispose());c.group=null;c.state='evicted';this.usedBytes-=c.bytes||0;this.metrics.cellsEvicted++;
   const g=this.meta.grid,[ix,iz]=key.split('_').map(Number),idx=(ix-g.ix0)+(iz-g.iz0)*g.w;this.fade[idx]=0;this.mask[idx]=0;this.maskTex.needsUpdate=true}
 }

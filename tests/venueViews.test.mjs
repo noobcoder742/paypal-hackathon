@@ -3,8 +3,7 @@
 // farthest step out), and the whole hotel inside the screen.
 import test from 'node:test';import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';import {gunzipSync} from 'node:zlib';
-import {venueView,fitDistance,venueFraming,BIRDS_EYE} from '../src/explorer/viewFinder.js';
-import {pointInPolygon} from '../src/explorer/geo.js';
+import {venueView,fitDistance,venueFraming,withoutVenueBlocks,BIRDS_EYE} from '../src/explorer/viewFinder.js';
 const ROOT='public/data/sg3d/',l=JSON.parse(readFileSync(ROOT+'latest.json','utf8'));
 const meta=JSON.parse(readFileSync(ROOT+l.meta,'utf8')),base=gunzipSync(readFileSync(ROOT+l.base));
 const S=24,n=base.length/S,dv=new DataView(base.buffer,base.byteOffset,base.length);
@@ -22,11 +21,11 @@ const ASPECT=1.6;
 for(const [id,rows] of Object.entries(meta.venueRows||{})){
  test(`bird's-eye view: ${id}`,()=>{
   const {target,box,samples}=venueFraming(rows),r0=fitDistance({box,aspect:ASPECT}),reach=Math.min(1800,r0*2.5);
-  const inVenue=([,,,,,f])=>{let x=0,z=0;for(let i=0;i<8;i+=2){x+=f[i];z+=f[i+1]}x/=4;z/=4;return rows.some(rw=>pointInPolygon(x,z,rw[5]))};
-  const buildings=[...boxesAround(target.x,target.z,reach).filter(b=>!inVenue(b)),...rows],set=new Set(rows);
+  const buildings=[...withoutVenueBlocks(boxesAround(target.x,target.z,reach),rows),...rows],set=new Set(rows);
   const v=venueView({buildings,own:r=>set.has(r),target,samples,theta:.95,r0});
   assert.ok(v.phi>=BIRDS_EYE.min&&v.phi<=BIRDS_EYE.max,`tilt ${(v.phi*180/Math.PI).toFixed(0)} deg`);
-  assert.ok(v.hits===0||Math.abs(v.r-r0*2.5)<1,`${v.hits} blocked lines of sight at r ${v.r.toFixed(0)}`);
+  // a clear view must exist (the 2.5x fallback is for a truly boxed-in venue, not the listed hotels)
+  assert.equal(v.hits,0,`${v.hits} blocked lines of sight at r ${v.r.toFixed(0)} (r0 ${r0.toFixed(0)})`);
   const cam={tx:target.x,tz:target.z,r:v.r,phi:v.phi,theta:v.theta};
   for(const sx of [-.5,.5])for(const sz of [-.5,.5])for(const y of [0,box.h]){const [px,py]=project([target.x+sx*box.w,y,target.z+sz*box.d],cam,ASPECT);
    assert.ok(Math.abs(px)<=1&&Math.abs(py)<=1,`corner off screen at ndc ${px.toFixed(2)},${py.toFixed(2)}`)}
