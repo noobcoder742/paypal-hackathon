@@ -8,6 +8,8 @@ on:
     branches: [updates_claude]
     paths:
       - scripts/fetch-sg-map.mjs
+      - scripts/coast-to-land.mjs
+      - scripts/lib/coast-land.mjs
       - .github/workflows/fetch-sg-map.yml
 permissions:
   contents: write
@@ -32,13 +34,9 @@ jobs:
           osmium tags-filter sg.osm.pbf nwr/building nwr/building:part w/highway nwr/leisure nwr/landuse nwr/natural nwr/water -o sg-filtered.osm.pbf
           osmium export sg-filtered.osm.pbf -f geojsonseq --geometry-types=linestring,polygon -o sg.geojsonseq
           ls -lh *.pbf sg.geojsonseq
-      - name: Land polygons (sea vs land) from OpenStreetMap coastline data
-        run: |
-          sudo apt-get install -y -qq gdal-bin
-          curl -sSfL --retry 4 -o land.zip https://osmdata.openstreetmap.de/download/land-polygons-split-4326.zip
-          unzip -q land.zip
-          ogr2ogr -f GeoJSON -spat 103.59 1.205 104.045 1.475 -clipsrc 103.59 1.205 104.045 1.475 land.geojson land-polygons-split-4326/land_polygons.shp
-          ls -lh land.geojson
+      - name: Land polygons (sea vs land) from the coastline in the extract
+        # traced from natural=coastline at 10 m, so no second download is needed
+        run: node scripts/coast-to-land.mjs sg.geojsonseq land.geojson
       - run: node scripts/fetch-sg-map.mjs sg.geojsonseq land.geojson
       - name: Commit tiles if they changed
         run: |

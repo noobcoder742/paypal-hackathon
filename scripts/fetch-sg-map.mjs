@@ -172,7 +172,7 @@ if(LAND_INPUT){
  const gj=JSON.parse(await readFile(LAND_INPUT,'utf8')),polys=[];
  for(const f of gj.features||[]){const g=f.geometry;if(!g)continue;const rings=g.type==='Polygon'?[g.coordinates[0]]:g.type==='MultiPolygon'?g.coordinates.map(p=>p[0]):[];
   for(const r of rings){const pts=simplifyRing(r.map(([lo,la])=>project(la,lo)),2);if(pts.length>=3&&Math.abs(area(pts))>200)polys.push(pts.flat())}}
- await writeFile(`${OUT}/land.json`,JSON.stringify({source:'osmdata.openstreetmap.de land polygons (ODbL)',polys}));
+ await writeFile(`${OUT}/land.json`,JSON.stringify({source:gj.source||'land polygons (ODbL)',polys}));
  index.land=true;stats.landPolys=polys.length;
 }
 await writeFile(`${OUT}/index.json`,JSON.stringify(index));
