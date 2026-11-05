@@ -42,7 +42,7 @@ export class CityStream{
   this.baseMat=makeBuildingMaterial({sunDir:sun,packed:true,mask:maskOpt('base')});
   this.cells=new Map();   // key -> {state, group, bytes, tries, venues}
   this.boosts=[];this.fetching=0;this.readyQueue=[];this.usedBytes=0;this.lastPlan=0;this.venueReady=new Set();
-  this.metrics=window.__cityMetrics={started:performance.now(),baseReadyMs:null,cellsLoaded:0,cellsShown:0,baseEvictions:0,cellsEvicted:0,frames:[]};
+  this.metrics=window.__cityMetrics={started:performance.now(),baseFetchedMs:null,baseLoadedMs:null,baseReadyMs:null,cellsLoaded:0,cellsShown:0,baseEvictions:0,cellsEvicted:0,frames:[]};
   window.__cityStream=this;current=this;
   this.baseReady=this.loadBase();
  }
@@ -52,6 +52,7 @@ export class CityStream{
  async loadBase(){
   const {base,dir}=this.meta;
   const buf=await fetchBase(this.meta);
+  const since=()=>Math.round(performance.now()-this.metrics.started);this.metrics.baseFetchedMs=since();
   const n=base.count,S=base.stride,u8=new Uint8Array(buf),i16=new Int16Array(buf),u16=new Uint16Array(buf);
   // one shared box; every building's position, size and colours are read on the GPU from the file as is
   const box=new THREE.BoxGeometry(1,1,1);box.translate(0,.5,0);
@@ -66,6 +67,8 @@ export class CityStream{
   g.setAttribute('aCell',new THREE.InterleavedBufferAttribute(b16,1,11,false));
   const mesh=new THREE.Mesh(g,this.baseMat);mesh.name='city-base';mesh.frustumCulled=false;mesh.receiveShadow=true;mesh.raycast=()=>null;
   this.group.add(mesh);this.base=mesh;
+  // baseLoadedMs: downloaded, unpacked and in the scene; baseReadyMs: first frame drawn with it
+  this.metrics.baseLoadedMs=since();
   requestAnimationFrame(()=>requestAnimationFrame(()=>{if(this.metrics.baseReadyMs==null)this.metrics.baseReadyMs=Math.round(performance.now()-this.metrics.started);this.baseDone=true;baseReadyResolve()}));
   return mesh;
  }
