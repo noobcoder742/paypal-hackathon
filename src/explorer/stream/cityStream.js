@@ -92,6 +92,7 @@ export class CityStream{
  markVenueReady(key){this.venueReady.add(key)}
 
  // ---------- per frame ----------
+ /** dt: real seconds since the last frame (not capped: the dissolve is 0.3 s of wall-clock time on any device). */
  update(target,r,dt){
   const now=performance.now(),T=this.meta.tileSize,{grid}=this.meta;
   // the studio shifts the whole city so the ballroom sits at the origin; cells find their square in map coordinates

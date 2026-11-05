@@ -320,12 +320,12 @@ function StreamedCity({meta,index,rigRef,focus,onVenueBounds,onVenueRows}){
  useEffect(()=>{Object.keys(meta.cells).forEach(k=>stream.markVenueReady(k));
   for(const [id,geo,rows] of venueGeo){onVenueRows(id,rows);onVenueBounds(id,geo.boundingBox)}
   return()=>venueGeo.forEach(([,geo])=>geo.dispose())},[venueGeo,stream,meta,onVenueRows,onVenueBounds]);
- useFrame((_,dt)=>{const {cur}=rigRef.current;stream.update({x:cur.tx,z:cur.tz},cur.r,Math.min(dt,.1))});
+ useFrame((_,dt)=>{const {cur}=rigRef.current;stream.update({x:cur.tx,z:cur.tz},cur.r,dt)});
  // older builds without venueRows fall back to drawing venues from the JSON tiles
  const legacyVenueCells=useMemo(()=>meta.venueRows?[]:Object.entries(meta.cells).filter(([,c])=>c[2]?.length).map(([k])=>k),[meta]);
  return <><primitive object={stream.group}/>
   {venueGeo.map(([id,geo])=><VenueBuilding key={id} id={id} parts={[geo]} focus={focus}/>)}
-  {legacyVenueCells.map(k=><Tile key={k} tileKey={k} index={index} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows} venueOnly/>)}</>;
+  {index&&legacyVenueCells.map(k=><Tile key={k} tileKey={k} index={index} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows} venueOnly/>)}</>;
 }
 
 export function CityLayers({index,rigRef,focus,details=true,onVenueBounds=()=>{}}){
@@ -341,7 +341,7 @@ export function CityLayers({index,rigRef,focus,details=true,onVenueBounds=()=>{}
  return <>
   <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.05,0]} raycast={()=>null} receiveShadow renderOrder={-4}><planeGeometry args={[80000,80000]}/><meshStandardMaterial color="#ddd6c8" roughness={1} depthWrite={false}/></mesh>
   {index?.areas&&<AreaLayer/>}
-  {index&&meta&&!index.legacy&&<StreamedCity meta={meta} index={index} rigRef={rigRef} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows}/>}
+  {meta&&!index?.legacy&&<StreamedCity meta={meta} index={index} rigRef={rigRef} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows}/>}
   {index&&meta===null&&<TileField index={index} rigRef={rigRef} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows}/>}
   {details&&Object.entries(venueRows).map(([id,rows])=>!(focus.venueId===id&&focus.spaceId)&&<HotelDetails key={id} rows={rows} look={HOTEL_LOOKS[id]}/>)}
   {details&&<OrchardDetails index={index} rigRef={rigRef}/>}

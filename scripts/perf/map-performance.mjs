@@ -17,10 +17,14 @@ const {chromium}=require('playwright');
 
 const BASE=process.env.BASE_URL||'http://localhost:4173';
 const LIMITS={baseMs:2500,landingMs:1000};
-const browser=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
-// A small window: CI draws in software (no GPU), and drawing cost grows with
-// pixels. Loading work and every limit below are unchanged by the window size.
+// Shared CI machines vary a lot from run to run, so the map is opened RUNS
+// times in fresh browsers and the median of each timing is judged.
+const RUNS=Number(process.env.PERF_RUNS||3);
 const [VW,VH]=(process.env.PERF_VIEWPORT||'900x500').split('x').map(Number);
+async function runOnce(){
+const browser=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
+// A small window (VW×VH): CI draws in software (no GPU), and drawing cost grows
+// with pixels. Loading work and every limit are unchanged by the window size.
 const page=await browser.newPage({viewport:{width:VW,height:VH}});
 page.setDefaultTimeout(120000);
 const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -56,13 +60,19 @@ const landingMs=shown?Date.now()-landed:null;
 const m=await page.evaluate(()=>{const x=window.__cityMetrics,k=window.__mapMarks||{},rel=v=>v==null?null:Math.round(v-k.clicked);return {sinceClick:{mapMounted:rel(k.mounted),canvasCreated:rel(k.canvas),streamStarted:rel(x.started),baseInScene:rel(x.started+x.baseLoadedMs),firstFrame:rel(x.started+x.baseReadyMs)},baseFetchedMs:x.baseFetchedMs,baseLoadedMs:x.baseLoadedMs,baseReadyMs:x.baseReadyMs,cellsLoaded:x.cellsLoaded,cellsShown:x.cellsShown,baseEvictions:x.baseEvictions,cellsEvicted:x.cellsEvicted,frames:x.frames}});
 await browser.close();
 const frames=[...m.frames].sort((a,b)=>a-b),p95=frames[Math.floor(frames.length*.95)]||0;
-const report={baseMs,firstFrameMs,landingMs,limits:LIMITS,viewport:`${VW}x${VH}`,breakdownSinceClick:m.sinceClick,cellsLoaded:m.cellsLoaded,cellsShown:m.cellsShown,baseEvictions:m.baseEvictions,cellsEvicted:m.cellsEvicted,frameP95ms:p95,frames:frames.length,errors};
+ return {baseMs,firstFrameMs,landingMs,breakdownSinceClick:m.sinceClick,cellsLoaded:m.cellsLoaded,cellsShown:m.cellsShown,baseEvictions:m.baseEvictions,cellsEvicted:m.cellsEvicted,frameP95ms:p95,frames:frames.length,errors};
+}
+const runs=[];for(let i=0;i<RUNS;i++){const r=await runOnce();runs.push(r);console.log(`run ${i+1}/${RUNS}: island ${r.baseMs} ms, first frame ${r.firstFrameMs} ms, detail after landing ${r.landingMs??'never'} ms, frame p95 ${r.frameP95ms} ms`)}
+const median=k=>{const v=runs.map(r=>r[k]==null?Infinity:r[k]).sort((a,b)=>a-b);const x=v[Math.floor(v.length/2)];return x===Infinity?null:x};
+const baseMs=median('baseMs'),landingMs=median('landingMs'),firstFrameMs=median('firstFrameMs');
+const errors=runs.flatMap(r=>r.errors),evictions=Math.max(...runs.map(r=>r.baseEvictions));
+const report={median:{baseMs,firstFrameMs,landingMs,frameP95ms:median('frameP95ms')},limits:LIMITS,viewport:`${VW}x${VH}`,runs};
 const fails=[];
-if(baseMs>LIMITS.baseMs)fails.push(`whole island loaded after ${baseMs} ms (limit ${LIMITS.baseMs})`);
-if(landingMs==null||landingMs>LIMITS.landingMs)fails.push(`detail after landing ${landingMs??'never'} ms (limit ${LIMITS.landingMs})`);
-if(m.baseEvictions>0)fails.push('base layer was evicted');
+if(baseMs>LIMITS.baseMs)fails.push(`whole island loaded after ${baseMs} ms (median; limit ${LIMITS.baseMs})`);
+if(landingMs==null||landingMs>LIMITS.landingMs)fails.push(`detail after landing ${landingMs??'never'} ms (median; limit ${LIMITS.landingMs})`);
+if(evictions>0)fails.push('base layer was evicted');
 if(errors.length)fails.push('page errors: '+errors.slice(0,3).join(' | '));
 await writeFile('map-performance-report.json',JSON.stringify(report,null,1));
-console.log(JSON.stringify(report,null,1));
+console.log(JSON.stringify(report.median),JSON.stringify(runs.map(r=>r.breakdownSinceClick)));
 if(fails.length){console.error('FAILED:\n - '+fails.join('\n - '));process.exit(1)}
 console.log('PASSED (frame times reported only: CI has no GPU)');
