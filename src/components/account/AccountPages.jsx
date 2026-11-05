@@ -81,12 +81,15 @@ const OPTIONS={
  stage:['Just engaged','Looking for a venue','Venue booked','Choosing vendors','Final details'],
  heardFrom:['Friend or family','Instagram','TikTok','Google search','Wedding show','Venue recommended us','Other']
 };
-const FIELDS=[
+// Demo (hackathon) build: sensitive questions are hidden; nothing here leaves the browser either way.
+const DEMO_HIDDEN=new Set(['age','religion']);
+const ALL_FIELDS=[
  ['About you',[['name','Your name','text'],['email','Sign-in email','email'],['age','Age','number'],['role','Your role','role'],['residency','Residency','residency']]],
  ['Your wedding',[['date','Wedding date','date'],['religion','Religion','religion'],['ceremony','Ceremony','ceremony'],['guestRange','Guest count','guestRange'],['budgetRange','Total budget','budgetRange']]],
  ['Your taste',[['style','Wedding style','style',true],['venueType','Venue type','venueType',true],['area','Preferred area','area',true]]],
  ['Where you are',[['stage','Planning stage','stage'],['heardFrom','How you found us','heardFrom']]]
 ];
+const FIELDS=ALL_FIELDS.map(([t,f])=>[t,f.filter(([k])=>!DEMO_HIDDEN.has(k))]);
 export function ProfilePage({planner,patch,go,signedInEmail}){
  const profile=planner.profile||{},set=(k,v)=>k==='date'?patch({date:v}):patch({profile:{...profile,[k]:v}});
  const val=k=>k==='date'?planner.date:k==='email'&&signedInEmail?signedInEmail:profile[k];

@@ -20,6 +20,7 @@ export function SignInDialog({open,reason,onClose,onSignedIn}){
     <span className="acct-kicker">Wedding Studio</span>
     <h2 id="signin-title">{reason||<>Sign in to start <em>planning</em>.</>}</h2>
     <p>Free to use. Save your venue designs, drafts, guest list and favourites in one place.</p>
+    <p className="signin-demo">Demo sign-in: any email works, there is no password, and everything stays in this browser. Please don't enter real personal details.</p>
     <div className="signin-providers"><button type="button" disabled title="Coming soon">Continue with Google <small>soon</small></button><button type="button" disabled title="Coming soon">Continue with Apple <small>soon</small></button></div>
     <div className="signin-or"><span>or with email</span></div>
     <form onSubmit={submit}>
