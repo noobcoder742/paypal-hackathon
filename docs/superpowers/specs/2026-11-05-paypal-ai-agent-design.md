@@ -33,7 +33,11 @@ Enter the PayPal AI Hackathon (Devpost) with a working demo in which:
   - Grand prizes.
   - Best Use of PayPal + AI.
   - Best Use of Agentic Commerce.
-  - **Best Use of AG Grid** (US$5,000 for 1st). An entrant can win at most one grand prize (or honourable mention) plus one sponsor prize. AG Grid's own prize requirements (rules section 8) are still to be read from its details page.
+  - **Best Use of AG Grid** (US$5,000 for 1st).
+    - The prize is for **AG Studio** (AG Grid's embedded dashboard component with a data engine, cross-filtering and the Studio Agent Framework), not plain AG Grid.
+    - Judges look for "polish: custom widgets, theming, and layout tools", and use of the **Studio Agent Framework**: "a custom agent talking to Studio's built-in agents, or a swapped-in harness".
+    - AG Studio is free with a **45-day trial licence**, and there is a PayPal + AG Studio boilerplate (`paypaldev/hackathon-paypal-ag-grid-boilerplate`).
+    - An entrant can win at most one grand prize (or honourable mention) plus one sponsor prize.
 
 ## Venues in the demo
 The rules forbid third-party trademarks in the video and IP infringement in the submission. The demo therefore uses **fictional hotels** on the real OpenStreetMap buildings, for example "The Orchard Grand" and "Tanglin House". The reconstructed ballroom is a generic "Grand Ballroom". The app and README say the venues are fictional demo venues. The map keeps its "© OpenStreetMap contributors" attribution.
@@ -45,11 +49,18 @@ The rules forbid third-party trademarks in the video and IP infringement in the 
 4. **"Secure these vendors."** The agent creates one PayPal sandbox order with one line per vendor deposit (20% of each item's price). The PayPal button opens, and the couple approves with a sandbox buyer account. Confirmation shows the paid deposits and the 10% platform commission per vendor.
 5. **"Send enquiry to the hotel."** It sends the date, tables, budget and the 3D layout (a thumbnail plus the placed items).
 
-## What the hotel sees (short scene)
-1. A **Hotel inbox** page (demo login) lists qualified enquiries in an **AG Grid** table (free Community edition): date, tables, budget, 3D thumbnail, quote, invoice status and deposit paid. It is sortable and filterable, and its status cells update live.
-2. **"Draft quote."** The hotel agent writes a quote: package, price per table, ++ (10% service charge, then 9% GST), and the deposit. The sales manager edits it and approves.
-3. **Approval** makes the hotel agent create and send a PayPal sandbox invoice for the deposit to the couple's sandbox email.
-4. The couple's **Planner** shows "Deposit invoice from <hotel>" with a link to pay it in PayPal. When it's paid, the hotel inbox shows "Deposit paid: date secured".
+## What the hotel sees (short scene): the Banquet Sales dashboard
+The hotel side is an **AG Studio dashboard**, themed in the site's style (white, Cormorant Garamond and Outfit, the rosewood accent). It's laid out with Studio's layout tools and fed with enquiries, quotes, invoices and payments.
+1. **The enquiry pipeline:** a grid of qualified enquiries (date, tables, budget, status), cross-filtered with these widgets:
+   - **Custom widget: Ballroom preview.** The couple's saved 3D layout as a thumbnail, with the placed vendor items listed.
+   - **Custom widget: Date calendar.** Booked, held and open dates for the ballroom, with auspicious and weekend dates marked.
+   - **Deposits tile and chart:** PayPal deposits invoiced, paid and outstanding, by month.
+2. **Quote and invoice:**
+   - **"Draft quote"** makes the hotel agent write the quote: package, price per table, ++ (10% service charge, then 9% GST) and the deposit. The sales manager edits it and approves.
+   - **Approval** makes the agent create and send a **PayPal sandbox invoice** to the couple's sandbox email.
+3. **Nudge assistant:** for unpaid deposit invoices, the hotel agent drafts a friendly reminder ("Just a heads-up, your date is held until Friday"). The manager can edit it and send it as a PayPal invoice reminder. A "Still to pay" scoreboard widget shows who owes what.
+4. **Ask the dashboard:** the sales manager types, for example, "show deposits paid by month for June weddings". **Our hotel agent works with AG Studio's built-in agents** through the Studio Agent Framework: it answers from PayPal and enquiry data, and Studio's agents build or edit the widget live.
+5. **The couple's view:** their Planner shows "Deposit invoice from <hotel>" with a link to pay in PayPal. When it's paid, the dashboard updates to "Deposit paid: date secured".
 
 ## Rules the agents always follow
 - **No payment without approval.** No money moves without the couple's or the hotel's approval in PayPal. The agents create orders and invoices; people approve them.
@@ -66,10 +77,11 @@ Everything deploys to Vercel's free tier from this repo. The existing Vite app s
 | `api/paypal/capture` | Deterministic server code: captures an order only after the couple's PayPal approval, checks the captured amount against the stored plan, and records the result. |
 | `api/hotel/enquiries` | Stores and lists enquiries. |
 | `api/hotel/agent` | Runs the hotel's agent: drafts the quote, then creates and sends the invoice after approval. |
-| `api/hotel/invoice-status` | Reads the invoice status from PayPal for the hotel inbox and the couple's Planner. |
+| `api/hotel/invoice-status` | Reads the invoice status from PayPal for the dashboard and the couple's Planner. |
+| `api/hotel/nudge` | The hotel agent drafts a reminder for an unpaid invoice; sending it (PayPal invoice reminder) requires the manager's approval. |
 | Shared data module | The catalogue (moved out of `Marketplace.jsx`) and venues (`src/data/venues.js`), imported by both the site and the functions, so the agent and the UI agree on prices and capacity. |
 | Storage | Upstash Redis free tier (Vercel integration): enquiries, plans, payment records, and a per-visitor rate limit of 5 agent runs per hour. |
-| Client | "Plan with AI" panel, plan card, PayPal JS SDK button (public client ID only), Hotel inbox page built on AG Grid Community, deposit invoices in the Planner. |
+| Client | "Plan with AI" panel, plan card, PayPal JS SDK button (public client ID only), the hotel's Banquet Sales dashboard (AG Studio, with custom widgets, theme and Studio Agent Framework), deposit invoices in the Planner. |
 
 ### Agent tools
 - **Ours:**
@@ -78,7 +90,8 @@ Everything deploys to Vercel's free tier from this repo. The existing Vite app s
   - `check_budget`: venue plus vendors against the limit, and capacity against the tables.
   - `place_in_ballroom`: returns placement instructions that the browser applies to the 3D studio scene.
   - `send_enquiry`.
-- **PayPal's** (`@paypal/agent-toolkit`, Vercel AI SDK adapter, sandbox only): *create order* for the couple's agent; *create invoice* and *send invoice* for the hotel's agent.
+- **PayPal's** (`@paypal/agent-toolkit`, Vercel AI SDK adapter, sandbox only): *create order* for the couple's agent; *create invoice*, *send invoice*, *list invoices* and *send invoice reminder* for the hotel's agent.
+- **AG Studio:** the hotel agent is registered with the Studio Agent Framework, so dashboard questions are answered with our data and Studio's built-in agents build the widgets. The exact API is to be confirmed from the AG Studio docs during planning.
 
 ### Secrets
 - **Where they live:** `ANTHROPIC_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` and the Upstash keys exist only in Vercel's environment variables, and in `.env.local` locally (gitignored). The browser receives only the public PayPal client ID.
@@ -109,7 +122,8 @@ The demo shows the 10% platform commission per vendor line. Paying vendors direc
 2. An Anthropic API key with a US$8 monthly limit.
 3. A Google AI Studio key.
 4. Vercel linked to the GitHub repo, with the Upstash integration added.
-5. All keys pasted into Vercel's environment variables.
+5. An AG Studio 45-day trial licence. Start it on 6 Nov so it lasts to about 21 Dec, past the end of judging on 15 Dec.
+6. All keys pasted into Vercel's environment variables.
 
 ## Schedule (Singapore time, submit by Tue 10 Nov)
 | Day | Work |
@@ -117,8 +131,9 @@ The demo shows the 10% platform commission per vendor line. Paying vendors direc
 | Thu 5 Nov | Spec and plan; founder sets up the accounts; server skeleton deployed |
 | Fri 6 | PayPal sandbox order and capture; agent with our tools; streaming panel; Claude → Gemini fallback |
 | Sat 7 | Items placed in 3D live, plan card, swaps; Hotel inbox, hotel agent's quote and PayPal invoice |
-| Sun 8 | AG Grid hotel inbox, rate limits, replay, tests, secret scan; fictional venue names; public repo copy prepared (history kept, emails and private folders removed, licence, README) |
-| Mon 9 | End-to-end check on the deployed sandbox, polish, record the 3-minute video |
+| Sun 8 | AG Studio Banquet Sales dashboard (theme, layout, the two custom widgets, nudge assistant, agent framework); rate limits, replay, tests, secret scan |
+| Mon 9 (morning) | Fictional venue names; public repo copy prepared (history kept, emails and private folders removed, licence, README) |
+| Mon 9 (afternoon) | End-to-end check on the deployed sandbox, polish, record the 3-minute video |
 | Tue 10 | Devpost write-up (including what was updated since 1 Oct) and submit; 11–13 Nov kept spare |
 
 ## Public repository
@@ -138,6 +153,7 @@ A **new public GitHub repo** is created as a copy of this one, with the dated hi
 - **This private repo** keeps the full, unmodified project and continues as the main workspace.
 
 ## Security
+- **AG Studio licence:** it is commercial. The trial key is supplied at build time from a Vercel environment variable, never committed. The README explains that running it yourself needs your own trial key, and the hosted demo works without one.
 - **Secrets:**
   - Exist only in Vercel's environment variables (and a gitignored `.env.local`).
   - A secret scan runs in CI.
