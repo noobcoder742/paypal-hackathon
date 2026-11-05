@@ -1239,3 +1239,4 @@ h1,h2,h3{text-wrap:balance}
 .teaser-end{text-align:center;margin-top:64px}
 .teaser-end h2{font-family:var(--f-display);font-weight:400;font-size:44px;margin:0 0 16px}
 @media (max-width:820px){.teaser-hero,.signin-card{grid-template-columns:1fr}.signin-art{min-height:140px}.signin-bar span{display:none}}
+.map-slot,.map-host{display:contents}
