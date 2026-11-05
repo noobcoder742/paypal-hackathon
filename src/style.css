@@ -1283,7 +1283,9 @@ h1,h2,h3{text-wrap:balance}
 @media(prefers-reduced-motion:reduce){.door-primary,.landing-venue-line span{transition:none}}
 @media(max-width:480px){.nav-auth .nav-start{display:none}}
 /* Hero photo (supplied by the founder) behind the landing headline */
-.landing-video-fallback{background:#3b2a22 url(/media/wedding-hero.webp) center 38%/cover no-repeat;animation:hero-drift 24s var(--ease) both}
-.landing-video-shade{background:radial-gradient(ellipse at 50% 48%,rgba(24,17,13,.38) 0%,rgba(24,17,13,.5) 55%,rgba(24,17,13,.72) 100%),linear-gradient(180deg,rgba(24,17,13,.45) 0%,rgba(24,17,13,0) 30%)}
+.landing-video-fallback{background:#2a1f19 url(/media/hero-ballroom.jpg) center 40%/cover no-repeat;filter:contrast(1.12) saturate(1.08) brightness(.92);animation:hero-drift 24s var(--ease) both}
+.landing-video-shade{background:radial-gradient(ellipse at 50% 55%,rgba(28,16,10,.5) 0%,rgba(28,16,10,.58) 50%,rgba(20,12,8,.8) 100%),linear-gradient(180deg,rgba(20,12,8,.35) 0%,rgba(20,12,8,0) 28%,rgba(20,12,8,0) 70%,rgba(20,12,8,.45) 100%);mix-blend-mode:multiply}
+.landing-photo-credit{position:absolute;right:14px;bottom:8px;z-index:3;font-size:10px;color:rgba(255,255,255,.55)}
+.landing-photo-credit a{color:inherit}
 @keyframes hero-drift{from{transform:scale(1.08)}to{transform:scale(1)}}
 @media(prefers-reduced-motion:reduce){.landing-video-fallback{animation:none}}
