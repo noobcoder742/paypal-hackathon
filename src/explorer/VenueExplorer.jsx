@@ -21,6 +21,7 @@ import {project,pointInPolygon} from './geo.js';
 import {matchVenue} from './venueMatch.js';
 import {CityStream,loadLatest,getCityStream,baseReady} from './stream/cityStream.js';
 import {countMapContext,countActiveFrame} from './mapHostMetrics.js';
+import {QualityController} from './stream/quality.js';
 
 const INDEX_URL='/data/sg/index.json',TILE_URL=k=>`/data/sg/tiles/${k}.json`;
 const LEGACY_URL='/data/orchard-grand-surroundings.json';
@@ -226,6 +227,26 @@ function KeepAwake({rigRef,active}){
  return null;
 }
 
+/* ---------- device tuning (spec C1) ---------- */
+// Steps pixel ratio, shadows, detail radii and the Orchard extras down while the
+// camera moves and frames are slow, and back up after 5 s of headroom. The
+// Settings › Map quality choice is the upper limit (high 0, balanced 2, saver 5).
+const QUALITY_CAP={high:0,balanced:2,saver:5};
+function QualityGovernor({rigRef,mapQuality,active}){
+ const {gl,scene,setDpr}=useThree();
+ const q=useMemo(()=>new QualityController({targetMs:typeof matchMedia!=='undefined'&&matchMedia('(pointer:coarse)').matches?33:16.7,cap:QUALITY_CAP[mapQuality]??0}),[mapQuality]);
+ const applied=useRef(-1);
+ useFrame((_,dt)=>{const rig=rigRef.current,ms=dt*1000;
+  const moving=active&&ms<250&&(!!rig.fly||performance.now()-lastActivity<1500);
+  const lv=q.sample(ms,moving,performance.now());rig.quality=q.settings;
+  if(lv===applied.current)return;const first=applied.current<0;applied.current=lv;const st=q.settings;
+  if(mapQuality!=='saver')setDpr(Math.min(st.dpr,window.devicePixelRatio||1));
+  if(!first&&gl.shadowMap.enabled!==(st.shadows&&mapQuality==='high')){gl.shadowMap.enabled=st.shadows&&mapQuality==='high';scene.traverse(o=>{if(o.material)[].concat(o.material).forEach(m=>{m.needsUpdate=true})})}
+  const m=getCityStream()?.metrics;if(m)m.qualityLevel=lv;
+ });
+ return null;
+}
+
 /* ---------- camera ---------- */
 const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
 function MapCamera({rigRef}){
@@ -315,7 +336,7 @@ function OrchardDetails({index,rigRef}){
  useEffect(()=>{if(!index||index.legacy)return;let live=true;whenSettled(rigRef).then(()=>{if(!live)return;const T=index.tileSize,keys=[];
   for(let ix=Math.floor((ORCHARD.x-1500)/T);ix<=Math.floor((ORCHARD.x+1500)/T);ix++)for(let iz=Math.floor((ORCHARD.z-800)/T);iz<=Math.floor((ORCHARD.z+800)/T);iz++)if(index.tiles[ix+'_'+iz])keys.push(ix+'_'+iz);
   Promise.all([Promise.all(keys.map(k=>loadTile(index,k))),Promise.all(VENUES.map(v=>venueOwnership(index,v.id)))]).then(([t,tests])=>{if(live)setTiles({list:t.filter(Boolean),skip:row=>tests.some(test=>test(row))})})});return()=>{live=false}},[index,rigRef]);
- useFrame(()=>{if(!group.current)return;const {cur}=rigRef.current;group.current.visible=cur.r<3200&&Math.hypot(cur.tx-ORCHARD.x,cur.tz-ORCHARD.z)<4000});
+ useFrame(()=>{if(!group.current)return;const {cur}=rigRef.current;group.current.visible=rigRef.current.quality?.extras!==false&&cur.r<3200&&Math.hypot(cur.tx-ORCHARD.x,cur.tz-ORCHARD.z)<4000});
  return tiles?<NearbyDetails tiles={tiles.list} cx={ORCHARD.x} cz={ORCHARD.z} skip={tiles.skip} radius={ORCHARD.radius} orchard groupRef={group}/>:null;
 }
 
@@ -369,7 +390,7 @@ function StreamedCity({meta,index,rigRef,focus,onVenueBounds,onVenueRows,onCityC
  useEffect(()=>{Object.keys(meta.cells).forEach(k=>stream.markVenueReady(k));
   for(const [id,geo,rows] of venueGeo){onVenueRows(id,rows);onVenueBounds(id,geo.boundingBox)}
   return()=>venueGeo.forEach(([,geo])=>geo.dispose())},[venueGeo,stream,meta,onVenueRows,onVenueBounds]);
- useFrame((_,dt)=>{const {cur}=rigRef.current;stream.update({x:cur.tx,z:cur.tz},cur.r,dt)});
+ useFrame((_,dt)=>{const {cur,quality}=rigRef.current;stream.update({x:cur.tx,z:cur.tz},cur.r,dt,quality)});
  // older builds without venueRows fall back to drawing venues from the JSON tiles
  const legacyVenueCells=useMemo(()=>meta.venueRows?[]:Object.entries(meta.cells).filter(([,c])=>c[2]?.length).map(([k])=>k),[meta]);
  return <><primitive object={stream.group}/>
@@ -455,6 +476,7 @@ export default function VenueExplorer({onOpenSpace,initialVenueId=null,draftCoun
    <EveningLight sun={SUN} rigRef={rigRef}/>
    <MapCamera rigRef={rigRef}/>
    <KeepAwake rigRef={rigRef} active={active}/>
+   <QualityGovernor rigRef={rigRef} mapQuality={mapQuality} active={active}/>
    <CityLayers index={index} rigRef={rigRef} focus={focus} details={details} onVenueBounds={onVenueBounds} onCityChange={onCityChange}/>
    {venue&&space&&<SpaceHighlight venueId={venue.id} space={space}/>}
    <Pins focus={focus} heights={heights} onSelect={select} filter={filter} draftCounts={draftCounts}/>
