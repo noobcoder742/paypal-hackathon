@@ -25,3 +25,8 @@ test('a repeated request is answered from the cache without the model',async()=>
  assert.equal(modelCalls,1);assert.equal(tb,ta);assert.equal(b.headers.get('x-cache'),'hit');
  void getStore;
 });
+test('the cache key changes when catalogue or venue data changes',async()=>{
+ const {CATALOG}=await import('../src/data/catalog.js');const before=cacheKey([{role:'user',content:'30 tables'}]);
+ const old=CATALOG[0].price;CATALOG[0].price=old+1;const after=cacheKey([{role:'user',content:'30 tables'}]);CATALOG[0].price=old;
+ assert.notEqual(before,after);
+});

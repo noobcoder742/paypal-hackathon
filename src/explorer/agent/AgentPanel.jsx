@@ -6,6 +6,7 @@ import {Sparkles,X,Send,PlayCircle} from 'lucide-react';
 import PlanCard from './PlanCard.jsx';
 import PayButton from './PayButton.jsx';
 import replay from './replay.json';
+import {rememberEnquiry} from '../../components/planner/DepositInvoices.jsx';
 import './agent.css';
 
 const PRESETS=['30 tables, S$95,000 all-in, garden style, near Orchard','25 tables, S$75,000, classic and romantic','40 tables for S$40,000'];
@@ -42,8 +43,11 @@ export default function AgentPanel({onPlan,onPaid}){
  const watchReplay=()=>{replayRef.current=true;setReplaying(true);setFailure(null);append({role:'user',content:replay.prompt})};
  // the newest finished plan updates the 3D room once
  useEffect(()=>{for(const m of messages)for(const p of m.parts||[]){const t=p.toolInvocation;if(p.type!=='tool-invocation'||t.state!=='result'||handled.current.has(t.toolCallId))continue;handled.current.add(t.toolCallId);
-  if(t.toolName==='place_in_ballroom'&&!t.result?.error)onPlan?.({venueId:t.result.venueId,studioPatch:t.result.studioPatch})}},[messages,onPlan]);
+  if(t.toolName==='place_in_ballroom'&&!t.result?.error)onPlan?.({venueId:t.result.venueId,studioPatch:t.result.studioPatch});
+  if(t.toolName==='send_enquiry'&&t.result?.enquiryId&&!replayRef.current)rememberEnquiry({enquiryId:t.result.enquiryId,venueName:t.result.venueName})}},[messages,onPlan]);
  useEffect(()=>{listRef.current?.scrollTo({top:listRef.current.scrollHeight,behavior:'smooth'})},[messages,status]);
+ // the map or studio narrows beside the open panel instead of being covered
+ useEffect(()=>{document.body.classList.toggle('agent-open',open);return()=>document.body.classList.remove('agent-open')},[open]);
  const latestPlan=[...messages].reverse().flatMap(m=>[...(m.parts||[])].reverse()).find(p=>p.type==='tool-invocation'&&p.toolInvocation.toolName==='place_in_ballroom'&&p.toolInvocation.state==='result'&&!p.toolInvocation.result?.error)?.toolInvocation.result;
  if(!open)return <button type="button" className="agent-launch" onClick={()=>setOpen(true)}><Sparkles size={16}/> Plan with AI</button>;
  return <aside className="agent-panel" aria-label="Plan with AI">
