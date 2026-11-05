@@ -14,6 +14,9 @@ on:
       - public/data/sg/**
       - scripts/build-city-3d.mjs
       - scripts/perf/**
+      - scripts/lib/**
+      - tests/**
+      - index.html
       - .github/workflows/map-performance.yml
 concurrency:
   group: map-performance
@@ -31,6 +34,8 @@ jobs:
       - name: Install Playwright Chromium
         run: npm i --no-save playwright@1.49.1 && npx playwright install --with-deps chromium
       - run: npm run build
+      - name: Unit checks (budgets, land, lite base, bird's-eye views, quality controller)
+        run: npm test
       - name: Serve the production build
         run: |
           npx vite preview --port 4173 --strictPort &
