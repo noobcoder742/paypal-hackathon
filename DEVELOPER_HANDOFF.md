@@ -264,5 +264,15 @@ Guest view keeps the camera at eye height inside the room, so it can never zoom 
 - **Fly-to:** hovering a search result or name tag preloads the area, and the descent holds up to 0.6 s until detail is shown.
 - **Offline cache:** `public/sw.js` serves versioned city files cache-first.
 - **Fallback:** if `latest.json` is missing, the old JSON tile path runs unchanged. The studio's Map view uses the same `CityLayers`.
-- **Check:** `npm run test:map` (and the "Map performance" Action) opens the production build at about 9 Mbps, 150 ms latency, 4× CPU slowdown. It fails if the island isn't visible within 2.5 s, detail isn't shown within 1 s of landing, or the base is evicted. Local runs: island at about 1.0–1.3 s, detail at about 10 ms after landing.
+- **Check:** `npm run test:map` (and the "Map performance" Action) opens the production build 3 times at about 9 Mbps, 150 ms latency and 4× CPU slowdown, in a 900×500 window, and judges the medians.
+  - **It fails if:** the island isn't downloaded, unpacked and in the scene within 2.5 s of clicking Design; detail isn't shown within 1 s of landing; or the base is ever evicted.
+  - **Reported only:** first-frame and frame times, because GitHub runners draw in software with no GPU, at several seconds per frame.
+  - **Results (5 Nov):** island in 1.75 s on GitHub (about 0.8 s locally); detail about 6 ms after landing.
+- **How the map loads:**
+  - `latest.json` is a tiny pointer, so the base and `meta.json` download in parallel.
+  - The base starts downloading when the app loads, and again on hover or tap of Design.
+  - Hotel buildings ship in `meta.venueRows`.
+  - The clear-view check uses base blocks.
+  - The Orchard and neighbourhood detail layers wait until the camera is still.
+  - The dissolve runs on real time.
 - **Hosting:** serve `public/data/sg3d` from a CDN with long cache lifetimes (files are versioned). Later the Blender and Tripo outputs plug into the same build script.
