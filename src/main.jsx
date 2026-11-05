@@ -17,10 +17,16 @@ import {grandBallroom as venue} from './venues/orchard-grand/grand-ballroom/conf
 const {length:LENGTH,width:WIDTH,height:HEIGHT}=venue.dimensions;
 /** Bundled OFL font for 3D labels; avoids troika's runtime CDN font lookup. */
 const LABEL_FONT='/fonts/LiberationSans-Regular.ttf';
-const palette={ivory:'#e6dfd2',champagne:'#b9a58d',sage:'#a6b2a0',rose:'#d6adb1',midnight:'#555866'};
+import {palette} from './studio/palette.js';
+import {applyStudioPatch,pendingPatchKey} from './explorer/agent/applyStudioPatch.js';
 const initialTables=Array.from({length:24},(_,i)=>({id:i+1,x:-12+(i%6)*4.65,z:-7.9+Math.floor(i/6)*5.15,chairs:10,gap:.22,rotation:0})).filter(t=>t.x!==-12);
 const initialState={tables:initialTables,stage:{x:-13.9,z:0,width:10.2,depth:3.4,rotation:Math.PI/2},theme:'ivory',flowers:'white',lighting:'bright',showRoof:true,showDecor:true,showAv:true,inventory:['table','flowers','stage'],showStage:true,showScreen:false,showArch:false,showTableLabels:false,seatDietary:{}};
 function load(storageKey=venue.storageKey){
+ const base=loadSaved(storageKey);let patch=null;
+ try{patch=JSON.parse(localStorage.getItem(pendingPatchKey(storageKey)));localStorage.removeItem(pendingPatchKey(storageKey))}catch{}
+ return patch?applyStudioPatch(base,patch):base;
+}
+function loadSaved(storageKey=venue.storageKey){
  try{
   const v=JSON.parse(localStorage.getItem(storageKey));
   if(!v||!Array.isArray(v.tables))return initialState;

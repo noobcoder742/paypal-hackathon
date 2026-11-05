@@ -6,6 +6,8 @@
 import React,{useEffect,useState,useCallback} from 'react';
 import {ArrowLeft,ArrowUpRight,Plus,Columns2,X,Trash2,Map as MapIcon} from 'lucide-react';
 import {MapSlot} from './MapHost.jsx';
+import AgentPanel from './agent/AgentPanel.jsx';
+import {pendingPatchKey} from './agent/applyStudioPatch.js';
 import {VENUES,findVenue,findSpace} from '../data/venues.js';
 
 const KEY='wedding-design-v1';
@@ -56,7 +58,19 @@ export default function DesignPage({Studio,planner,onPlannerChange,onNavigate,in
   patchDrafts(d=>({...d,list:d.list.filter(l=>l!==letter),active:d.active===letter?'A':d.active}))};
  const onSaved=()=>requestAnimationFrame(()=>{const thumb=captureThumbnail();patchDrafts(d=>({...d,thumbs:{...d.thumbs,[d.active]:thumb||d.thumbs[d.active]},savedAt:{...d.savedAt,[d.active]:Date.now()}}))});
 
- if(mode==='map'||!venue||!space)return <MapSlot initialVenueId={state.venueId} onOpenSpace={openSpace} draftCounts={savedDraftCounts(state)}/>;
+ // a plan from the assistant: save it for the ballroom, fly to the venue, then open the room
+ const [studioNonce,setStudioNonce]=useState(0);
+ const onPlan=useCallback(({venueId,studioPatch})=>{
+  const v=findVenue(venueId),sp=v?.spaces.find(x=>x.studio);
+  if(!sp){setState(s=>({...s,venueId,spaceId:null}));setMode('map');return}
+  const letter=(state.drafts?.[sp.studio]||emptyDrafts).active;
+  try{localStorage.setItem(pendingPatchKey(storageFor(sp.studio,letter)),JSON.stringify(studioPatch))}catch{}
+  const sameRoom=mode==='studio'&&state.venueId===venueId&&state.spaceId===sp.id;
+  setState(s=>({...s,venueId,spaceId:sp.id}));
+  if(sameRoom)setStudioNonce(n=>n+1);else{setMode('map');setTimeout(()=>setMode('studio'),2600)}
+ },[mode,state]);
+ const panel=<AgentPanel onPlan={onPlan}/>;
+ if(mode==='map'||!venue||!space)return <><MapSlot initialVenueId={state.venueId} onOpenSpace={openSpace} draftCounts={savedDraftCounts(state)}/>{panel}</>;
 
  const header=<div className="draft-bar">
   <button type="button" className="draft-back" onClick={()=>setMode('map')}><span className="draft-back-ic"><MapIcon size={15}/></span><span><b>Hotel selections on the map</b><small>Currently designing at {venue.name}</small></span><ArrowUpRight size={15} className="draft-back-arrow"/></button>
@@ -68,8 +82,8 @@ export default function DesignPage({Studio,planner,onPlannerChange,onNavigate,in
   <p className="draft-hint">Switching drafts keeps only saved changes.</p>
  </div>;
 
- return <>
-  <Studio assignGuestId={assignGuestId} onAssignDone={onAssignDone} onMapVenue={id=>{setState(s=>({...s,venueId:id,spaceId:id===s.venueId?s.spaceId:null}));setMode('map')}} key={storageFor(spaceKey,drafts.active)} storageKey={storageFor(spaceKey,drafts.active)} headerExtras={header} onSaved={onSaved} onNavigate={onNavigate} planner={planner} onPlannerChange={onPlannerChange} initialMode={initialMode}/>
+ return <><div className="design-studio-wrap">
+  <Studio assignGuestId={assignGuestId} onAssignDone={onAssignDone} onMapVenue={id=>{setState(s=>({...s,venueId:id,spaceId:id===s.venueId?s.spaceId:null}));setMode('map')}} key={storageFor(spaceKey,drafts.active)+':'+studioNonce} storageKey={storageFor(spaceKey,drafts.active)} headerExtras={header} onSaved={onSaved} onNavigate={onNavigate} planner={planner} onPlannerChange={onPlannerChange} initialMode={initialMode}/>
   {comparing&&<div className="compare-overlay" role="dialog" aria-modal="true" aria-label="Compare drafts" onClick={e=>{if(e.target===e.currentTarget)setComparing(false)}}>
    <div className="compare-sheet">
     <div className="compare-head"><div><span className="label">{venue.name} · {space.name}</span><h2>Compare drafts</h2></div><button type="button" aria-label="Close" onClick={()=>setComparing(false)}><X size={20}/></button></div>
@@ -83,5 +97,5 @@ export default function DesignPage({Studio,planner,onPlannerChange,onNavigate,in
     </div>
    </div>
   </div>}
- </>;
+ </div>{panel}</>;
 }
