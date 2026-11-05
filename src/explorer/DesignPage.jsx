@@ -5,7 +5,7 @@
 // with a link back to the map to choose another venue.
 import React,{useEffect,useState,useCallback} from 'react';
 import {ArrowLeft,ArrowUpRight,Plus,Columns2,X,Trash2,Map as MapIcon} from 'lucide-react';
-import VenueExplorer from './VenueExplorer.jsx';
+import {MapSlot} from './MapHost.jsx';
 import {VENUES,findVenue,findSpace} from '../data/venues.js';
 
 const KEY='wedding-design-v1';
@@ -56,7 +56,7 @@ export default function DesignPage({Studio,planner,onPlannerChange,onNavigate,in
   patchDrafts(d=>({...d,list:d.list.filter(l=>l!==letter),active:d.active===letter?'A':d.active}))};
  const onSaved=()=>requestAnimationFrame(()=>{const thumb=captureThumbnail();patchDrafts(d=>({...d,thumbs:{...d.thumbs,[d.active]:thumb||d.thumbs[d.active]},savedAt:{...d.savedAt,[d.active]:Date.now()}}))});
 
- if(mode==='map'||!venue||!space)return <VenueExplorer initialVenueId={state.venueId} onOpenSpace={openSpace} draftCounts={savedDraftCounts(state)}/>;
+ if(mode==='map'||!venue||!space)return <MapSlot initialVenueId={state.venueId} onOpenSpace={openSpace} draftCounts={savedDraftCounts(state)}/>;
 
  const header=<div className="draft-bar">
   <button type="button" className="draft-back" onClick={()=>setMode('map')}><span className="draft-back-ic"><MapIcon size={15}/></span><span><b>Hotel selections on the map</b><small>Currently designing at {venue.name}</small></span><ArrowUpRight size={15} className="draft-back-arrow"/></button>

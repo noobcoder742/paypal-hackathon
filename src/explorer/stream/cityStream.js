@@ -11,12 +11,12 @@
 import * as THREE from 'three';
 import {parseCellGlb} from './glb.js';
 import {makeBuildingMaterial} from '../look/buildingMaterial.js';
-// the map draws on demand: whoever shows the city can set this to be woken when something new can be seen
-let wake=()=>{};export const onCityChange=f=>{wake=f||(()=>{})};
+
 
 const ROOT='/data/sg3d/';
 const MAX_FETCH=6,FADE_S=.3,MAX_WAITING=12;   // downloads wait while 12 files are queued for the GPU
-let current=null;
+// the venue map and the studio's map view may each hold a stream; the newest one is current
+const live=[];let current=null;
 export const getCityStream=()=>current;
 
 let pointerRequest=null,latestRequest=null,baseRequest=null,liteRequest=null;
@@ -50,7 +50,9 @@ let baseReadyResolve;export const baseReady=new Promise(r=>{baseReadyResolve=r})
 function memoryBudget(){const gb=navigator.deviceMemory||8;return (gb<=4?120:400)*1e6}
 
 export class CityStream{
- constructor(meta,{sun,mats}){
+ /** onChange(kind): called when something new can be seen ('base', 'cell' or 'district'), for a view that draws on demand. */
+ constructor(meta,{sun,mats,onChange=null}){
+  this.onChange=onChange;
   this.meta=meta;this.mats=mats;this.group=new THREE.Group();this.group.name='city-stream';
   const {grid}=meta;
   this.mask=new Uint8Array(grid.w*grid.h);this.fade=new Float32Array(grid.w*grid.h);
@@ -68,10 +70,10 @@ export class CityStream{
   this.cells=new Map();   // key -> {state, group, bytes, tries, venues}
   this.boosts=[];this.fetching=0;this.readyQueue=[];this.usedBytes=0;this.lastPlan=0;this.venueReady=new Set();
   this.metrics=window.__cityMetrics={started:performance.now(),baseFetchedMs:null,baseLoadedMs:null,baseReadyMs:null,cellsLoaded:0,cellsShown:0,baseEvictions:0,cellsEvicted:0,baseLiteMs:null,shadersReadyMs:null,landLoaded:false,districtsLoaded:0,districtsShown:0,districtsEvicted:0,frames:[]};
-  window.__cityStream=this;current=this;
+  live.push(this);window.__cityStream=this;current=this;
   this.baseReady=this.loadBase();
  }
- dispose(){this.group.traverse(o=>{if(o.geometry)o.geometry.dispose()});this.disposed=true;clearTimeout(this._kick);clearTimeout(this._pump);this.cellMat.dispose();this.baseMat.dispose();this.midMat?.dispose();this.maskTex.dispose();this.midTex?.dispose();if(current===this)current=null}
+ dispose(){this.group.traverse(o=>{if(o.geometry)o.geometry.dispose()});this.disposed=true;clearTimeout(this._kick);clearTimeout(this._pump);this.cellMat.dispose();this.baseMat.dispose();this.midMat?.dispose();this.maskTex.dispose();this.midTex?.dispose();const i=live.indexOf(this);if(i>=0)live.splice(i,1);if(current===this){current=live[live.length-1]||null;window.__cityStream=current;if(current)window.__cityMetrics=current.metrics}}
 
  // ---------- base layer ----------
  async loadBase(){
@@ -98,7 +100,7 @@ export class CityStream{
   // the full base swaps in under the same mesh: the same blocks, more of them
   if(this.base){const old=this.base.geometry;this.base.geometry=g;old.dispose()}
   else{const mesh=new THREE.Mesh(g,this.baseMat);mesh.name='city-base';mesh.frustumCulled=false;mesh.receiveShadow=true;mesh.raycast=()=>null;this.group.add(mesh);this.base=mesh}
-  this.baseData={i16,u16,u8,n,S};const mesh=this.base;wake();
+  this.baseData={i16,u16,u8,n,S};const mesh=this.base;this.onChange?.('base');
   if(isLite){this.whenDrawn();return mesh}
   // baseLoadedMs: downloaded, unpacked and in the scene; baseReadyMs: first frame drawn with it
   this.metrics.baseLoadedMs=since();
@@ -243,9 +245,9 @@ export class CityStream{
  /** Hand downloaded files to the scene off the frame loop: at most 4 ms of work, then a 5 ms gap,
   *  so loading keeps pace on any frame rate and never stalls a frame for long. */
  pump(){if(this._pump||this.disposed)return;this._pump=setTimeout(()=>{this._pump=null;const t0=performance.now();
-  let seen=false;
-  while(this.readyQueue.length&&performance.now()-t0<4){const k=this.readyQueue.shift();if(k.startsWith('m:'))this.installDistrict(k.slice(2));else this.install(k);seen=seen||this.inView(k)}
-  if(seen)wake();
+  let seen=null;
+  while(this.readyQueue.length&&performance.now()-t0<4){const k=this.readyQueue.shift();if(k.startsWith('m:'))this.installDistrict(k.slice(2));else this.install(k);if(this.inView(k))seen=seen==='cell'||!k.startsWith('m:')?'cell':'district'}
+  if(seen)this.onChange?.(seen);
   this.kick();if(this.readyQueue.length)this.pump()},5)}
  /** Whether a newly installed file would be shown from the current view (so it is worth a redraw). */
  inView(k){const a=this.lastArgs;if(!a)return true;const [t,showR,midR]=a,D=this.meta.districts;
