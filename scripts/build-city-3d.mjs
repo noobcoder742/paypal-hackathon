@@ -254,6 +254,6 @@ await writeFile(`${dir}/tileset.json`,JSON.stringify(tileset));
 // latest.json is a tiny pointer, so the base layer and meta.json (what the
 // website needs from the tileset) can download in parallel straight after it
 await writeFile(`${dir}/meta.json`,JSON.stringify(tileset.extras));
-await writeFile(`${OUT}/latest.json`,JSON.stringify({version,tileset:`${version}/tileset.json`,meta:`${version}/meta.json`,base:`${version}/base.bin.gz`}));
+await writeFile(`${OUT}/latest.json`,JSON.stringify({version,tileset:`${version}/tileset.json`,meta:`${version}/meta.json`,base:`${version}/base.bin.gz`,lite:`${version}/base-lite.bin.gz`}));
 console.log(`city 3D ${version}: ${baseCount} buildings in base (${(base.length/1e6).toFixed(2)} MB raw, ${(baseGz/1e6).toFixed(2)} MB gzip); ${cells.size} cells, ${(cellBytes/1e6).toFixed(1)} MB total, largest ${biggest[0]} ${(biggest[1]/1e6).toFixed(2)} MB; venue buildings ${venueOf.size}; lite ${(liteGz.length/1e3).toFixed(0)} KB, roads ${(roadsGz.length/1e3).toFixed(0)} KB, areas ${(areasBytes/1e3).toFixed(0)} KB, land ${landMeta?landMeta.count+' verts':'none'}; ${dgroups.size} districts ${(dTotal/1e6).toFixed(1)} MB gzipped; ${((Date.now()-t0)/1000).toFixed(1)} s`);
 if(failures.length){console.error('Size budget exceeded:\n - '+failures.join('\n - '));process.exit(1)}
