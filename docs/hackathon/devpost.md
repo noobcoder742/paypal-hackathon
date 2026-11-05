@@ -83,7 +83,7 @@ The project was **newly created**: its first commit is 31 Oct 2026. The 3D map, 
 - **Hosted demo:** [URL]
 - **Couple sign-in:** any email (demo sign-in).
 - **PayPal sandbox buyer:** email [sandbox buyer email], password [sandbox buyer password]. This is test money only.
-- **Venue dashboard:** footer → For venues (demo). Password: [HOTEL_DEMO_PASSWORD].
+- **Venue dashboard:** on the landing page, For venues → Venue sign-in (or open `/#venues`). Password: [HOTEL_DEMO_PASSWORD].
 - **Path:**
   1. Design → Plan with AI → choose the first suggestion.
   2. Secure these vendors → approve in PayPal.
