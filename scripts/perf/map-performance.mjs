@@ -16,7 +16,7 @@ const require=createRequire(import.meta.url);
 const {chromium}=require('playwright');
 
 const BASE=process.env.BASE_URL||'http://localhost:4173';
-const LIMITS={baseMs:2500,landingMs:1000,edgeMs:20000,visibleMs:300};
+const LIMITS={baseMs:2500,landingMs:1000,edgeMs:20000,visibleMs:300,snapshotMs:300};
 // island edges (map metres): the middle level must cover them after background fill
 const EDGES=[['Tuas',-19000,3500],['Changi',18900,-900]];
 // Shared CI machines vary a lot from run to run, so the map is opened RUNS
@@ -112,6 +112,19 @@ async function warmRun(){
   out.lowMemWarmBeforeHover=await page.evaluate(()=>!!window.__mapHost?.warm);
   await page.hover('.nav-pill button:has-text("Design")');
   out.lowMemWarmAfterHover=await page.waitForFunction(()=>window.__mapHost?.warm===true,null,{timeout:5000}).then(()=>true).catch(()=>false);await ctx.close()}
+ // instant picture (spec B2): on a cold start the pre-made picture is up within 300 ms of the click;
+ // when the map opens on a saved venue it is skipped
+ {const ctx=await browser.newContext({viewport:{width:VW,height:VH}});await ctx.addInitScript(()=>Object.defineProperty(navigator,'deviceMemory',{get:()=>2}));
+  const page=await ctx.newPage();await page.route(u=>!u.href.startsWith(BASE),r=>r.abort());
+  const cdp=await ctx.newCDPSession(page);await cdp.send('Network.enable');await cdp.send('Network.setCacheDisabled',{cacheDisabled:true});
+  await page.goto(BASE+'/?perf');await page.evaluate(()=>{localStorage.clear();localStorage.setItem('wedding-session-v1',JSON.stringify({email:'perf@test.sg',name:'Perf'}))});
+  await page.goto(BASE+'/?perf',{waitUntil:'load'});
+  await page.evaluate(()=>document.addEventListener('pointerdown',e=>{if(e.target.closest?.('.nav-pill button'))window.__designClick=performance.now()},{capture:true,once:true}));
+  await page.click('.nav-pill button:has-text("Design")');
+  out.snapshotMs=await page.waitForFunction(()=>{const i=document.querySelector('.map-slot img.map-snapshot');return i&&i.complete&&i.naturalWidth>0&&i.offsetWidth>0&&window.__designClick!=null&&Math.max(1,performance.now()-window.__designClick)},null,{timeout:10000,polling:10}).then(h=>h.jsonValue()).then(Math.round).catch(()=>null);
+  await page.goto(BASE+'/?perf');await page.evaluate(()=>localStorage.setItem('wedding-design-v1',JSON.stringify({venueId:'orchard-grand'})));
+  await page.goto(BASE+'/?perf',{waitUntil:'load'});await page.click('.nav-pill button:has-text("Design")');await page.waitForSelector('.map-slot canvas');await page.waitForTimeout(500);
+  out.snapshotOnSavedVenue=await page.evaluate(()=>window.__mapHost?.snapshotShown);await ctx.close()}
  await browser.close();return out;
 }
 const warm=await warmRun();console.log('background map:',JSON.stringify(warm));
@@ -128,6 +141,8 @@ for(const [name] of EDGES){const v=runs.map(r=>r.edges[name]);if(v.filter(x=>x==
 if(!warm.warmed)fails.push('the map was never prepared in the background');
 if(warm.visibleMs==null||warm.visibleMs>LIMITS.visibleMs)fails.push(`prepared map took ${warm.visibleMs??'forever'} ms to show (limit ${LIMITS.visibleMs})`);
 if(warm.pictureBytes<20000)fails.push(`the prepared map showed a blank canvas (${warm.pictureBytes} bytes)`);
+if(warm.snapshotMs==null||warm.snapshotMs>LIMITS.snapshotMs)fails.push(`instant picture took ${warm.snapshotMs??'forever'} ms (limit ${LIMITS.snapshotMs})`);
+if(warm.snapshotOnSavedVenue!==false)fails.push('instant picture should be skipped when the map opens on a saved venue');
 if(warm.contexts!==1)fails.push(`switching pages made ${warm.contexts} 3D views (want 1)`);
 if(warm.lowMemWarmBeforeHover||!warm.lowMemWarmAfterHover)fails.push('low-memory device: map should wait for a Design hover');
 if(runs.some(r=>r.idleFrames==null||r.idleFrames>2))fails.push('map kept drawing while still: '+runs.map(r=>r.idleFrames).join(', ')+' frames in 2 s');
