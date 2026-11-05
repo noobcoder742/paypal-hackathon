@@ -20,7 +20,7 @@ import {VENUES,VENUE_CATEGORIES} from '../data/venues.js';
 import {project,pointInPolygon} from './geo.js';
 import {matchVenue} from './venueMatch.js';
 import {CityStream,loadLatest,getCityStream,baseReady} from './stream/cityStream.js';
-import {countMapContext,countActiveFrame} from './mapHostMetrics.js';
+import {countMapContext,countActiveFrame,mapHostMetrics} from './mapHostMetrics.js';
 import {QualityController} from './stream/quality.js';
 
 const INDEX_URL='/data/sg/index.json',TILE_URL=k=>`/data/sg/tiles/${k}.json`;
@@ -224,6 +224,18 @@ function KeepAwake({rigRef,active}){
   if(performance.now()-lastActivity<1500||rig.fly||settling||st?.fading||pulses>0)invalidate();
   else if(st)st.metrics.idleStops=(st.metrics.idleStops||0)+1;
  });
+ return null;
+}
+
+/* ---------- instant picture (spec B2) ---------- */
+// A pre-made picture of the opening view (public/map-snapshot.webp, rendered by
+// scripts/render-snapshot.mjs) shows the instant the map opens cold, and fades
+// into the live map once the island is drawn. ?snapshot=1 is the mode that
+// script renders in: no search box, pins or card over the map.
+const SNAPSHOT_MODE=typeof location!=='undefined'&&/[?&]snapshot=1\b/.test(location.search);
+if(SNAPSHOT_MODE&&typeof document!=='undefined')document.documentElement.classList.add('snapshot-mode');
+function SnapshotRelease({onDone}){
+ useFrame(()=>{if(getCityStream()?.baseDone)onDone()});
  return null;
 }
 
@@ -432,6 +444,11 @@ export default function VenueExplorer({onOpenSpace,initialVenueId=null,draftCoun
  const [focus,setFocus]=useState({venueId:null,spaceId:null});
  const [heights,setHeights]=useState({});
  const [diving,setDiving]=useState(false);
+ // the picture is for a cold open of the default view: not for a saved venue, nor once a frame has been drawn
+ const [snapshot,setSnapshot]=useState(()=>!initialVenueId&&!SNAPSHOT_MODE&&mapHostMetrics().framesDrawn===0?'on':'off');
+ const showSnapshot=snapshot!=='off'&&!initialVenueId;
+ useEffect(()=>{if(active)mapHostMetrics().snapshotShown=showSnapshot},[active]);// eslint-disable-line react-hooks/exhaustive-deps
+ const releaseSnapshot=useCallback(()=>setSnapshot(s=>{if(s!=='on')return s;setTimeout(()=>setSnapshot('off'),450);return 'fading'}),[]);
  // Settings › 3D & motion › Map quality: high = shadows + details, balanced = details, saver = plain
  const [{mapQuality}]=useSettings();
  const shadows=mapQuality==='high',details=mapQuality!=='saver';
@@ -477,11 +494,13 @@ export default function VenueExplorer({onOpenSpace,initialVenueId=null,draftCoun
    <MapCamera rigRef={rigRef}/>
    <KeepAwake rigRef={rigRef} active={active}/>
    <QualityGovernor rigRef={rigRef} mapQuality={mapQuality} active={active}/>
+   {snapshot==='on'&&<SnapshotRelease onDone={releaseSnapshot}/>}
    <CityLayers index={index} rigRef={rigRef} focus={focus} details={details} onVenueBounds={onVenueBounds} onCityChange={onCityChange}/>
    {venue&&space&&<SpaceHighlight venueId={venue.id} space={space}/>}
    <Pins focus={focus} heights={heights} onSelect={select} filter={filter} draftCounts={draftCounts}/>
   </Canvas>
 
+  {showSnapshot&&<img className={'map-snapshot'+(snapshot==='fading'?' fading':'')} src="/map-snapshot.webp" alt="" aria-hidden="true" onError={()=>setSnapshot('off')}/>}
   <div className="finder">
    <label className="finder-box"><Search size={16}/><input value={query} placeholder="Search venues, e.g. Orchard Grand" onFocus={()=>setResultsOpen(true)} onChange={e=>{setQuery(e.target.value);setResultsOpen(true)}} aria-label="Search venues"/>{query&&<button type="button" className="finder-clear" aria-label="Clear search" onClick={()=>{setQuery('');setResultsOpen(true)}}><X size={15}/></button>}</label>
    <div className={'finder-results'+(resultsOpen?' open':'')}><div>
