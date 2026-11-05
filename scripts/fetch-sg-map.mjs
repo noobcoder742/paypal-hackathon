@@ -10,7 +10,7 @@
 //
 // Coordinates are metres on a local plane around SG_ORIGIN: x east, z south.
 // The equirectangular projection error across Singapore (~50 km) is < 0.1 %.
-import {writeFile,mkdir,rm} from 'node:fs/promises';
+import {writeFile,mkdir,rm,readFile} from 'node:fs/promises';
 import {createReadStream} from 'node:fs';
 import {createInterface} from 'node:readline';
 
@@ -18,6 +18,7 @@ const OUT='public/data/sg';
 export const SG_ORIGIN={lat:1.3521,lon:103.8198};
 const BBOX={s:1.205,w:103.59,n:1.475,e:104.045};
 const INPUT=process.argv[2]||'sg.geojsonseq';
+const LAND_INPUT=process.argv[3];   // optional land polygons GeoJSON (clipped to BBOX)
 const TILE=1000;                                       // metres per tile
 const FLOOR=3.4;                                       // metres per storey when only levels are known
 
@@ -166,5 +167,13 @@ await writeFile(`${OUT}/areas.json`,JSON.stringify(areas));
 const index={areas:true,source:'OpenStreetMap contributors (ODbL) via Geofabrik extract + osmium',generated:new Date().toISOString(),origin:SG_ORIGIN,tileSize:TILE,stats,tiles:{}};
 let bytes=0;
 for(const [k,v] of tiles){const s=JSON.stringify(v);bytes+=s.length;await writeFile(`${OUT}/tiles/${k}.json`,s);index.tiles[k]=[v.b.length,Math.round(Math.max(0,...v.b.map(b=>b[0])))]}
+// land polygons (sea is everything outside them): outer rings, 2 m simplified
+if(LAND_INPUT){
+ const gj=JSON.parse(await readFile(LAND_INPUT,'utf8')),polys=[];
+ for(const f of gj.features||[]){const g=f.geometry;if(!g)continue;const rings=g.type==='Polygon'?[g.coordinates[0]]:g.type==='MultiPolygon'?g.coordinates.map(p=>p[0]):[];
+  for(const r of rings){const pts=simplifyRing(r.map(([lo,la])=>project(la,lo)),2);if(pts.length>=3&&Math.abs(area(pts))>200)polys.push(pts.flat())}}
+ await writeFile(`${OUT}/land.json`,JSON.stringify({source:'osmdata.openstreetmap.de land polygons (ODbL)',polys}));
+ index.land=true;stats.landPolys=polys.length;
+}
 await writeFile(`${OUT}/index.json`,JSON.stringify(index));
 console.log(`wrote ${tiles.size} tiles, ${(bytes/1e6).toFixed(1)} MB`,stats);
