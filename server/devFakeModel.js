@@ -3,7 +3,15 @@
 // without API keys. Never enabled on Vercel.
 import {MockLanguageModelV1,simulateReadableStream} from 'ai/test';
 const textOf=m=>typeof m.content==='string'?m.content:(m.content||[]).map(p=>p.text||'').join(' ');
+function hotelPlan(prompt){
+ const done=prompt.filter(m=>m.role==='tool').flatMap(m=>m.content);const user=textOf(prompt.find(m=>m.role==='user')||{});
+ const q=done.find(c=>c.toolName==='draft_quote');
+ if(!q)return {call:'draft_quote',args:{enquiryId:(user.match(/Enquiry (\S+):/)||[])[1]||''}};
+ const r=q.result||{};const sgd=n=>'S$'+Number(n||0).toLocaleString('en-SG',{maximumFractionDigits:2});
+ return {text:`Dear ${r.coupleName||'both'}, thank you for considering ${r.venueName}. For ${r.tables} tables on ${r.date}: Grand Ballroom wedding dinner at ${sgd(r.pricePerTable)}++ per table, ${sgd(r.subtotal)} before charges, ${sgd(r.total)} including 10% service and 9% GST. A 30% deposit of ${sgd(r.deposit)} holds your date.`};
+}
 function plan(prompt){
+ if(textOf(prompt.find(m=>m.role==='system')||{}).includes('banquet sales assistant'))return hotelPlan(prompt);
  const users=prompt.filter(m=>m.role==='user'),last=textOf(users[users.length-1]||{}).toLowerCase();
  const done=prompt.filter(m=>m.role==='tool').flatMap(m=>m.content.map(c=>c.toolName));
  const tables=+(last.match(/(\d+)\s*tables?/)||[])[1]||30,budget=(()=>{const m=last.match(/s?\$\s*([\d,]+)\s*(k)?/);return m?parseFloat(m[1].replace(/,/g,''))*(m[2]?1000:1):null})();
@@ -17,7 +25,7 @@ function plan(prompt){
 }
 export function fakeModel(){
  let n=0;
- return new MockLanguageModelV1({modelId:'dev-fake',doStream:async({prompt})=>{const p=plan(prompt),id='call-'+(++n);
+ return new MockLanguageModelV1({modelId:'dev-fake',doGenerate:async()=>({rawCall:{rawPrompt:null,rawSettings:{}},finishReason:'stop',usage:{promptTokens:1,completionTokens:1},text:'Just a friendly heads-up: your wedding date is held for you, and the deposit link is ready whenever you are. Any questions, we are happy to help!'}),doStream:async({prompt})=>{const p=plan(prompt),id='call-'+(++n);
   const chunks=p.call?[{type:'tool-call',toolCallType:'function',toolCallId:id,toolName:p.call,args:JSON.stringify(p.args)},{type:'finish',finishReason:'tool-calls',usage:{promptTokens:1,completionTokens:1}}]
    :[...p.text.match(/.{1,24}(\s|$)/g).map(t=>({type:'text-delta',textDelta:t})),{type:'finish',finishReason:'stop',usage:{promptTokens:1,completionTokens:1}}];
   return {rawCall:{rawPrompt:null,rawSettings:{}},stream:simulateReadableStream({chunks,chunkDelayInMs:60})}}});
