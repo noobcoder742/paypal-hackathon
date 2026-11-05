@@ -13,8 +13,9 @@
 //                 website uses (grid, base file, sizes, venues per cell)
 // and public/data/sg3d/latest.json pointing at the current version.
 //
-// Buildings that belong to a listed venue are left out of the cell files; the
-// website draws those itself so they can be highlighted and made see-through.
+// Buildings that belong to a listed venue are left out of the cell files and
+// shipped as source rows (extras.venueRows, a few KB) so the website can draw,
+// highlight and make them see-through without the old JSON tiles.
 //
 // Usage: node scripts/build-city-3d.mjs [--if-missing]
 // Later sources (Blender glTF per district, Tripo rooms) plug in here.
@@ -32,7 +33,7 @@ import {HOTEL_LOOKS,landmarkLook} from '../src/explorer/look/hotels.js';
 // OSM colour tags with values THREE can't parse fall back quietly (palette.js); hide its warnings
 const warn=console.warn;console.warn=(...a)=>{if(typeof a[0]==='string'&&a[0].startsWith('THREE.Color'))return;warn(...a)};
 const SRC='public/data/sg',OUT='public/data/sg3d';
-const BUILDER_VERSION=2;
+const BUILDER_VERSION=3;
 const Q=.05;                        // metres per quantized position unit (Int16 → ±1.6 km around a cell centre)
 const BASE_STRIDE=24;
 const BUDGET={baseRaw:4.5e6,baseGzip:3e6,cell:2e6};
@@ -175,7 +176,7 @@ if(base.length>BUDGET.baseRaw)failures.push(`base.bin is ${(base.length/1e6).toF
 if(baseGz>BUDGET.baseGzip)failures.push(`base.bin is ${(baseGz/1e6).toFixed(2)} MB gzipped (budget ${BUDGET.baseGzip/1e6} MB)`);
 const tileset={asset:{version:'1.1',generator:'wedding-studio build-city-3d'},geometricError:4000,
  root:{boundingVolume:{box:[(grid.ix0+grid.w/2)*T,150,(grid.iz0+grid.h/2)*T,grid.w*T/2,0,0,0,150,0,0,0,grid.h*T/2]},geometricError:1000,refine:'REPLACE',children},
- extras:{version,builder:BUILDER_VERSION,source:index.source,sourceGenerated:index.generated,localFrame:'metres from origin: x east, y up, z south',origin:index.origin,
+ extras:{venueRows:Object.fromEntries(VENUES.map(v=>[v.id,[...venueOf].filter(([,id])=>id===v.id).map(([row])=>row)]).filter(([,r])=>r.length)),version,builder:BUILDER_VERSION,source:index.source,sourceGenerated:index.generated,localFrame:'metres from origin: x east, y up, z south',origin:index.origin,
   tileSize:T,quantization:Q,grid,base:{uri:'base.bin.gz',encoding:'gzip',count:baseCount,stride:BASE_STRIDE,bytes:base.length,gzipBytes:baseGz},cells:cellMeta}};
 await writeFile(`${dir}/tileset.json`,JSON.stringify(tileset));
 // latest.json carries what the website needs, so opening the map costs one small request before the base
