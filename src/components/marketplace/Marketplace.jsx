@@ -1,19 +1,8 @@
 import React,{useState,useRef} from 'react';
 import useSlidingIndicator from '../ui/useSlidingIndicator.js';
 import {ArrowLeft,ArrowRight,Plus,Check,Search,ShoppingBag,Heart,Star,Rotate3D,CalendarDays,MapPin,Clock,Info} from 'lucide-react';
-/** @placeholder DEMO_CATALOG: Replace with licensed vendor photos, real offers, prices and 3D asset URLs from the backend. */
-export const demoListings=[
- {id:'floral-white',category:'Floral Arrangements',name:'Ivory garden centrepiece',vendor:'Sample floral studio',price:180,unit:'arrangement',photo:'https://images.unsplash.com/photo-1523438885200-e635ba2c371e?w=1000&q=80',inventoryType:'flowers'},
- {id:'floral-arch',category:'Floral Arrangements',name:'Ceremony floral arch',vendor:'Sample floral studio',price:980,unit:'setup',photo:'https://images.unsplash.com/photo-1519741497674-611481863552?w=1000&q=80',inventoryType:'arch'},
- {id:'floral-roses',category:'Floral Arrangements',name:'Blush rose display',vendor:'Sample floral studio',price:260,unit:'arrangement',photo:'https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=1000&q=80',inventoryType:'flowers'},
- {id:'music-strings',category:'Music & Entertainment',name:'Live string ensemble',vendor:'Sample music provider',price:850,unit:'session',photo:'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=1000&q=80'},
- {id:'music-piano',category:'Music & Entertainment',name:'Piano performance',vendor:'Sample music provider',price:540,unit:'session',photo:'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?w=1000&q=80'},
- {id:'light-ambient',category:'Lighting & Production',name:'Warm ambient lighting',vendor:'Sample production studio',price:600,unit:'setup',photo:'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=1000&q=80'},
- {id:'light-stage',category:'Lighting & Production',name:'Stage spotlight package',vendor:'Sample production studio',price:740,unit:'setup',photo:'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1000&q=80'},
- {id:'catering-banquet',category:'Hotel Catering',name:'Banquet menu consultation',vendor:'Hotel catering — placeholder',price:null,unit:'quote',photo:'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=1000&q=80'},
- {id:'catering-dessert',category:'Hotel Catering',name:'Dessert selection',vendor:'Hotel catering — placeholder',price:null,unit:'quote',photo:'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=1000&q=80'},
- {id:'chauffeur-car',category:'Chauffeur & Transport',name:'Wedding arrival chauffeur',vendor:'Sample transport provider',price:320,unit:'booking',photo:'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1000&q=80'}
-];
+import {CATALOG} from '../../data/catalog.js';
+export const demoListings=CATALOG;
 const categories=['Floral Arrangements','Music & Entertainment','Lighting & Production','Hotel Catering','Chauffeur & Transport'];
 function price(item){return item.price==null?'Price on request':'From S$'+item.price.toLocaleString('en-SG')}
 /** @placeholder LISTING_PHOTOS: Until vendors supply several photos, extra frames are
