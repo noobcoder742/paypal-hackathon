@@ -10,5 +10,5 @@
 | AG Studio, AG Grid Enterprise, AG Charts Enterprise | AG Grid Ltd | Commercial (used under the free 45-day trial; not covered by this repo's MIT licence) |
 | PayPal Agent Toolkit, PayPal JS SDK | PayPal | Their own licences (see each package) |
 
-The ballroom image on the homepage is a render of this project's own 3D model. All venue names, vendor names,
+The homepage hero photo (`public/media/wedding-hero.webp`) was supplied by the project's founder, who holds the rights to use it. All venue names, vendor names,
 couples and prices in the demo are fictional.
