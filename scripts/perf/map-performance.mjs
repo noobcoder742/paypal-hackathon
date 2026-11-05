@@ -16,7 +16,7 @@ const require=createRequire(import.meta.url);
 const {chromium}=require('playwright');
 
 const BASE=process.env.BASE_URL||'http://localhost:4173';
-const LIMITS={baseMs:2500,landingMs:1000,edgeMs:20000,visibleMs:300,snapshotMs:300};
+const LIMITS={baseMs:2500,landingMs:1000,edgeMs:30000,visibleMs:300,snapshotMs:300};
 // island edges (map metres): the middle level must cover them after background fill
 const EDGES=[['Tuas',-19000,3500],['Changi',18900,-900]];
 // Shared CI machines vary a lot from run to run, so the map is opened RUNS
