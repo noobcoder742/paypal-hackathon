@@ -5,6 +5,7 @@ let modelFactory=null;
 export function setModelFactory(fn){modelFactory=fn}
 export async function defaultModels(){
  if(modelFactory)return modelFactory();
+ if(process.env.AGENT_FAKE==='1'&&!process.env.VERCEL){const {fakeModel}=await import('./devFakeModel.js');return [fakeModel()]}
  const out=[];
  if(process.env.ANTHROPIC_API_KEY){const {anthropic}=await import('@ai-sdk/anthropic');out.push(anthropic('claude-haiku-5-5'))}
  if(process.env.GOOGLE_GENERATIVE_AI_API_KEY){const {google}=await import('@ai-sdk/google');out.push(google('gemini-2.5-flash'))}
