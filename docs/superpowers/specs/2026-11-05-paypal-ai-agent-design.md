@@ -73,7 +73,7 @@ Everything deploys to Vercel's free tier from this repo. The existing Vite app s
 
 | Piece | Responsibility |
 | --- | --- |
-| `api/agent` | Runs the couple's agent (Vercel AI SDK, streamed to the panel). Model order: Claude, then Gemini free tier on error or quota; if both fail, the client plays the labelled replay. |
+| `api/agent` | Runs the couple's agent (Vercel AI SDK, streamed to the panel). Model order: Claude Haiku 5.5 (temperature 0), then Gemini free tier on error or quota. Repeated requests (same normalised wording, budget and tables) are answered from a 30-day response cache, while PayPal actions always run live; if both fail, the client plays the labelled replay. |
 | `api/paypal/capture` | Deterministic server code: captures an order only after the couple's PayPal approval, checks the captured amount against the stored plan, and records the result. |
 | `api/hotel/enquiries` | Stores and lists enquiries. |
 | `api/hotel/agent` | Runs the hotel's agent: drafts the quote, then creates and sends the invoice after approval. |
