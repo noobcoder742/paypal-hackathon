@@ -24,7 +24,11 @@
 ## Global Constraints
 - **Sandbox only.** The PayPal base URL is always `https://api-m.sandbox.paypal.com`. The server refuses to start if `PAYPAL_ENV` is set to anything except `sandbox`.
 - **Secrets** are read only from `process.env`: `ANTHROPIC_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `HOTEL_DEMO_PASSWORD`. The browser gets only `VITE_PAYPAL_CLIENT_ID` and `VITE_AG_STUDIO_LICENSE`. No key value is ever committed.
-- **Models:** primary `claude-sonnet-4-5`, fallback `gemini-2.5-flash`. Fallback happens only before the first streamed chunk. If both fail, the client plays the labelled replay.
+- **Models:** primary `claude-haiku-5-5` (founder's choice, to save credits), fallback `gemini-2.5-flash`. Fallback happens only before the first streamed chunk. If both fail, the client plays the labelled replay. Temperature is 0.
+- **Response cache:** a run is cached under `cache:<sha256 of the normalised conversation>` when it made no `create_deposit_order` or `send_enquiry` call.
+  - Normalisation: lower-case, collapsed whitespace, numbers kept; S$ amounts rounded to the nearest S$1,000.
+  - A cache hit replays the stored stream and re-stores its plan under the caller's `planId`. A hit counts against the rate limit at a quarter weight.
+  - PayPal actions are never cached. The cache TTL is 30 days.
 - **Money:**
   - Currency is `SGD`.
   - A deposit is **20%** of each vendor line, and the platform commission is **10%** of each vendor line.
@@ -146,6 +150,11 @@
     - Each item's name is `"<vendor> — <item> (20% deposit)"`, its unit amount is the deposit, and the currency is SGD.
     - It returns `{orderId, depositTotal, commissionTotal, lines}`, and stores `order:<orderId> = {planId, depositTotal, lines, status:'created'}`.
   - `send_enquiry({planId, coupleName, email, date})` → it stores `enquiry:<id>` with `{planId, venueId, tables, budget, date, items, thumbnail?:null, status:'new'}`.
+- Produces `server/agent/cache.js`:
+  - `cacheKey(messages) → string`.
+  - `getCachedRun(store, key) → {chunks, plan} | null`.
+  - `saveRun(store, key, {chunks, plan})`.
+  - `replayStream(chunks) → Response` (an AI SDK data stream).
 - Produces `api/agent.js`, with `POST(request)`:
   - Body: `{messages, planId}`.
   - It checks the same origin (`Origin` must match the host) and the rate limit (429 with `{error:'rate_limited', resetSeconds}`).
@@ -163,6 +172,11 @@
   - `tables:45` at the 3D venue → `ok:false`, with a capacity problem (Review Focus 4).
   - `create_deposit_order` with a plan of `floral-arch×1` and `music-strings×1` → the fake received two items with amounts `196.00` and `170.00` in `SGD`. It returns `depositTotal 366`.
   - A plan containing the unknown ID `gold-throne` → the tool returns `{error:'unknown_item', id:'gold-throne'}` and no order is created (Review Focus 1).
+- [ ] **Step 1b: Write failing cache tests:**
+  - `cacheKey` is the same for "30 tables, S$60,000 budget" and "30 tables,  s$60,400 budget".
+  - It differs for 31 tables.
+  - A run whose tool calls include `create_deposit_order` is not saved.
+  - A cached hit replays and stores the plan under the new `planId`.
 - [ ] **Step 2: Write a failing test** in `tests/agentEndpoint.test.mjs`:
   - `POST` with `Origin: https://evil.example` → 403.
   - Six calls from one IP → the sixth gives 429.
