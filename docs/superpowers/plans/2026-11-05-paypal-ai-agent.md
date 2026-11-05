@@ -80,7 +80,7 @@
   - Unknown ID → throws `UnknownItemError`.
   - Tables 45 at maxTables 38 → `RangeError`.
 - [ ] **Step 2: Write failing tests** in `tests/secretScan.test.mjs`:
-  - `findSecrets('key=sk-ant-api03-abcdefghijklmnop')` has length 1.
+  - `findSecrets('key=sk-'+'ant-api03-abcdefghijklmnop')` has length 1.
   - `findSecrets('ANTHROPIC_API_KEY=')` has length 0.
 - [ ] **Step 3: Run** `npm test`. Expected: FAIL (modules missing).
 - [ ] **Step 4: Install the dependencies:**

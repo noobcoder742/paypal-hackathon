@@ -34,6 +34,8 @@ jobs:
       - name: Install Playwright Chromium
         run: npm i --no-save playwright@1.49.1 && npx playwright install --with-deps chromium
       - run: npm run build
+      - name: Secret scan
+        run: node scripts/secret-scan.mjs
       - name: Unit checks (budgets, land, lite base, bird's-eye views, quality controller)
         run: npm test
       - name: Serve the production build

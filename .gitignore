@@ -6,3 +6,4 @@ dist/
 public/data/sg3d/
 map-performance-report.json
 .superpowers/
+!.env.example
