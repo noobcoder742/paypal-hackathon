@@ -153,6 +153,8 @@ export class CityStream{
  districtsAround(x,z,r){const D=this.meta.districts;if(!D)return [];const S=D.size,out=[];for(let dx=Math.floor((x-r)/S);dx<=Math.floor((x+r)/S);dx++)for(let dz=Math.floor((z-r)/S);dz<=Math.floor((z+r)/S);dz++){const k=dx+'_'+dz;if(D.cells[k])out.push(k)}return out}
  /** True when every district within r of (x,z) shows the middle level (or finer detail covers it). */
  midReadyAround(x,z,r=2000){const D=this.meta.districts;if(!D)return false;return this.districtsAround(x,z,r).every(k=>{const [dx,dz]=k.split('_').map(Number);return this.midFade[(dx-D.grid.dx0)+(dz-D.grid.dz0)*D.grid.w]>.98||this.cellsCover(dx,dz)})}
+ /** True when every district within r of (x,z) is downloaded and in the scene (or full detail covers it). */
+ midLoadedAround(x,z,r=2000){if(!this.meta.districts)return false;return this.districtsAround(x,z,r).every(k=>this.districts.get(k)?.state==='ready'||this.cellsCover(...k.split('_').map(Number)))}
  /** True when full detail shows in all of a district's cells. */
  cellsCover(dx,dz){const D=this.meta.districts,per=D.size/this.meta.tileSize,g=this.meta.grid;for(let ix=dx*per;ix<(dx+1)*per;ix++)for(let iz=dz*per;iz<(dz+1)*per;iz++){if(!this.meta.cells[ix+'_'+iz])continue;const i=(ix-g.ix0)+(iz-g.iz0)*g.w;if(!(this.fade[i]>.98))return false}return true}
 
