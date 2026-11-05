@@ -5,3 +5,4 @@ dist/
 .DS_Store
 public/data/sg3d/
 map-performance-report.json
+.superpowers/

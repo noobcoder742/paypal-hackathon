@@ -10,7 +10,10 @@
 import {pointInPolygon} from './geo.js';
 
 const THETAS=24;                       // directions tried around the target
-const PHIS=[.95,.8,.62,.45,.3];        // tilt from vertical, most cinematic first
+// Bird's-eye rule (CLAUDE.md, Phase 2 spec): tilt 40–65° from vertical, never
+// near top-down. Order: most cinematic first.
+export const BIRDS_EYE={min:.70,max:1.13,order:[.95,.85,1.05,.75]};
+const PHIS=BIRDS_EYE.order;
 const STEP=3;                          // metres between ray samples
 
 function prepare(buildings,skip){
@@ -52,7 +55,7 @@ const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
  * @param r          camera distance
  * @param theta      current camera direction (preferred)
  * @param skip       building row -> true for the venue's own buildings
- * @returns {theta,phi}
+ * @returns {theta,phi,hits}
  */
 export function findClearView({buildings,target,samples,r,theta,skip,phis=PHIS}){
  const scene=prepare(buildings,skip);
@@ -67,5 +70,41 @@ export function findClearView({buildings,target,samples,r,theta,skip,phis=PHIS})
   }
   if(best.hits===0)break;    // clear view found at the most cinematic tilt
  }
- return {theta:best.theta,phi:best.phi};
+ return {theta:best.theta,phi:best.phi,hits:best.hits};
+}
+
+/** Camera distance (m) at which a box {w,d,h} spans ~fill of the shorter screen side. */
+export function fitDistance({box:{w,d,h},fov=38,aspect=1.6,fill=.55}){
+ const radius=Math.hypot(w,d,h)/2,t=Math.tan(fov*Math.PI/360)*Math.min(1,aspect);
+ return Math.max(120,radius/(t*fill));
+}
+
+/**
+ * Bird's-eye view of a venue: tilt kept inside BIRDS_EYE, no neighbour in the
+ * way. If every direction is blocked at r0 the camera moves further out (and
+ * so higher) at the same tilts, up to 2.5×r0, before settling for the
+ * least-blocked view. It never flattens to top-down.
+ * @returns {theta,phi,r,hits}
+ */
+export function venueView({buildings,own,target,samples,theta=0,r0}){
+ let best=null;
+ for(const k of [1,1.25,1.5,1.75,2,2.25,2.5]){
+  const r=r0*k,v=findClearView({buildings,target,samples,r,theta,skip:own,phis:BIRDS_EYE.order});
+  if(!best||v.hits<best.hits)best={...v,r};
+  if(v.hits===0)return {...v,r};
+ }
+ return {...best,r:r0*2.5};
+}
+
+/**
+ * What to frame for a venue, from its own building rows: target (centre of
+ * its footprint bounds), box {w,d,h} for fitDistance, and line-of-sight
+ * samples (centre, roof and corners of each part).
+ */
+export function venueFraming(rows){
+ let x0=1e9,z0=1e9,x1=-1e9,z1=-1e9,h=0;
+ for(const [hh,,,,,f] of rows){h=Math.max(h,hh);for(let i=0;i<f.length;i+=2){x0=Math.min(x0,f[i]);x1=Math.max(x1,f[i]);z0=Math.min(z0,f[i+1]);z1=Math.max(z1,f[i+1])}}
+ const samples=rows.slice(0,10).flatMap(([hh,minH,,,,f])=>{let x=0,z=0;const n=f.length/2;for(let i=0;i<f.length;i+=2){x+=f[i];z+=f[i+1]}x/=n;z/=n;const mid=minH+(hh-minH)*.5,out=[[x,mid,z],[x,hh*.95,z]];
+  for(let k=0;k<Math.min(6,n);k++){const i=Math.floor(k*n/Math.min(6,n))*2;out.push([x+(f[i]-x)*.8,mid,z+(f[i+1]-z)*.8])}return out});
+ return {target:{x:(x0+x1)/2,z:(z0+z1)/2},box:{w:x1-x0,d:z1-z0,h},samples};
 }
