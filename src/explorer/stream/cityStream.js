@@ -66,11 +66,21 @@ export class CityStream{
   g.setAttribute('aRoof',new THREE.InterleavedBufferAttribute(b8,3,19,true));
   g.setAttribute('aCell',new THREE.InterleavedBufferAttribute(b16,1,11,false));
   const mesh=new THREE.Mesh(g,this.baseMat);mesh.name='city-base';mesh.frustumCulled=false;mesh.receiveShadow=true;mesh.raycast=()=>null;
-  this.group.add(mesh);this.base=mesh;
+  this.group.add(mesh);this.base=mesh;this.baseData={i16,u16,u8,n,S};
   // baseLoadedMs: downloaded, unpacked and in the scene; baseReadyMs: first frame drawn with it
   this.metrics.baseLoadedMs=since();
   requestAnimationFrame(()=>requestAnimationFrame(()=>{if(this.metrics.baseReadyMs==null)this.metrics.baseReadyMs=Math.round(performance.now()-this.metrics.started);this.baseDone=true;baseReadyResolve()}));
   return mesh;
+ }
+
+ /** Buildings near (x,z) from the always-loaded base, as tile-style rows
+  *  [height, minHeight, '', '', 0, footprint corners], for line-of-sight checks. */
+ boxesAround(x,z,r){
+  const d=this.baseData;if(!d)return null;const {i16,u16,u8,n,S}=d,h16=S/2,out=[];
+  for(let i=0;i<n;i++){const cx=i16[i*h16],cz=i16[i*h16+1];if(Math.abs(cx-x)>r||Math.abs(cz-z)>r)continue;
+   const w=u16[i*h16+2]/8,dd=u16[i*h16+3]/8,h=u16[i*h16+4]/10,mh=u16[i*h16+5]/10,a=u8[i*S+12]/255*Math.PI,c=Math.cos(a),s=Math.sin(a);
+   const f=[];for(const [u,v] of [[-w,-dd],[w,-dd],[w,dd],[-w,dd]])f.push(cx+u*c-v*s,cz+u*s+v*c);out.push([h,mh,'','',0,f])}
+  return out;
  }
 
  // ---------- intent ----------

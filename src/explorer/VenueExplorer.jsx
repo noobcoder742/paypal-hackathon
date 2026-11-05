@@ -97,8 +97,12 @@ async function buildingsAround(index,x,z,radius){
 async function clearViewFor(index,venueId,{r,theta,space,phis}){
  const g=VENUE_GEO[venueId];
  try{
-  const buildings=await buildingsAround(index,g.x,g.z,Math.min(r,700));
-  const own=await venueOwnership(index,venueId);
+  // streamed city: neighbours from the always-loaded base, the venue from its shipped rows (no downloads)
+  const st=getCityStream(),rows=st?.meta.venueRows?.[venueId],boxes=st?.boxesAround(g.x,g.z,Math.min(r,700));
+  let buildings,own;
+  if(boxes&&rows){const inVenue=([,,,,,f])=>{let x=0,z=0;for(let i=0;i<8;i+=2){x+=f[i];z+=f[i+1]}x/=4;z/=4;return rows.some(rw=>pointInPolygon(x,z,rw[5]))};
+   const set=new Set(rows);buildings=[...boxes.filter(b=>!inVenue(b)),...rows];own=row=>set.has(row)}
+  else{buildings=await buildingsAround(index,g.x,g.z,Math.min(r,700));own=await venueOwnership(index,venueId)}
   let target,samples;
   if(space){
    const b=space.box,cx=g.points[0][0]+b.x,cz=g.points[0][1]+b.z,y=b.y,hw=b.width/2,hd=b.depth/2;
@@ -264,11 +268,16 @@ function AreaLayer(){
 // Orchard district (Tanglin to Dhoby Ghaut): richer detail for the whole area
 // around the listed hotels, built once and hidden when zoomed far out.
 const ORCHARD=(()=>{const [x,z]=project(1.3045,103.8318);return {x,z,radius:900}})();
+// Extra detail layers still read the older JSON tiles; start them only once
+// the camera is still and the city around it shows full detail, so they never
+// compete with what the couple is looking at.
+function whenSettled(rigRef){return new Promise(res=>{const t0=performance.now();const tick=()=>{const st=getCityStream(),{cur}=rigRef.current;
+ if(!rigRef.current.fly&&(!st||st.readyAround(cur.tx,cur.tz,400)||performance.now()-t0>8000))res();else setTimeout(tick,250)};setTimeout(tick,400)})}
 function OrchardDetails({index,rigRef}){
  const [tiles,setTiles]=useState(null),group=useRef();
- useEffect(()=>{if(!index||index.legacy)return;let live=true;const T=index.tileSize,keys=[];
+ useEffect(()=>{if(!index||index.legacy)return;let live=true;whenSettled(rigRef).then(()=>{if(!live)return;const T=index.tileSize,keys=[];
   for(let ix=Math.floor((ORCHARD.x-1500)/T);ix<=Math.floor((ORCHARD.x+1500)/T);ix++)for(let iz=Math.floor((ORCHARD.z-800)/T);iz<=Math.floor((ORCHARD.z+800)/T);iz++)if(index.tiles[ix+'_'+iz])keys.push(ix+'_'+iz);
-  Promise.all([Promise.all(keys.map(k=>loadTile(index,k))),Promise.all(VENUES.map(v=>venueOwnership(index,v.id)))]).then(([t,tests])=>{if(live)setTiles({list:t.filter(Boolean),skip:row=>tests.some(test=>test(row))})});return()=>{live=false}},[index]);
+  Promise.all([Promise.all(keys.map(k=>loadTile(index,k))),Promise.all(VENUES.map(v=>venueOwnership(index,v.id)))]).then(([t,tests])=>{if(live)setTiles({list:t.filter(Boolean),skip:row=>tests.some(test=>test(row))})})});return()=>{live=false}},[index,rigRef]);
  useFrame(()=>{if(!group.current)return;const {cur}=rigRef.current;group.current.visible=cur.r<3200&&Math.hypot(cur.tx-ORCHARD.x,cur.tz-ORCHARD.z)<4000});
  return tiles?<NearbyDetails tiles={tiles.list} cx={ORCHARD.x} cz={ORCHARD.z} skip={tiles.skip} radius={ORCHARD.radius} orchard groupRef={group}/>:null;
 }
@@ -306,11 +315,17 @@ function Pins({focus,heights,onSelect,filter,draftCounts={}}){
 function StreamedCity({meta,index,rigRef,focus,onVenueBounds,onVenueRows}){
  const stream=useMemo(()=>new CityStream(meta,{sun:SUN,mats:{roads:MATS.road,walk:MATS.walk,green:MATS.green,water:MATS.water}}),[meta]);
  useEffect(()=>()=>stream.dispose(),[stream]);
- // cells holding a listed venue: the venue's own buildings are drawn from the source rows
- const venueCells=useMemo(()=>Object.entries(meta.cells).filter(([,c])=>c[2]?.length).map(([k])=>k),[meta]);
- const ready=useMemo(()=>Object.fromEntries(venueCells.map(k=>[k,()=>stream.markVenueReady(k)])),[venueCells,stream]);
+ // the listed venues' own buildings ship with the city as source rows: build them here, at once
+ const venueGeo=useMemo(()=>Object.entries(meta.venueRows||{}).map(([id,rows])=>{const b=makeBucket();rows.forEach(row=>addBuilding(b,row,HOTEL_LOOKS[id]));return [id,bucketGeometry(b),rows]}),[meta]);
+ useEffect(()=>{Object.keys(meta.cells).forEach(k=>stream.markVenueReady(k));
+  for(const [id,geo,rows] of venueGeo){onVenueRows(id,rows);onVenueBounds(id,geo.boundingBox)}
+  return()=>venueGeo.forEach(([,geo])=>geo.dispose())},[venueGeo,stream,meta,onVenueRows,onVenueBounds]);
  useFrame((_,dt)=>{const {cur}=rigRef.current;stream.update({x:cur.tx,z:cur.tz},cur.r,Math.min(dt,.1))});
- return <><primitive object={stream.group}/>{venueCells.map(k=><Tile key={k} tileKey={k} index={index} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows} venueOnly onBuilt={ready[k]}/>)}</>;
+ // older builds without venueRows fall back to drawing venues from the JSON tiles
+ const legacyVenueCells=useMemo(()=>meta.venueRows?[]:Object.entries(meta.cells).filter(([,c])=>c[2]?.length).map(([k])=>k),[meta]);
+ return <><primitive object={stream.group}/>
+  {venueGeo.map(([id,geo])=><VenueBuilding key={id} id={id} parts={[geo]} focus={focus}/>)}
+  {legacyVenueCells.map(k=><Tile key={k} tileKey={k} index={index} focus={focus} onVenueBounds={onVenueBounds} onVenueRows={onVenueRows} venueOnly/>)}</>;
 }
 
 export function CityLayers({index,rigRef,focus,details=true,onVenueBounds=()=>{}}){
@@ -320,7 +335,7 @@ export function CityLayers({index,rigRef,focus,details=true,onVenueBounds=()=>{}
  const onVenueRows=useCallback((id,rows)=>setVenueRows(v=>{const cur=v[id]||[];const add=rows.filter(r=>!cur.includes(r));return add.length?{...v,[id]:[...cur,...add]}:v}),[]);
  const [nearby,setNearby]=useState(null);
  useEffect(()=>{if(!index||!focus.venueId){setNearby(null);return}let live=true;const g=VENUE_GEO[focus.venueId];
-  (async()=>{const T=index.tileSize,keys=[];if(index.legacy)keys.push('legacy');else for(let ix=Math.floor((g.x-400)/T);ix<=Math.floor((g.x+400)/T);ix++)for(let iz=Math.floor((g.z-400)/T);iz<=Math.floor((g.z+400)/T);iz++)if(index.tiles[ix+'_'+iz])keys.push(ix+'_'+iz);
+  (async()=>{await whenSettled(rigRef);if(!live)return;const T=index.tileSize,keys=[];if(index.legacy)keys.push('legacy');else for(let ix=Math.floor((g.x-400)/T);ix<=Math.floor((g.x+400)/T);ix++)for(let iz=Math.floor((g.z-400)/T);iz<=Math.floor((g.z+400)/T);iz++)if(index.tiles[ix+'_'+iz])keys.push(ix+'_'+iz);
    const tiles=(await Promise.all(keys.map(k=>loadTile(index,k)))).filter(Boolean);const skip=await venueOwnership(index,focus.venueId);if(live)setNearby({tiles,x:g.x,z:g.z,skip})})();
   return()=>{live=false}},[index,focus.venueId]);
  return <>
