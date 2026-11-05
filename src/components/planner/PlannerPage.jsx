@@ -11,6 +11,7 @@ import {CountUp,Ring,Reveal} from '../ui/motion.jsx';
 export const PLANNER_SECTIONS=[{id:'tasks',label:'Checklist',icon:ClipboardList},{id:'guests',label:'Guests & RSVP',icon:Users},{id:'budget',label:'Budget',icon:Wallet},{id:'vendors',label:'Vendors',icon:Store},{id:'day',label:'Wedding day',icon:CalendarDays}];
 const money=n=>'S$'+Math.round(Number(n||0)).toLocaleString('en-SG');
 
+import DepositInvoices from './DepositInvoices.jsx';
 export default function PlannerPage(p){
  const {planner,patch,planTab,setPlanTab,completed,percent,exportGuests,addGuest,updateGuest,updateTask,toggleFavourite,moveFavourite,vendorTab,setVendorTab,go,openSeating,onAssign}=p;
  // the Seating tab moved into Guests (Assign → / Seating plan); keep old links working
@@ -36,6 +37,7 @@ export default function PlannerPage(p){
     <p>Your checklist, guests, budget and suppliers, together and always in sync with your 3D room.</p>
    </div>
   </div>
+  <DepositInvoices/>
   <div className="plan2-stats">{stats.map(([id,l,v,s],i)=><Reveal as="button" index={i} key={id} className={'plan2-stat'+(tab===id?' on':'')} onClick={()=>setPlanTab(id)}><span>{l}</span><strong>{v}</strong><small>{s}</small></Reveal>)}</div>
 
   <nav className="plan2-tabs" ref={tabsRef} aria-label="Planner sections"><span className="slide-ind" aria-hidden="true"/>

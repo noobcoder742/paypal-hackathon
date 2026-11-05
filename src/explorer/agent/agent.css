@@ -38,3 +38,4 @@
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media (max-width:850px){.agent-panel{top:auto;left:8px;right:8px;width:auto;height:72vh;bottom:8px}}
 .design-studio-wrap{display:contents}
+@media (min-width:1100px){body.agent-open .embedded-studio,body.agent-open .explorer{margin-right:424px;transition:margin-right .25s var(--ease)}}
