@@ -23,7 +23,7 @@ For the **PayPal AI Hackathon** it gained two AI agents that use PayPal:
 | --- | --- |
 | Sign in as a couple | Any email (demo sign-in; nothing leaves your browser) |
 | Pay deposits in PayPal | Use the PayPal **sandbox buyer** login given in the Devpost testing instructions |
-| Venue dashboard | Footer → **For venues (demo)**, with the demo password given in the Devpost testing instructions |
+| Venue dashboard | Landing page → **For venues** → Venue sign-in (or `/#venues`), with the demo password given in the Devpost testing instructions |
 
 A two-minute path:
 1. **Design** → **Plan with AI** → pick "30 tables, S$95,000 all-in, garden style, near Orchard".
