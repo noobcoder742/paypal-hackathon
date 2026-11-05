@@ -18,7 +18,10 @@ const {chromium}=require('playwright');
 const BASE=process.env.BASE_URL||'http://localhost:4173';
 const LIMITS={baseMs:2500,landingMs:1000};
 const browser=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
-const page=await browser.newPage({viewport:{width:1280,height:800}});
+// A small window: CI draws in software (no GPU), and drawing cost grows with
+// pixels. Loading work and every limit below are unchanged by the window size.
+const [VW,VH]=(process.env.PERF_VIEWPORT||'900x500').split('x').map(Number);
+const page=await browser.newPage({viewport:{width:VW,height:VH}});
 page.setDefaultTimeout(120000);
 const errors=[];page.on('pageerror',e=>errors.push(e.message));
 await page.route(u=>!u.href.startsWith(BASE),r=>r.abort());
@@ -34,7 +37,7 @@ await cdp.send('Emulation.setCPUThrottlingRate',{rate:4});
 await page.reload({waitUntil:'domcontentloaded'});
 await page.waitForSelector('.nav-pill button:has-text("Design")');
 
-const t0=Date.now();
+const t0=Date.now();await page.evaluate(()=>{window.__mapMarks={clicked:performance.now()}});
 await page.click('.nav-pill button:has-text("Design")');
 await page.waitForFunction(()=>window.__cityMetrics?.baseLoadedMs!=null,null,{timeout:60000});
 const baseMs=Date.now()-t0;
@@ -50,10 +53,10 @@ const landed=Date.now();
 const shown=await page.waitForFunction(()=>{const s=window.__cityStream,f=window.__cityMetrics.lastFly;return s&&f&&s.readyAround(f.tx,f.tz,500)},null,{timeout:15000}).then(()=>true).catch(()=>false);
 const landingMs=shown?Date.now()-landed:null;
 
-const m=await page.evaluate(()=>{const x=window.__cityMetrics;return {baseFetchedMs:x.baseFetchedMs,baseLoadedMs:x.baseLoadedMs,baseReadyMs:x.baseReadyMs,cellsLoaded:x.cellsLoaded,cellsShown:x.cellsShown,baseEvictions:x.baseEvictions,cellsEvicted:x.cellsEvicted,frames:x.frames}});
+const m=await page.evaluate(()=>{const x=window.__cityMetrics,k=window.__mapMarks||{},rel=v=>v==null?null:Math.round(v-k.clicked);return {sinceClick:{mapMounted:rel(k.mounted),canvasCreated:rel(k.canvas),streamStarted:rel(x.started),baseInScene:rel(x.started+x.baseLoadedMs),firstFrame:rel(x.started+x.baseReadyMs)},baseFetchedMs:x.baseFetchedMs,baseLoadedMs:x.baseLoadedMs,baseReadyMs:x.baseReadyMs,cellsLoaded:x.cellsLoaded,cellsShown:x.cellsShown,baseEvictions:x.baseEvictions,cellsEvicted:x.cellsEvicted,frames:x.frames}});
 await browser.close();
 const frames=[...m.frames].sort((a,b)=>a-b),p95=frames[Math.floor(frames.length*.95)]||0;
-const report={baseMs,firstFrameMs,landingMs,limits:LIMITS,breakdownSinceStreamStart:{fetched:m.baseFetchedMs,inScene:m.baseLoadedMs,firstFrame:m.baseReadyMs},cellsLoaded:m.cellsLoaded,cellsShown:m.cellsShown,baseEvictions:m.baseEvictions,cellsEvicted:m.cellsEvicted,frameP95ms:p95,frames:frames.length,errors};
+const report={baseMs,firstFrameMs,landingMs,limits:LIMITS,viewport:`${VW}x${VH}`,breakdownSinceClick:m.sinceClick,cellsLoaded:m.cellsLoaded,cellsShown:m.cellsShown,baseEvictions:m.baseEvictions,cellsEvicted:m.cellsEvicted,frameP95ms:p95,frames:frames.length,errors};
 const fails=[];
 if(baseMs>LIMITS.baseMs)fails.push(`whole island loaded after ${baseMs} ms (limit ${LIMITS.baseMs})`);
 if(landingMs==null||landingMs>LIMITS.landingMs)fails.push(`detail after landing ${landingMs??'never'} ms (limit ${LIMITS.landingMs})`);

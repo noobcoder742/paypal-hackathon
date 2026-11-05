@@ -336,6 +336,8 @@ export function CityLayers({index,rigRef,focus,details=true,onVenueBounds=()=>{}
 export {loadIndex,VENUE_GEO,Pins,SUN};
 
 export default function VenueExplorer({onOpenSpace,initialVenueId=null,draftCounts={}}){
+ // timing marks for the map speed test (scripts/perf/map-performance.mjs)
+ useEffect(()=>{window.__mapMarks={...(window.__mapMarks||{}),mounted:performance.now()}},[]);
  const [index,setIndex]=useState(null),[status,setStatus]=useState('loading');
  const [query,setQuery]=useState(''),[filter,setFilter]=useState('all'),[resultsOpen,setResultsOpen]=useState(false);
  const [focus,setFocus]=useState({venueId:null,spaceId:null});
@@ -373,7 +375,7 @@ export default function VenueExplorer({onOpenSpace,initialVenueId=null,draftCoun
  const results=VENUES.filter(v=>(filter==='all'||v.category===filter)&&v.name.toLowerCase().includes(query.toLowerCase()));
  const counts=Object.fromEntries(VENUE_CATEGORIES.map(c=>[c.id,c.id==='all'?VENUES.length:VENUES.filter(v=>v.category===c.id).length]));
  return <div className="explorer">
-  <Canvas key={mapQuality} className="explorer-canvas" camera={{fov:38,near:1,far:20000,position:[0,2000,2000]}} dpr={mapQuality==='saver'?1:[1,1.75]} shadows={shadows} gl={{antialias:true,powerPreference:'high-performance'}} onCreated={({scene,gl})=>{scene.fog=new THREE.Fog(BG,2000,8000);gl.setClearColor(BG)}}>
+  <Canvas key={mapQuality} className="explorer-canvas" camera={{fov:38,near:1,far:20000,position:[0,2000,2000]}} dpr={mapQuality==='saver'?1:[1,1.75]} shadows={shadows} gl={{antialias:true,powerPreference:'high-performance'}} onCreated={({scene,gl})=>{window.__mapMarks={...(window.__mapMarks||{}),canvas:performance.now()};scene.fog=new THREE.Fog(BG,2000,8000);gl.setClearColor(BG)}}>
    <EveningLight sun={SUN} rigRef={rigRef}/>
    <MapCamera rigRef={rigRef}/>
    <CityLayers index={index} rigRef={rigRef} focus={focus} details={details} onVenueBounds={onVenueBounds}/>
