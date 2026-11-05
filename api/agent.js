@@ -1,3 +1,4 @@
+import {agentErrorMessage} from '../server/agentError.js';
 // POST /api/agent — the couple's planning agent (streams steps to the "Plan with AI" panel).
 import {streamText} from 'ai';
 import {fallbackModel,defaultModels} from '../server/models.js';
@@ -20,7 +21,7 @@ export async function POST(request){
  let toolNames=[];
  const result=streamText({model,system:COUPLE_PROMPT,messages,tools:coupleTools({store,planId}),maxSteps:8,maxTokens:1200,temperature:0,
   onStepFinish:s=>{for(const c of s.toolCalls||[])toolNames.push(c.toolName)}});
- const res=result.toDataStreamResponse({getErrorMessage:()=>'The assistant is unavailable right now.'});
+ const res=result.toDataStreamResponse({getErrorMessage:agentErrorMessage});
  const [toClient,toCache]=res.body.tee();
  (async()=>{const chunks=[];const reader=toCache.getReader();const dec=new TextDecoder();for(;;){const {done,value}=await reader.read();if(done)break;chunks.push(dec.decode(value,{stream:true}))}
   const text=chunks.join('');if(/(^|\n)3:/.test(text))return;            // an error part: don't cache

@@ -50,7 +50,8 @@ export function coupleTools({store,planId}){
     await store.set('plan:'+planId,plan);
     return {venueId,venueName:findVenue(venueId).name,studioPatch:plan.studioPatch,totals,banquetTotal:check.banquetTotal,grandTotal:check.grandTotal,remaining:check.remaining}}}),
   create_deposit_order:tool({description:'Create the PayPal sandbox order for 20% deposits on every vendor item in the saved plan. The couple approves it in PayPal; nothing is charged before that.',
-   parameters:z.object({}),
+   // One optional field: Gemini (the fallback model) rejects a tool with no parameters. The plan always comes from the session.
+   parameters:z.object({note:z.string().max(200).optional().describe('Optional note for the couple; leave empty.')}),
    execute:async()=>{const plan=await store.get('plan:'+planId);if(!plan)return {error:'no_plan',message:'Place the plan in the ballroom first.'};
     let totals;try{totals=vendorPlanTotals(plan.lines)}catch(e){return {error:'invalid_plan',message:e.message}}
     const order=await createDepositOrder({planId,totals});
