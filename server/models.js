@@ -11,10 +11,15 @@ export async function defaultModels(){
  if(process.env.GOOGLE_GENERATIVE_AI_API_KEY){const {google}=await import('@ai-sdk/google');out.push(google(process.env.GEMINI_MODEL||'gemini-flash-latest'))}
  return out;
 }
+// A model that has not started answering by then is abandoned (the next model tries,
+// or the chat gets an error) instead of running into Vercel's 60 s function limit.
+let firstChunkMs=25000;
+export function setFirstChunkTimeout(ms){firstChunkMs=ms}
 /** Start a stream; if it fails before its first chunk, report failure so the next model can try. */
 async function startStream(model,options){
  const res=await model.doStream(options);const reader=res.stream.getReader();
- const first=await reader.read();
+ let timer;const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(new Error(`${model.modelId} sent nothing for ${firstChunkMs} ms`),{name:'FirstChunkTimeout'})),firstChunkMs)});
+ let first;try{first=await Promise.race([reader.read(),timeout])}catch(e){reader.cancel(e).catch(()=>{});throw e}finally{clearTimeout(timer)}
  if(first.done)throw new Error('empty response from '+model.modelId);
  if(first.value?.type==='error')throw (first.value.error instanceof Error?first.value.error:new Error(String(first.value.error)));
  const stream=new ReadableStream({start(c){c.enqueue(first.value)},async pull(c){const {done,value}=await reader.read();if(done)c.close();else c.enqueue(value)},cancel(r){reader.cancel(r)}});
