@@ -19,10 +19,10 @@ test('deposit order: server-computed SGD amounts, one line per vendor item',asyn
  resetMemoryStore();const calls=fakePayPal();const store=getStore();const t=coupleTools({store,planId:'plan-a1b2c3d4'});
  await run(t,'place_in_ballroom',{venueId:VENUE,tables:30,lines:[{id:'floral-arch',qty:1},{id:'music-strings',qty:1}]});
  const r=await run(t,'create_deposit_order',{});
- assert.equal(r.depositTotal,366);assert.equal(calls.length,1);
- const pu=calls[0].body.purchase_units[0];assert.equal(pu.amount.currency_code,'SGD');assert.equal(pu.amount.value,'366.00');
- assert.deepEqual(pu.items.map(i=>i.unit_amount.value),['196.00','170.00']);
- const stored=await store.get('order:'+r.orderId);assert.equal(stored.depositTotal,366);assert.equal(stored.planId,'plan-a1b2c3d4');
+ assert.equal(r.depositTotal,404);assert.equal(calls.length,1);
+ const pu=calls[0].body.purchase_units[0];assert.equal(pu.amount.currency_code,'SGD');assert.equal(pu.amount.value,'404.00');
+ assert.deepEqual(pu.items.map(i=>i.unit_amount.value),['196.00','208.00']);
+ const stored=await store.get('order:'+r.orderId);assert.equal(stored.depositTotal,404);assert.equal(stored.planId,'plan-a1b2c3d4');
 });
 test('unknown item: rejected, and no order is created',async()=>{
  resetMemoryStore();const calls=fakePayPal();const t=coupleTools({store:getStore(),planId:'plan-a1b2c3d4'});
