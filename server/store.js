@@ -1,4 +1,5 @@
-// Small key-value store: Upstash Redis on Vercel, an in-memory Map for tests and local work.
+// Small key-value store: Upstash Redis or Supabase on Vercel, an in-memory Map for tests and local work.
+import {supabaseStore} from './supabaseStore.js';
 // Records expire after 30 days (demo data only).
 export const TTL_SECONDS=30*24*3600;
 let memory=new Map();
@@ -11,7 +12,12 @@ export function redisConfig(){
 }
 async function getRedis(){if(redis)return redis;const {Redis}=await import('@upstash/redis');redis=new Redis(redisConfig());return redis}
 const useRedis=()=>!!redisConfig();
+const supabaseConfig=()=>{const url=process.env.SUPABASE_URL||process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;return url&&key?{url,key}:null};
+/** 'redis' (Upstash), 'supabase', or 'memory' (tests and local work: not shared between functions). */
+export const storageKind=()=>redisConfig()?'redis':supabaseConfig()?'supabase':'memory';
+let supa=null;
 export function getStore(){
+ if(!useRedis()&&supabaseConfig()){const c=supabaseConfig();if(!supa||supa.url!==c.url)supa={url:c.url,store:supabaseStore({...c,ttlDefault:TTL_SECONDS})};return supa.store}
  if(!useRedis())return {
   async get(k){const e=memory.get(k);if(!e)return null;if(e.exp<Date.now()){memory.delete(k);return null}return structuredClone(e.v)},
   async set(k,v,{ttlSeconds=TTL_SECONDS}={}){memory.set(k,{v:structuredClone(v),exp:Date.now()+ttlSeconds*1000})},
