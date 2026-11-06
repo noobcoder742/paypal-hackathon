@@ -26,3 +26,13 @@ test('Gemini fallback uses the auto-updating Flash alias, overridable with GEMIN
   process.env.GEMINI_MODEL='gemini-3.6-flash';assert.deepEqual((await defaultModels()).map(m=>m.modelId),['gemini-3.6-flash']);
  }finally{process.env=saved}
 });
+test('a model that never starts answering is abandoned after the first-chunk timeout',async()=>{
+ const {setFirstChunkTimeout}=await import('../server/models.js');setFirstChunkTimeout(50);
+ const hung=new MockLanguageModelV1({modelId:'hung',doStream:async()=>({rawCall:{rawPrompt:null,rawSettings:{}},stream:new ReadableStream({pull(){return new Promise(()=>{})}})})});
+ try{
+  const m=fallbackModel([hung,textModel('gemini','backup answer')]);
+  let out='';for await(const t of streamText({model:m,prompt:'hi'}).textStream)out+=t;
+  assert.equal(out,'backup answer');
+  await assert.rejects(fallbackModel([hung]).doStream({prompt:[]}),e=>e.name==='FirstChunkTimeout');
+ }finally{setFirstChunkTimeout(25000)}
+});
