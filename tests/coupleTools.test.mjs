@@ -35,3 +35,8 @@ test('placing items returns a studio patch derived from the items',async()=>{
  const r=await run(t,'place_in_ballroom',{venueId:VENUE,tables:30,lines:[{id:'floral-arch',qty:1},{id:'floral-greenery',qty:30},{id:'light-canopy',qty:1}]});
  assert.deepEqual(r.studioPatch,{tables:30,flowers:'green',lighting:'warm',show:{arch:true,decor:true}});
 });
+import {studioPatchFor} from '../server/agent/coupleTools.js';
+test('a plan with music asks the studio to place that band',()=>{
+ const p=studioPatchFor(30,[{id:'music-strings',qty:1},{id:'decor-red-carpet',qty:1}]);
+ assert.deepEqual(p.place,['carpet',{type:'ensemble',genre:'classical'}]);
+});
