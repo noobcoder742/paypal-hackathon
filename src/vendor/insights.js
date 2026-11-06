@@ -4,6 +4,7 @@ import {createAiHarness,directLlmRunner} from 'ag-studio';
 import StillToPay from '../hotel/widgets/StillToPay.jsx';
 import DateCalendar from '../hotel/widgets/DateCalendar.jsx';
 import TodoList from './TodoList.jsx';
+import {KpiWeddings,KpiIn,KpiDue,KpiInvoice,KpiOverdue} from './ToneKpi.jsx';
 import {studioAdapter,tool} from '../hotel/studioAgent.js';
 import {sgd} from './status.js';
 
@@ -23,7 +24,12 @@ export function buildVendorStudioData(rows,vendor){
  };
 }
 const formFor=items=>p=>p.createDefaults({dataMappingItems:items});
+const tone=(id,label,comp)=>({id,label,comp,defaultSize:{xSpan:4,ySpan:7},minSize:{xSpan:3,ySpan:5},
+ dataMapping:{value:{type:'field',supportedRoles:['numeric','category']}},form:formFor([{key:'value',label:'Value'}]),
+ ai:{label,description:'A coloured number tile.'}});
 export const VENDOR_WIDGETS=[
+ tone('kpi-weddings-tile','Weddings tile',KpiWeddings),tone('kpi-in-tile','Money in tile',KpiIn),tone('kpi-due-tile','Due tile',KpiDue),
+ tone('kpi-invoice-tile','To invoice tile',KpiInvoice),tone('kpi-overdue-tile','Overdue tile',KpiOverdue),
  {id:'still-to-pay',label:'Still to pay',comp:StillToPay,defaultSize:{xSpan:8,ySpan:20},minSize:{xSpan:5,ySpan:10},
   dataMapping:{couple:{type:'field',supportedRoles:['category']},due:{type:'field',supportedRoles:['numeric']}},form:formFor([{key:'couple',label:'Couple'},{key:'due',label:'Balance due'}]),
   ai:{label:'Still to pay scoreboard',description:'Couples whose balance is unpaid, largest first.'}},
@@ -44,11 +50,11 @@ const kpi=(text,value)=>({type:'value',dataMapping:{value:[value]},format:title(
 export const VENDOR_REPORT={selectedPageId:'month',pages:[{id:'month',name:'This month',
  widgets:{
   month:{type:'list-filter',dataMapping:{value:[{id:'bookings.weddingMonth'}]},format:title('Wedding month')},
-  'kpi-weddings':kpi('Weddings',{id:'bookings.id',aggregation:'countd'}),
-  'kpi-in':kpi('Money in, S$',sum('bookings.moneyIn')),
-  'kpi-due':kpi('Due, S$',sum('bookings.balanceDue')),
-  'kpi-invoice':kpi('To invoice, S$',sum('bookings.toInvoice')),
-  'kpi-overdue':kpi('Overdue, S$',sum('bookings.overdueDue')),
+  'kpi-weddings':{type:'kpi-weddings-tile',dataMapping:{value:[{id:'bookings.id',aggregation:'countd'}]},format:title('Weddings')},
+  'kpi-in':{type:'kpi-in-tile',dataMapping:{value:[sum('bookings.moneyIn')]},format:title('Money in')},
+  'kpi-due':{type:'kpi-due-tile',dataMapping:{value:[sum('bookings.balanceDue')]},format:title('Due')},
+  'kpi-invoice':{type:'kpi-invoice-tile',dataMapping:{value:[sum('bookings.toInvoice')]},format:title('To invoice')},
+  'kpi-overdue':{type:'kpi-overdue-tile',dataMapping:{value:[sum('bookings.overdueDue')]},format:title('Overdue')},
   todo:{type:'todo-list',dataMapping:{id:[{id:'bookings.id'}],couple:[{id:'bookings.couple'}],status:[{id:'bookings.status'}],due:[sum('bookings.balanceDue')],date:[{id:'bookings.weddingDate'}]},format:title('To do')},
   'still-to-pay':{type:'still-to-pay',dataMapping:{couple:[{id:'bookings.couple'}],due:[sum('bookings.balanceDue')]},format:title('Who hasn’t paid')},
   status:{type:'list-filter',dataMapping:{value:[{id:'bookings.statusLabel'}]},format:title('Status')},
