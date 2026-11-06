@@ -13,17 +13,31 @@ export async function defaultModels(){
 }
 // A model that has not started answering by then is abandoned (the next model tries,
 // or the chat gets an error) instead of running into Vercel's 60 s function limit.
-let firstChunkMs=25000;
+let firstChunkMs=20000;
 export function setFirstChunkTimeout(ms){firstChunkMs=ms}
 /** Start a stream; if it fails before its first chunk, report failure so the next model can try. */
 async function startStream(model,options){
- const res=await model.doStream(options);const reader=res.stream.getReader();
- let timer;const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(new Error(`${model.modelId} sent nothing for ${firstChunkMs} ms`),{name:'FirstChunkTimeout'})),firstChunkMs)});
- let first;try{first=await Promise.race([reader.read(),timeout])}catch(e){reader.cancel(e).catch(()=>{});throw e}finally{clearTimeout(timer)}
- if(first.done)throw new Error('empty response from '+model.modelId);
- if(first.value?.type==='error')throw (first.value.error instanceof Error?first.value.error:new Error(String(first.value.error)));
- const stream=new ReadableStream({start(c){c.enqueue(first.value)},async pull(c){const {done,value}=await reader.read();if(done)c.close();else c.enqueue(value)},cancel(r){reader.cancel(r)}});
- return {...res,stream};
+ const ac=new AbortController();const outer=options.abortSignal;
+ if(outer){if(outer.aborted)ac.abort(outer.reason);else outer.addEventListener('abort',()=>ac.abort(outer.reason),{once:true})}
+ let timer;const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{const e=Object.assign(new Error(`${model.modelId} sent nothing for ${firstChunkMs} ms`),{name:'FirstChunkTimeout'});ac.abort(e);reject(e)},firstChunkMs)});
+ let reader,first;
+ try{
+  const res=await Promise.race([model.doStream({...options,abortSignal:ac.signal}),timeout]);
+  reader=res.stream.getReader();
+  first=await Promise.race([reader.read(),timeout]);
+  if(first.done)throw new Error('empty response from '+model.modelId);
+  if(first.value?.type==='error')throw (first.value.error instanceof Error?first.value.error:new Error(String(first.value.error)));
+  const stream=new ReadableStream({start(c){c.enqueue(first.value)},async pull(c){const {done,value}=await reader.read();if(done)c.close();else c.enqueue(value)},cancel(r){reader.cancel(r)}});
+  return {...res,stream};
+ }catch(e){reader?.cancel(e).catch(()=>{});throw e}
+ finally{clearTimeout(timer)}
+}
+/** doGenerate with the same time limit (the whole answer, since it is not streamed). */
+async function generateWithin(model,options,ms){
+ const ac=new AbortController();const outer=options.abortSignal;
+ if(outer){if(outer.aborted)ac.abort(outer.reason);else outer.addEventListener('abort',()=>ac.abort(outer.reason),{once:true})}
+ let timer;const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{const e=Object.assign(new Error(`${model.modelId} did not answer within ${ms} ms`),{name:'FirstChunkTimeout'});ac.abort(e);reject(e)},ms)});
+ try{return await Promise.race([model.doGenerate({...options,abortSignal:ac.signal}),timeout])}finally{clearTimeout(timer)}
 }
 export function fallbackModel(models){
  if(!models.length)throw new Error('no AI model is configured (set ANTHROPIC_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY)');
@@ -32,7 +46,7 @@ export function fallbackModel(models){
  return {
   specificationVersion:'v1',provider:'fallback',modelId:models.map(m=>m.modelId).join('>'),
   defaultObjectGenerationMode:models[0].defaultObjectGenerationMode||'tool',supportsImageUrls:false,
-  doGenerate:options=>tryEach(m=>m.doGenerate(options)),
+  doGenerate:options=>tryEach(m=>generateWithin(m,options,firstChunkMs*1.5)),
   doStream:options=>tryEach(m=>startStream(m,options)),
   lastModelUsed:()=>used
  };

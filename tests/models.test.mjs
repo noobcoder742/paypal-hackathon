@@ -34,5 +34,11 @@ test('a model that never starts answering is abandoned after the first-chunk tim
   let out='';for await(const t of streamText({model:m,prompt:'hi'}).textStream)out+=t;
   assert.equal(out,'backup answer');
   await assert.rejects(fallbackModel([hung]).doStream({prompt:[]}),e=>e.name==='FirstChunkTimeout');
- }finally{setFirstChunkTimeout(25000)}
+  let aborted=false;
+  const noHeaders=new MockLanguageModelV1({modelId:'no-headers',doStream:({abortSignal})=>new Promise(()=>{abortSignal?.addEventListener('abort',()=>{aborted=true})})});
+  await assert.rejects(fallbackModel([noHeaders]).doStream({prompt:[]}),e=>e.name==='FirstChunkTimeout');
+  assert.equal(aborted,true,'the hung request is cancelled');
+  const slowGen=new MockLanguageModelV1({modelId:'slow-gen',doGenerate:()=>new Promise(()=>{})});
+  await assert.rejects(fallbackModel([slowGen]).doGenerate({prompt:[]}),e=>e.name==='FirstChunkTimeout');
+ }finally{setFirstChunkTimeout(20000)}
 });
