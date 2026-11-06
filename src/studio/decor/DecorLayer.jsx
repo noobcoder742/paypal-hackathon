@@ -85,7 +85,7 @@ function CarpetTiles({carpet}){
  const mat=useMemo(()=>new THREE.MeshStandardMaterial({color:CARPET_COLOURS[carpet?.color]||CARPET_COLOURS.red,map:fabricTexture,roughness:1,metalness:0,envMapIntensity:0}),[carpet?.color]);
  const geo=useMemo(()=>new THREE.BoxGeometry(TILE,.01,TILE),[]);
  const m=useMemo(()=>new THREE.Matrix4(),[]);
- React.useLayoutEffect(()=>{const mesh=ref.current;if(!mesh)return;tiles.forEach(([i,j],k)=>{m.makeTranslation((i+.5)*TILE,.022,(j+.5)*TILE)   // just above the ballroom carpet (y .015);mesh.setMatrixAt(k,m)});mesh.count=tiles.length;mesh.instanceMatrix.needsUpdate=true},[tiles,m]);
+ React.useLayoutEffect(()=>{const mesh=ref.current;if(!mesh)return;tiles.forEach(([i,j],k)=>{m.makeTranslation((i+.5)*TILE,.022,(j+.5)*TILE)/* just above the ballroom carpet (y .015) */;mesh.setMatrixAt(k,m)});mesh.count=tiles.length;mesh.instanceMatrix.needsUpdate=true},[tiles,m]);
  return <instancedMesh key={Math.ceil((tiles.length+1)/200)} ref={ref} args={[geo,mat,Math.max(200,Math.ceil((tiles.length+1)/200)*200)]} frustumCulled={false} receiveShadow/>;
 }
 /** With the carpet tool, dragging across the floor lays tiles; starting on a tile removes them instead.
