@@ -28,7 +28,7 @@ function Listing({item,onOpen,isFavourite=false,onToggleFavourite,onAdd,added=fa
   <button type="button" className="listing-text" onClick={()=>onOpen(item)}><div className="editorial-meta mk-row"><span>{item.vendor}</span><span className="mk-num">{price(item)}</span></div><div className="editorial-name mk-name">{item.name}</div></button>
  </div>;
 }
-function ImageGallery({item}){const [selected,setSelected]=useState(0);const images=[item.photo,item.photo.replace('w=1000','w=1200')+'&crop=center',item.photo.replace('w=1000','w=1400')+'&crop=entropy'];return <div className="luxury-gallery"><div className="luxury-main-image"><img src={images[selected]} alt={item.name+' product illustration'}/><div className="luxury-image-note">Illustrative photography · Verified 3D model not yet available</div></div><div className="luxury-thumbs">{images.map((src,i)=><button className={selected===i?'active':''} key={i} onClick={()=>setSelected(i)} aria-label={'View image '+(i+1)}><img src={src} alt="Alternate crop of illustrative photo"/></button>)}</div></div>}
+function ImageGallery({item}){const [selected,setSelected]=useState(0);const images=[item.photo,item.photo.replace('w=1000','w=1200')+'&crop=center',item.photo.replace('w=1000','w=1400')+'&crop=entropy'];return <div className="luxury-gallery"><div className="luxury-main-image"><img src={images[selected]} alt={item.name+' product illustration'}/><div className="luxury-image-note">{item.inventoryType?"Illustrative photography · Placeable in your 3D studio":"Illustrative photography · 3D model not yet available"}</div></div><div className="luxury-thumbs">{images.map((src,i)=><button className={selected===i?'active':''} key={i} onClick={()=>setSelected(i)} aria-label={'View image '+(i+1)}><img src={src} alt="Alternate crop of illustrative photo"/></button>)}</div></div>}
 function ProductDetail({item,onBack,onAdd,added,onOpen,onStartDesign,isFavourite,onToggleFavourite,savedLineup}){
  const [lineup,setLineup]=useState(()=>item.genre?cleanLineup(item.genre,savedLineup||GENRES[item.genre].default):null);
  const changed=!!(item.genre&&savedLineup&&JSON.stringify(cleanLineup(item.genre,savedLineup))!==JSON.stringify(lineup));
@@ -47,7 +47,7 @@ function ProductDetail({item,onBack,onAdd,added,onOpen,onStartDesign,isFavourite
 const SHORT={'Floral Arrangements':'Floral','Ceremony & Decor':'Decor','Music & Entertainment':'Music','Lighting & Production':'Lighting','Hotel Catering':'Catering','Chauffeur & Transport':'Transport'};
 // Venues are chosen on the 3D map (Design page), so the marketplace lists
 // products and services only.
-export default function Marketplace({initialCategory=null,onBack,onAdd,added=[],savedItems=[],favourites=[],onToggleFavourite=()=>{},onStartDesign=()=>{},onPlan=()=>{}}){
+export default function Marketplace({initialCategory=null,onBack,onAdd,added=[],savedItems=[],backLabel=null,favourites=[],onToggleFavourite=()=>{},onStartDesign=()=>{},onPlan=()=>{}}){
  const tabsRef=useRef(null);
  const [category,setCategory]=useState(categories.includes(initialCategory)?initialCategory:'All'),[detail,setDetail]=useState(null),[query,setQuery]=useState('');
  const back=()=>{setDetail(null);window.scrollTo?.(0,0)};
@@ -58,7 +58,7 @@ export default function Marketplace({initialCategory=null,onBack,onAdd,added=[],
  if(detail)return <div className="marketplace-screen luxury-market"><ProductDetail key={detail.id} item={detail} savedLineup={savedItems.find(x=>x.id===detail.id)?.lineup} onBack={back} onAdd={onAdd} added={added.includes(detail.id)} onOpen={open} onStartDesign={onStartDesign} isFavourite={favourites.includes(detail.id)} onToggleFavourite={onToggleFavourite}/></div>;
  return <div className="marketplace-screen mk">
   <div className="mk-head">
-   <div><span className="mk-label">The wedding edit · {demoListings.length} listings</span><h1>Find what <em>belongs</em> in your room.</h1></div>
+   <div>{backLabel&&<button type="button" className="mk-back" onClick={onBack}><ArrowLeft size={15}/> {backLabel}</button>}<span className="mk-label">The wedding edit · {demoListings.length} listings</span><h1>Find what <em>belongs</em> in your room.</h1></div>
    <div className="mk-tools">
     <label className="mk-search"><Search size={16}/><input placeholder="Search florals, lighting, music" value={query} onChange={e=>setQuery(e.target.value)} aria-label="Search the marketplace"/></label>
     <button type="button" className="mk-saved" onClick={onPlan} title="Open your saved items in the planner"><ShoppingBag size={15}/> {added.length} saved</button>
