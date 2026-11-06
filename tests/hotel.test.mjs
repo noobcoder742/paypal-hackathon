@@ -27,3 +27,11 @@ test('hotel endpoints need the demo login',async()=>{
 });
 test('reminders are at most 400 characters',()=>{assert.equal(draftNudgeCheck('x'.repeat(401)).ok,false);assert.equal(draftNudgeCheck('Just a heads-up!').ok,true)});
 test('the hotel never gets an order tool',()=>{fakeToolkit();const t=hotelPayPalTools();assert.ok(!('create_order' in t));assert.ok('create_invoice' in t)});
+test('demo login ignores stray spaces (autofill, copy-paste) but still rejects wrong passwords',async()=>{
+ resetMemoryStore();const saved=process.env.HOTEL_DEMO_PASSWORD;process.env.HOTEL_DEMO_PASSWORD='hackathondemo2026 ';
+ try{
+  assert.ok(await login({store:getStore(),password:' hackathondemo2026'}));
+  assert.equal(await login({store:getStore(),password:'hackathondemo2025'}),null);
+  assert.equal(await login({store:getStore(),password:'   '}),null);
+ }finally{process.env.HOTEL_DEMO_PASSWORD=saved}
+});

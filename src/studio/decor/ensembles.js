@@ -52,11 +52,12 @@ export function ensembleLayout(genre,lineup){
   const n=front.length,r=Math.max(2.4,(n-1)*1.05/(Math.PI*.8)),step=1.05/r;
   front.forEach((ins,i)=>{const a=(i-(n-1)/2)*step;out.push({instrument:ins,x:Math.sin(a)*r,z:(1-Math.cos(a))*r,rotation:-a})});
   const back=-1.6;
-  if(l.piano)out.push({instrument:'piano',x:-1.9,z:back-.5,rotation:.35});
+  // grand piano side-on to the guests: the pianist's right side and the open lid face the room
+  if(l.piano)out.push({instrument:'piano',x:-2.6,z:back-.7,rotation:Math.PI/2});
   if(l.harp)out.push({instrument:'harp',x:1.9,z:back,rotation:-.35});
  }else{
   if(l.drums)out.push({instrument:'drums',x:0,z:-1.5,rotation:0});
-  if(l.piano)out.push({instrument:'piano',x:-2.3,z:-1.2,rotation:.45});
+  if(l.piano)out.push({instrument:'piano',x:-3.6,z:-1.2,rotation:Math.PI/2});
   const mid=[...Array(l.keyboard||0).fill('keyboard'),...Array(l.doubleBass||0).fill('doubleBass'),...Array(l.bassGuitar||0).fill('bassGuitar')];
   const sideX=[1.9,-1.9,2.8,-2.8];mid.forEach((ins,i)=>out.push({instrument:ins,x:sideX[i%4]*(l.piano&&sideX[i%4]<0?1.25:1),z:-.7,rotation:sideX[i%4]>0?-.25:.25}));
   const line=[...Array(l.electricGuitar||0).fill('electricGuitar'),...Array(l.saxophone||0).fill('saxophone'),...Array(l.trumpet||0).fill('trumpet')];

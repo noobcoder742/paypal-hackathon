@@ -20,7 +20,7 @@ async function readStreamText(res,onText){const reader=res.body.getReader(),dec=
 function Login({onDone}){
  const [pw,setPw]=useState(''),[err,setErr]=useState('');
  return <form className="hotel-login" onSubmit={async e=>{e.preventDefault();setErr('');const r=await fetch('/api/hotel/enquiries',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:pw})});const j=await r.json().catch(()=>({}));
-  if(j.token){try{sessionStorage.setItem(TOKEN_KEY,j.token)}catch{}onDone()}else setErr('That password is not right. The demo password is in the README.')}}>
+  if(j.token){try{sessionStorage.setItem(TOKEN_KEY,j.token)}catch{}onDone()}else setErr('That password is not right. Judges: the demo password is in the Devpost testing instructions.')}}>
   <span className="hotel-kicker">Venue account</span><h1>Banquet Sales</h1><p>The hotel's view of Wedding Studio: enquiries from couples, quotes, and PayPal deposits. Fictional demo hotel.</p>
   <label htmlFor="hotel-pw">Demo password</label><input id="hotel-pw" type="password" value={pw} onChange={e=>setPw(e.target.value)} autoComplete="current-password"/>
   {err&&<p className="hotel-err" role="alert">{err}</p>}<button type="submit">Sign in</button><a className="hotel-alt" href="/">Planning a wedding? Go to the couple site</a>
