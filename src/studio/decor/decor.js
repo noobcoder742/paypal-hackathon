@@ -1,4 +1,5 @@
-// Movable decor in the ballroom (arch, hedges, flower stands, lanterns, flower wall)
+import {GENRES,cleanLineup} from './ensembles.js';
+// Movable decor in the ballroom (arch, hedges, flower stands, lanterns, flower wall, live music)
 // and the carpet the couple lays tile by tile. Pure functions on the studio's saved
 // layout, so undo/redo and saving keep working unchanged.
 
@@ -12,13 +13,14 @@ export const DECOR_TYPES={
  flowerStand:{label:'Aisle flower stand',footprint:[.5,.5]},
  lantern:{label:'Floor lantern',footprint:[.35,.35]},
  flowerWall:{label:'Flower wall',footprint:[2.6,.4]},
+ ensemble:{label:'Live music',footprint:[4,3]},   // real footprint from ensembleFootprint()
 };
 export const CARPET_COLOURS={red:'#8f1f2a',white:'#f2efe8',ivory:'#e6dccb',blush:'#dcb7b3'};
 
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const nextId=list=>1+Math.max(0,...list.map(x=>x.id||0));
 const clampItem=it=>({...it,x:clamp(it.x,ROOM_BOUNDS.minX,ROOM_BOUNDS.maxX),z:clamp(it.z,ROOM_BOUNDS.minZ,ROOM_BOUNDS.maxZ)});
-const DEFAULT_SPOT={arch:{x:-10,z:0,rotation:Math.PI/2},flowerWall:{x:13.6,z:0,rotation:-Math.PI/2}};
+const DEFAULT_SPOT={arch:{x:-10,z:0,rotation:Math.PI/2},flowerWall:{x:13.6,z:0,rotation:-Math.PI/2},ensemble:{x:-11,z:-7.5,rotation:Math.PI*.7}};
 
 export function addDecor(data,type,at={}){
  if(!DECOR_TYPES[type])throw new Error('unknown decor type '+type);
@@ -72,11 +74,19 @@ export function hedgeRowForStage(stage){
 }
 
 // What a marketplace listing (or the AI planner's plan) puts in the room.
-export const LISTING_DECOR=new Set(['arch','hedge','flowerStand','lantern','flowerWall','carpet']);
+export const LISTING_DECOR=new Set(['arch','hedge','flowerStand','lantern','flowerWall','carpet','ensemble']);
 const AISLE_X={from:-9,to:15};   // from the stage front to the far (entrance) wall
-export function placeForListing(data,type){
+export function placeForListing(data,type,listing={}){
  if(!LISTING_DECOR.has(type))throw new Error('no decor for '+type);
  let d=migrateDecor(data);const has=t=>(d.decor||[]).some(x=>x.type===t);
+ if(type==='ensemble'){
+  // one group per genre: a new line-up updates the existing band in place
+  const genre=GENRES[listing.genre]?listing.genre:'classical',lineup=cleanLineup(genre,listing.lineup);
+  const band=(d.decor||[]).find(x=>x.type==='ensemble'&&x.genre===genre);
+  if(band)return updateDecor(d,band.id,{lineup});
+  const n=(d.decor||[]).filter(x=>x.type==='ensemble').length;
+  return addDecor(d,'ensemble',{genre,lineup,listingId:listing.id,...(n?{x:-11,z:7.5,rotation:Math.PI*.3}:{})});
+ }
  if(type==='arch'||type==='flowerWall')return has(type)?d:addDecor(d,type);
  if(type==='hedge')return has('hedge')?d:hedgeRowForStage(d.stage||{x:-13.9,z:0,width:10.2,depth:3.4,rotation:Math.PI/2}).reduce((acc,at)=>addDecor(acc,'hedge',at),d);
  if(type==='flowerStand'){if(has(type))return d;for(let x=-7;x<=13;x+=4)for(const z of [-1.6,1.6])d=addDecor(d,'flowerStand',{x,z});return d}
@@ -88,8 +98,10 @@ export function placeForListing(data,type){
 /** Place saved marketplace items (planner.savedItems) the first time the studio sees them. */
 export function placeSavedListings(data,savedItems=[]){
  const done=new Set(data.placedListings||[]);
- const todo=savedItems.filter(i=>i&&LISTING_DECOR.has(i.inventoryType)&&!done.has(i.id));
+ // a band's key includes its line-up, so choosing different instruments updates the room
+ const key=i=>i.inventoryType==='ensemble'?i.id+':'+JSON.stringify(cleanLineup(GENRES[i.genre]?i.genre:'classical',i.lineup)):i.id;
+ const todo=savedItems.filter(i=>i&&LISTING_DECOR.has(i.inventoryType)&&!done.has(key(i)));
  if(!todo.length)return data;
- let d=data;for(const i of todo)d=placeForListing(d,i.inventoryType);
- return {...d,placedListings:[...done,...todo.map(i=>i.id)]};
+ let d=data;for(const i of todo)d=placeForListing(d,i.inventoryType,i);
+ return {...d,placedListings:[...done,...todo.map(key)]};
 }
