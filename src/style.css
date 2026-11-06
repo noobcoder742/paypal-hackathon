@@ -1016,7 +1016,7 @@ h1,h2,h3{text-wrap:balance}
 
 /* ===== Planner ===== */
 .plan2-hero{position:relative;border-radius:22px;overflow:hidden;min-height:340px;display:flex;align-items:flex-end;color:#fff;margin-bottom:-46px}
-.plan2-hero-img{position:absolute;inset:0;background:url(/venues/orchard-grand/grand-ballroom.jpg) center 40%/cover;animation:wedZoom 16s var(--ease) both}
+.plan2-hero-img{position:absolute;inset:0;background:url(/venues/ballroom-render.jpg) center 40%/cover;animation:wedZoom 16s var(--ease) both}
 .plan2-hero-img::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,16,12,.05) 20%,rgba(20,16,12,.72))}
 .plan2-hero-copy{position:relative;padding:36px 36px 80px;max-width:720px}
 .plan2-hero .acct-kicker{color:rgba(255,255,255,.75)}
@@ -1070,7 +1070,7 @@ h1,h2,h3{text-wrap:balance}
 .plan2-seat{display:grid;grid-template-columns:1.2fr 1fr;gap:36px;align-items:center}
 .plan2-seat h2{font-family:var(--f-display);font-weight:400;font-size:40px;margin:0 0 10px}
 .plan2-seat p{color:var(--ink-mute);line-height:1.6}
-.plan2-seat-img{position:relative;aspect-ratio:16/11;border-radius:18px;background:url(/venues/orchard-grand/grand-ballroom.jpg) center/cover;overflow:hidden}
+.plan2-seat-img{position:relative;aspect-ratio:16/11;border-radius:18px;background:url(/venues/ballroom-render.jpg) center/cover;overflow:hidden}
 .plan2-seat-img span{position:absolute;left:14px;bottom:14px;display:flex;gap:6px;align-items:center;background:rgba(255,255,255,.75);backdrop-filter:blur(10px);border-radius:999px;padding:7px 12px;font-size:12.5px}
 .plan2-budget{border:1px solid var(--line);border-radius:18px;padding:24px;background:var(--bone)}
 .plan2-budget-total{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--ink-mute);letter-spacing:.06em;text-transform:uppercase}
@@ -1191,7 +1191,7 @@ h1,h2,h3{text-wrap:balance}
 .signin-overlay{position:fixed;inset:0;z-index:100;background:rgba(20,16,12,.45);backdrop-filter:blur(6px);display:grid;place-items:center;padding:16px;animation:fadeIn .25s ease both}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .signin-card{position:relative;display:grid;grid-template-columns:.9fr 1.1fr;width:min(860px,100%);max-height:calc(100dvh - 32px);overflow:auto;background:#fff;border-radius:22px;box-shadow:0 40px 90px -30px rgba(0,0,0,.45);animation:setsIn .45s var(--ease) both}
-.signin-art{background:url(/venues/orchard-grand/grand-ballroom.jpg) center/cover;min-height:420px;position:relative}
+.signin-art{background:url(/venues/ballroom-render.jpg) center/cover;min-height:420px;position:relative}
 .signin-art::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(20,16,12,.45))}
 .signin-body{padding:36px 34px 28px}
 .signin-body h2{font-family:var(--f-display);font-weight:400;font-size:38px;line-height:1.05;margin:8px 0 10px}

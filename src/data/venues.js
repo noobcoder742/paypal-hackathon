@@ -24,7 +24,7 @@ export const VENUES=[
   note:'Fictional demo venue on a real building. Name, prices and details are invented for the demo.',
   spaces:[{
    id:'grand-ballroom',name:'Grand Ballroom',summary:'31 × 23 m · up to 380 guests',
-   image:'/venues/orchard-grand/grand-ballroom.jpg',studio:'orchard-grand/grand-ballroom',
+   image:'/venues/ballroom-render.jpg',studio:'orchard-grand/grand-ballroom',
    // Highlight box on the map, metres relative to the venue's first point.
    box:{x:0,y:4.2,z:0,width:31.4,height:8.3,depth:22.6}
   }]

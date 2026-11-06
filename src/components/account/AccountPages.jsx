@@ -23,7 +23,7 @@ export function MyWeddingPage({planner,go,openPlan,percent,completed}){
  const next=planner.tasks.filter(t=>!t.done).slice(0,4);
  return <main className="acct-page wed">
   <section className="wed-hero">
-   <div className="wed-hero-photo" style={{backgroundImage:`url(${thumb||'/venues/orchard-grand/grand-ballroom.jpg'})`}} aria-hidden="true"/>
+   <div className="wed-hero-photo" style={{backgroundImage:`url(${thumb||'/venues/ballroom-render.jpg'})`}} aria-hidden="true"/>
    <div className="wed-hero-copy">
     <span className="acct-kicker">My wedding</span>
     {days!=null&&days>=0?<h1><span className="wed-days"><CountUp value={days}/></span> {days===1?'day':'days'} to go.</h1>:days!=null?<h1>Congratulations on your <em>wedding</em>.</h1>:<h1>Your day, <em>beautifully</em> planned.</h1>}
