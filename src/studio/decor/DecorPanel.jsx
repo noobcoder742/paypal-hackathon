@@ -8,10 +8,10 @@ const ADDABLE=[['arch','/thumbs/arch.png'],['flowerWall',null],['hedge',null],['
 export const DECOR_PHOTOS={
  arch:'https://images.unsplash.com/photo-1529636798458-92182e662485?auto=format&fit=crop&w=320&q=70',
  flowerWall:'https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&w=320&q=70',
- hedge:'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&w=320&q=70',
+ hedge:'https://images.unsplash.com/photo-1523438885200-e635ba2c371e?auto=format&fit=crop&w=320&q=70',
  flowerStand:'https://images.unsplash.com/photo-1469371670807-013ccf25f16a?auto=format&fit=crop&w=320&q=70',
  lantern:'https://images.unsplash.com/photo-1525772764200-be829a350797?auto=format&fit=crop&w=320&q=70',
- carpet:'https://images.unsplash.com/photo-1460978812857-470ed1c77af0?auto=format&fit=crop&w=320&q=70',
+ carpet:'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=320&q=70',
 };
 
 export function DecorPanel({data,setData,setSelected,tool,setTool}){

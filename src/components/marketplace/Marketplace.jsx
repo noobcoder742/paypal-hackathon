@@ -3,7 +3,7 @@ import useSlidingIndicator from '../ui/useSlidingIndicator.js';
 import {ArrowLeft,ArrowRight,Plus,Check,Search,ShoppingBag,Heart,Star,Rotate3D,CalendarDays,MapPin,Clock,Info} from 'lucide-react';
 import {CATALOG} from '../../data/catalog.js';
 export const demoListings=CATALOG;
-const categories=['Floral Arrangements','Music & Entertainment','Lighting & Production','Hotel Catering','Chauffeur & Transport'];
+const categories=['Floral Arrangements','Ceremony & Decor','Music & Entertainment','Lighting & Production','Hotel Catering','Chauffeur & Transport'];
 function price(item){return item.price==null?'Price on request':'From S$'+item.price.toLocaleString('en-SG')}
 const FRAME_STYLES=[{objectPosition:'50% 50%',scale:1},{objectPosition:'25% 40%',scale:1.14},{objectPosition:'78% 62%',scale:1.24}];
 function listingPhotos(item){return item.photos?.length?item.photos:FRAME_STYLES.map(()=>item.photo)}
@@ -40,7 +40,7 @@ function ProductDetail({item,onBack,onAdd,added,onOpen,onStartDesign,isFavourite
  <section className="luxury-story"><span>06 — VENDOR SERVICES</span><h2>Made for your celebration.</h2><p>Request a quotation, confirm setup requirements and coordinate delivery with your chosen vendor. Booking and payments will be enabled after vendor onboarding.</p></section></div>
 }
 // Short names for the category tabs.
-const SHORT={'Floral Arrangements':'Floral','Music & Entertainment':'Music','Lighting & Production':'Lighting','Hotel Catering':'Catering','Chauffeur & Transport':'Transport'};
+const SHORT={'Floral Arrangements':'Floral','Ceremony & Decor':'Decor','Music & Entertainment':'Music','Lighting & Production':'Lighting','Hotel Catering':'Catering','Chauffeur & Transport':'Transport'};
 // Venues are chosen on the 3D map (Design page), so the marketplace lists
 // products and services only.
 export default function Marketplace({initialCategory=null,onBack,onAdd,added=[],favourites=[],onToggleFavourite=()=>{},onStartDesign=()=>{},onPlan=()=>{}}){

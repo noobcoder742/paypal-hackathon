@@ -1,3 +1,4 @@
+import {placeForListing,LISTING_DECOR} from '../../studio/decor/decor.js';
 // Applies the planning agent's room changes to a saved ballroom layout (pure).
 // patch: {tables?, theme?, flowers?, lighting?, show?:{arch?,decor?,stage?,screen?}}
 import {palette} from '../../studio/palette.js';
@@ -26,5 +27,6 @@ export function applyStudioPatch(layout,patch={}){
  if(LIGHTING.includes(patch.lighting))l.lighting=patch.lighting;
  const map={arch:['arch','showArch'],decor:['flowers','showDecor'],stage:['stage','showStage'],screen:['screen','showScreen']};
  for(const [k,on] of Object.entries(patch.show||{})){const m=map[k];if(!m||!on)continue;if(!l.inventory.includes(m[0]))l.inventory=[...l.inventory,m[0]];l[m[1]]=true}
- return l;
+ let out=l;for(const t of patch.place||[])if(LISTING_DECOR.has(t))out=placeForListing(out,t);   // hedges, aisle stands, lanterns, flower wall, carpet
+ return out;
 }
