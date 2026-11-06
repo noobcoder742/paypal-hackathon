@@ -159,3 +159,32 @@ export function archItems(variant='white',seed=41,width=4,postH=2.2){
  }
  return items;
 }
+
+/** Leaves covering a clipped box hedge (w × h × d), centred at y=h/2. */
+export function hedgeItems(w=1.1,h=.55,d=.42,seed=61){
+ const R=rng(seed),items=[],P=FLORAL_PALETTES.green.leaf;
+ const faces=[[[0,1,0],w*d],[[1,0,0],h*d],[[-1,0,0],h*d],[[0,0,1],w*h],[[0,0,-1],w*h]];
+ const total=faces.reduce((s,f)=>s+f[1],0);
+ for(const [n,area] of faces){
+  const count=Math.round(760*area/total);
+  for(let k=0;k<count;k++){
+   const u=R()-.5,v=R()-.5;let p;
+   if(n[1])p=[u*w,h,v*d];else if(n[0])p=[n[0]*w/2,(v+.5)*h,u*d];else p=[u*w,(v+.5)*h,n[2]*d/2];
+   const dir=[n[0]+(R()-.5)*1.2,n[1]+(R()-.5)*1.2+.3,n[2]+(R()-.5)*1.2];
+   items.push({kind:'leaf',variant:k%3,position:p,dir,scale:.45+R()*.25,color:pick(R,P),spin:R()*6});
+  }
+ }
+ return items;
+}
+/** A flower wall: roses and hydrangeas in a grid on a 2.4 m square panel facing +z. */
+export function flowerWallItems(variant='white',size=2.4,seed=71){
+ const P=FLORAL_PALETTES[variant]||FLORAL_PALETTES.white,R=rng(seed),items=[],n=13,step=size/n;
+ for(let i=0;i<n;i++)for(let j=0;j<n;j++){
+  const x=-size/2+step*(i+.5)+(R()-.5)*step*.3,y=step*(j+.5)+(R()-.5)*step*.3;
+  const dir=[(R()-.5)*.5,(R()-.5)*.5,1];
+  if(R()<.72)items.push({kind:R()<.75?'rose':'roseHalf',variant:(i+j)%3,position:[x,y,.03],dir,scale:2.2+R()*.5,color:pick(R,P.rose),spin:R()*6});
+  else items.push({kind:'hydrangea',variant:(i+j)%2,position:[x,y,.02],dir,scale:2+R()*.4,color:pick(R,P.hydrangea),spin:R()*6});
+ }
+ for(let k=0;k<60;k++){const x=(R()-.5)*size,y=R()*size;items.push({kind:'eucalyptus',variant:k%3,position:[x,y,.05],dir:[(R()-.5),(R()-.5),.8],scale:1.6,color:pick(R,P.leaf),spin:R()*6})}
+ return items;
+}

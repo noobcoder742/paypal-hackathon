@@ -1292,3 +1292,18 @@ h1,h2,h3{text-wrap:balance}
 
 .home-venue-thumb{background-size:cover!important;background-position:center!important}
 .wed-venue-img{background-size:cover;background-position:center}
+
+/* ===== Studio decor: draggable items and the carpet tool ===== */
+.decor-panel{display:grid;gap:8px;margin:14px 0}
+.decor-h{font:500 13px var(--f-ui);margin:10px 0 2px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.decor-h small{font-weight:400;color:var(--ink-mute);font-size:11.5px}
+.decor-item .inventory-thumb img,.decor-carpet .inventory-thumb img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.decor-count{color:var(--ink-mute);font-size:11.5px}
+.decor-line{justify-self:start;border:1px solid var(--line-strong);background:none;border-radius:999px;padding:7px 13px;font:500 12.5px var(--f-ui);cursor:pointer}
+.decor-carpet{display:grid;grid-template-columns:72px 1fr;gap:12px;align-items:start;border:1px solid var(--line);border-radius:14px;padding:10px;background:var(--paper)}
+.decor-carpet .inventory-thumb{width:72px;height:56px;display:block;border-radius:10px;overflow:hidden}
+.decor-swatches{display:flex;gap:6px;margin-bottom:8px}
+.decor-swatches button{width:24px;height:24px;border-radius:50%;border:1px solid var(--line-strong);cursor:pointer}
+.decor-swatches button.on{outline:2px solid var(--ink);outline-offset:2px}
+.decor-tool{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--ink);background:none;border-radius:999px;padding:7px 13px;font:500 12.5px var(--f-ui);cursor:pointer;margin-right:6px}
+.decor-tool.on{background:var(--ink);color:#fff}
