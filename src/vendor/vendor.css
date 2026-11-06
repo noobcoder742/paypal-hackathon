@@ -180,3 +180,47 @@
 .vs-kpi b{font:500 30px/1 var(--f-ui);letter-spacing:-.6px}
 .vs-money dd{font:500 19px var(--f-ui);letter-spacing:-.3px}
 .vs-date b{font:500 17px var(--f-ui)}
+/* booking page */
+.vs-link-back.inline{position:static;justify-self:start;padding:0}
+.vs-booking-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.vs-booking-head h1{font:400 clamp(34px,3.6vw,48px)/1 var(--f-display);margin:6px 0 6px;letter-spacing:-.5px}
+.vs-facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.vs-facts div{border:1px solid var(--vs-line);border-radius:14px;padding:14px 16px;display:grid;gap:3px;align-content:start}
+.vs-facts svg{color:var(--vs-mute)}.vs-facts span{font-size:12.5px;color:var(--vs-mute)}.vs-facts b{font-weight:500;font-size:15px;overflow-wrap:anywhere}.vs-facts small{font-size:12px;color:var(--vs-mute)}
+.vs-booking-grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+.vs-card-head h2{display:flex;align-items:center;gap:8px}
+.vs-needs{list-style:none;margin:0 4px 14px;padding:0;display:grid;gap:8px}
+.vs-needs li{display:grid;grid-template-columns:minmax(0,1fr);gap:2px;padding:10px 12px;border-radius:12px;background:var(--vs-soft)}
+.vs-needs b{font-weight:500}.vs-needs span{font-size:13.5px;color:var(--vs-ink-2)}
+.vs-sub{font:500 13px var(--f-ui);color:var(--vs-mute);margin:6px 4px 10px}
+.vs-pay{display:grid;gap:16px;position:sticky;top:20px;padding:18px}
+.vs-pay-title{font:500 15px var(--f-ui);margin:0}
+.vs-pay .vs-money{grid-template-columns:1fr}
+.vs-plan{margin:0 0 6px}
+.vs-plan svg{width:100%;height:auto;display:block}
+.fp-room{fill:#fbfaf8;stroke:var(--vs-line-2);stroke-width:1.5}
+.fp-aisle{fill:#f1eee9}.fp-stage{fill:#2b2622}.fp-dance{fill:none;stroke:var(--vs-line-2);stroke-dasharray:5 5}
+.fp-table{fill:#fff;stroke:#d8d3cb;stroke-width:1.2}
+.fp-label{font:600 9px var(--f-ui);letter-spacing:.12em;fill:#a39d93}.fp-stage+text{fill:#fff}
+.fp-zone-label{font:500 10.5px var(--f-ui)}
+.fp-mine,.fp-mine rect{fill:var(--st-new);fill-opacity:.85}.fp-mine .soft{fill-opacity:.18;stroke:var(--st-new);stroke-dasharray:4 3}.fp-mine text{fill:var(--st-new)}
+.fp-other,.fp-other rect{fill:#c9c3ba;fill-opacity:.7}.fp-other .soft{fill-opacity:.2;stroke:#b8b2a8;stroke-dasharray:4 3}.fp-other text{fill:#9a948a}
+g.fp-mine rect{stroke:var(--st-new);stroke-width:1}
+circle.fp-mine{animation:vs-glow 2.4s var(--vs-ease) infinite}
+@keyframes vs-glow{0%,100%{opacity:1}50%{opacity:.55}}
+.fp-door{stroke:var(--vs-ink);stroke-width:4}
+.fp-entrance{font:500 11px var(--f-ui);fill:#9a948a}.fp-entrance.mine{fill:var(--st-new)}
+.vs-plan-key{display:grid;gap:6px;margin-top:10px;font-size:13px}
+.vs-plan-key span{display:flex;align-items:center;gap:8px}.vs-plan-key i{width:10px;height:10px;border-radius:50%}
+.k-mine{color:var(--st-new)}.k-mine i{background:var(--st-new)}.k-other{color:var(--vs-ink-2)}.k-other i{background:#c9c3ba}
+/* dashboard to-do widget */
+.w-todo{list-style:none;margin:0;padding:0;display:grid;gap:2px;font-family:var(--f-ui)}
+.w-todo button{width:100%;display:grid;grid-template-columns:10px 1fr auto;gap:10px;align-items:center;text-align:left;border:0;background:none;padding:9px 6px;border-radius:9px;font:400 13.5px var(--f-ui);color:#1d1a16;cursor:pointer}
+.w-todo button:hover{background:#f6f5f3}.w-todo b{color:#8f897f;font-weight:400}
+.w-todo i{width:9px;height:9px;border-radius:50%}
+.w-todo .t-new{background:#2f6fde}.w-todo .t-overdue{background:#c03c35}.w-todo .t-deposit_paid{background:#b06d0b}.w-todo .t-balance_invoiced{background:#6d47c2}
+@media(prefers-reduced-motion:reduce){circle.fp-mine{animation:none}}
+@media(max-width:1100px){.vs-booking-grid{grid-template-columns:1fr}.vs-pay{position:static}.vs-facts{grid-template-columns:1fr 1fr}}
+
+.vs-pay h3{font:500 13px var(--f-ui);color:var(--vs-mute);margin:0 0 10px}
+circle.fp-mine{animation:none}

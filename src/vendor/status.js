@@ -1,6 +1,7 @@
 // Booking statuses (one colour each, always shown with a text label), example bookings for the
 // demo, and the rows the Insights dashboard reads.
 import {CATALOG} from '../data/catalog.js';
+import {VENUES} from '../data/venues.js';
 
 export const STATUSES=[
  {key:'new',label:'New',hint:'Not opened yet'},
@@ -26,7 +27,11 @@ export function exampleBookings(vendor,now=Date.now()){
   const created=now-(i===0?2:i*6+3)*864e5;
   const invoice=['balance_invoiced','overdue','paid_in_full'].includes(status)?{id:'EXAMPLE',status:status==='paid_in_full'?'PAID':'SENT',amount:balance,sentAt:created+864e5*(status==='overdue'?1:3),reminders:status==='overdue'?1:0}:null;
   const events=[{type:'deposit',at:created,amount:deposit},...(invoice?[{type:'invoice',at:invoice.sentAt,amount:balance}]:[]),...(status==='overdue'?[{type:'reminder',at:invoice.sentAt+12*864e5}]:[]),...(status==='paid_in_full'?[{type:'paid',at:invoice.sentAt+5*864e5,amount:balance}]:[])];
-  return {id:`example-${vendor.id}-${i+1}`,isExample:true,couple:c+' (example)',email:null,itemId:item.id,itemName:item.name,qty,total,deposit,balance,
+  // a believable whole plan around this vendor's item: other vendors' florals, music and lighting
+  const venue=VENUES.filter(v=>v.banquet)[i%3],tables=[24,30,18,26,34,22,28,30][i];
+  const others=['floral-greenery','floral-arch','music-strings','light-canopy','decor-red-carpet','car-classic'].filter(id=>id!==item.id).slice(i%3,i%3+4);
+  const planLines=[{id:item.id,qty},...others.map(id=>({id,qty:id.startsWith('floral-g')?tables:1}))];
+  return {id:`example-${vendor.id}-${i+1}`,isExample:true,couple:c+' (example)',email:null,itemId:item.id,itemName:item.name,qty,total,deposit,balance,venueId:venue?.id||null,tables,planLines,
    weddingDate:day.toISOString().slice(0,10),createdAt:created,seen:status!=='new',status,invoice,events};
  });
 }
@@ -35,6 +40,7 @@ export function studioRows(bookings){
  return bookings.map(b=>({id:b.id,couple:b.couple,item:b.itemName,status:b.status,statusLabel:statusMeta(b.status).label,
   weddingDate:b.weddingDate||null,weddingMonth:b.weddingDate?b.weddingDate.slice(0,7):'Date to confirm',
   total:b.total,deposit:b.deposit,balance:b.balance,balanceDue:balanceDue(b),paidInFull:isPaidInFull(b)?b.balance:0,
+  moneyIn:b.deposit+(isPaidInFull(b)?b.balance:0),toInvoice:(b.status==='new'||b.status==='deposit_paid')?b.balance:0,overdueDue:b.status==='overdue'?b.balance:0,
   reminders:b.invoice?.reminders||0,isExample:!!b.isExample}));
 }
 export const sgd=n=>'S$'+Number(n||0).toLocaleString('en-SG',{minimumFractionDigits:0,maximumFractionDigits:2});

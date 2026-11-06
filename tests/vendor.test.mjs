@@ -69,3 +69,12 @@ test('capturing a couple\'s PayPal deposit order files the bookings with each ve
  const r=await captureOrder({orderId:'ORDER-9',store,paypalFetch});assert.equal(r.status,'COMPLETED');
  assert.equal((await listBookings({store,vendorId:'blue-note'}))[0].couple,'Mei Tan');
 });
+test('a booking knows the venue, tables and the whole plan, and picks up the wedding date from the couple\'s enquiry',async()=>{
+ resetMemoryStore();const store=getStore();
+ await store.set('plan:plan-77',{planId:'plan-77',venueId:'orchard-grand',tables:30,lines:[{id:'floral-arch',qty:1},{id:'music-jazz',qty:1},{id:'floral-greenery',qty:30}]});
+ await recordBookings({store,orderId:'ORDER-7',planId:'plan-77',lines,capture});
+ let [b]=await listBookings({store,vendorId:'petal-stem'});
+ assert.deepEqual([b.venueId,b.tables,b.planLines.length,b.weddingDate],['orchard-grand',30,3,null]);
+ await store.set('enquiry:enq-1',{id:'enq-1',planId:'plan-77',date:'2027-06-12',coupleName:'Mei & Daniel'});
+ [b]=await listBookings({store,vendorId:'petal-stem'});assert.equal(b.weddingDate,'2027-06-12');
+});

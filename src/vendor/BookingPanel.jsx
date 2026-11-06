@@ -6,16 +6,17 @@ import {StatusPill,dateText,ago} from './ui.jsx';
 import {sgd} from './status.js';
 
 const EVENT={deposit:'Deposit paid through PayPal',invoice:'Balance invoice sent with PayPal',reminder:'Friendly reminder sent',paid:'Balance paid in full'};
-export default function BookingPanel({booking:b,onClose,onChanged}){
+export default function BookingPanel({booking:b,onClose,onChanged,inline=false}){
  const [busy,setBusy]=useState(''),[draft,setDraft]=useState(null),[err,setErr]=useState('');
  const act=async(action,extra)=>{setBusy(action);setErr('');
   try{const r=await bookingAction(b.id,action,extra);if(action==='draft-reminder')setDraft(r.text);else{onChanged(r.booking);if(action==='send-reminder')setDraft(null)}}
   catch(e){setErr(e.code===503?'The AI assistant is unavailable right now. You can write the reminder yourself.':e.message==='no_couple_email'?'PayPal didn’t share this couple’s email, so an invoice can’t be sent.':'That didn’t work: '+e.message)}
   finally{setBusy('')}};
  const canAct=!b.isExample;
- return <aside className="vs-panel" role="dialog" aria-label={'Booking for '+b.couple}>
-  <header><div><span className="vs-eyebrow">{b.itemName}{b.qty>1?` × ${b.qty}`:''}</span><h2>{b.couple}</h2><p className="vs-muted">{dateText(b.weddingDate)}{b.email?` · ${b.email}`:''}</p></div><button type="button" className="vs-icon" aria-label="Close" onClick={onClose}><X size={18}/></button></header>
-  <StatusPill status={b.status}/>
+ const Tag=inline?'section':'aside';
+ return <Tag className={inline?'vs-card vs-pay':'vs-panel'} role={inline?undefined:'dialog'} aria-label={'Payment for '+b.couple}>
+  {inline?<h2 className="vs-pay-title">Payment</h2>:<header><div><span className="vs-eyebrow">{b.itemName}{b.qty>1?` × ${b.qty}`:''}</span><h2>{b.couple}</h2><p className="vs-muted">{dateText(b.weddingDate)}{b.email?` · ${b.email}`:''}</p></div><button type="button" className="vs-icon" aria-label="Close" onClick={onClose}><X size={18}/></button></header>}
+  {!inline&&<StatusPill status={b.status}/>}
   <dl className="vs-money">
    <div><dt>Booking total</dt><dd>{sgd(b.total)}</dd></div>
    <div><dt>Deposit paid</dt><dd className="ok">{sgd(b.deposit)}</dd></div>
@@ -35,5 +36,5 @@ export default function BookingPanel({booking:b,onClose,onChanged}){
    {b.status==='paid_in_full'&&<p className="vs-done"><Check size={16}/> All settled. Lovely.</p>}
    {err&&<p className="vs-alert" role="alert"><span>{err}</span></p>}
   </section>
- </aside>;
+ </Tag>;
 }
