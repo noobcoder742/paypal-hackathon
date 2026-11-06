@@ -15,6 +15,9 @@ const GLB=ROOM_URL+ROOM.glb;
 const LIGHTMAP_URLS=Object.fromEntries(Object.entries(ROOM.lightmaps).map(([k,v])=>[k,ROOM_URL+v.file]));
 const CEILING_PARTS=new Set(['ceiling','ceil_gold','ceil_emit']);
 const REFLECTIVE=new Set(['gold','ceil_gold','mirror','bronze']);
+// The studio's ACES tone mapping pushes warm light toward orange; Cycles' AgX keeps it champagne.
+// A slight cool tint on the baked surfaces brings the two back together.
+const NEUTRAL=new THREE.Color(.9,.94,1);
 
 /** Start downloading the room as soon as the studio code loads, before the canvas mounts. */
 export function preloadRoom(){useGLTF.preload(GLB);useTexture.preload([...Object.values(LIGHTMAP_URLS),ROOM_URL+ROOM.env])}
@@ -38,7 +41,7 @@ export function BakedRoom({showCeiling=true,ceilingHeight=ROOM.dimensions.ceilin
     // the lightmap UVs are the second set, or the only set on parts without textures
     lm.channel=o.geometry.attributes.uv1?1:0;
     // colour × baked light; the lightmap stores light / scale in sRGB (see bake.py encode())
-    o.material=new THREE.MeshBasicMaterial({color:m.color,map:m.map||null,lightMap:lm,lightMapIntensity:ROOM.lightmaps[part].scale*Math.PI,name:m.name});
+    o.material=new THREE.MeshBasicMaterial({color:m.color.clone().multiply(NEUTRAL),map:m.map||null,lightMap:lm,lightMapIntensity:ROOM.lightmaps[part].scale*Math.PI,name:m.name});
     o.material.userData.baseLightMap=o.material.lightMapIntensity;
    }else if(REFLECTIVE.has(part)){
     o.material=m.clone();o.material.envMap=env;o.material.envMapIntensity=part==='mirror'?1.1:1.4;
