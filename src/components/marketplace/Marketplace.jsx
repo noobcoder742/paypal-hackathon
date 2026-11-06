@@ -1,4 +1,6 @@
 import React,{useState,useRef} from 'react';
+import {LineupPicker} from './LineupPicker.jsx';
+import {GENRES,cleanLineup,ensemblePrice} from '../../studio/decor/ensembles.js';
 import useSlidingIndicator from '../ui/useSlidingIndicator.js';
 import {ArrowLeft,ArrowRight,Plus,Check,Search,ShoppingBag,Heart,Star,Rotate3D,CalendarDays,MapPin,Clock,Info} from 'lucide-react';
 import {CATALOG} from '../../data/catalog.js';
@@ -27,10 +29,12 @@ function Listing({item,onOpen,isFavourite=false,onToggleFavourite,onAdd,added=fa
  </div>;
 }
 function ImageGallery({item}){const [selected,setSelected]=useState(0);const images=[item.photo,item.photo.replace('w=1000','w=1200')+'&crop=center',item.photo.replace('w=1000','w=1400')+'&crop=entropy'];return <div className="luxury-gallery"><div className="luxury-main-image"><img src={images[selected]} alt={item.name+' product illustration'}/><div className="luxury-image-note">Illustrative photography · Verified 3D model not yet available</div></div><div className="luxury-thumbs">{images.map((src,i)=><button className={selected===i?'active':''} key={i} onClick={()=>setSelected(i)} aria-label={'View image '+(i+1)}><img src={src} alt="Alternate crop of illustrative photo"/></button>)}</div></div>}
-function ProductDetail({item,onBack,onAdd,added,onOpen,onStartDesign,isFavourite,onToggleFavourite}){
+function ProductDetail({item,onBack,onAdd,added,onOpen,onStartDesign,isFavourite,onToggleFavourite,savedLineup}){
+ const [lineup,setLineup]=useState(()=>item.genre?cleanLineup(item.genre,savedLineup||GENRES[item.genre].default):null);
+ const changed=!!(item.genre&&savedLineup&&JSON.stringify(cleanLineup(item.genre,savedLineup))!==JSON.stringify(lineup));
  const related=demoListings.filter(x=>x.category===item.category&&x.id!==item.id).slice(0,3);
  return <div className="luxury-detail"><div className="luxury-breadcrumb"><button onClick={onBack}><ArrowLeft size={15}/> Marketplace</button><span>MARKETPLACE / {item.category.toUpperCase()}</span></div>
- <section className="luxury-hero"><ImageGallery item={item}/><div className="luxury-product-info"><small>THE WEDDING EDIT · {item.category.toUpperCase()}</small><h1>{item.name}</h1><p className="luxury-vendor">{item.vendor}</p><div className="luxury-price">{price(item)}</div><p>Thoughtfully selected for your celebration. Explore the details, check suitability for your venue and save this item to your wedding plan.</p><button className="luxury-primary" disabled={added} onClick={()=>onAdd(item)}>{added?'Added to inventory':'Add to inventory'} <ArrowRight size={17}/></button><button className="luxury-secondary" onClick={()=>onToggleFavourite(item)}>{isFavourite?'★ Remove favourite':'☆ Add to favourites'}</button><button className="luxury-secondary" onClick={onStartDesign}>Open my 3D studio <ArrowRight size={15}/></button><p className="luxury-note">Estimated pricing only. Availability, exact specifications and commercial rights must be confirmed with the vendor.</p></div></section>
+ <section className="luxury-hero"><ImageGallery item={item}/><div className="luxury-product-info"><small>THE WEDDING EDIT · {item.category.toUpperCase()}</small><h1>{item.name}</h1><p className="luxury-vendor">{item.vendor}</p><div className="luxury-price">{item.genre?`S$${ensemblePrice(item.genre,lineup).toLocaleString('en-SG')} / session`:price(item)}</div><p>{item.genre?'Pick the instruments and how many players you want. Your 3D studio shows exactly this line-up, and you can drag the band anywhere in the room.':'Thoughtfully selected for your celebration. Explore the details, check suitability for your venue and save this item to your wedding plan.'}</p>{item.genre&&<LineupPicker genre={item.genre} lineup={lineup} onChange={setLineup}/>}<button className="luxury-primary" disabled={added&&!changed} onClick={()=>onAdd(item.genre?{...item,lineup,price:ensemblePrice(item.genre,lineup)}:item)}>{added&&!changed?'Added to inventory':changed?'Update my line-up':'Add to inventory'} <ArrowRight size={17}/></button><button className="luxury-secondary" onClick={()=>onToggleFavourite(item)}>{isFavourite?'★ Remove favourite':'☆ Add to favourites'}</button><button className="luxury-secondary" onClick={onStartDesign}>Open my 3D studio <ArrowRight size={15}/></button><p className="luxury-note">Estimated pricing only. Availability, exact specifications and commercial rights must be confirmed with the vendor.</p></div></section>
  <section className="luxury-story"><span>01 — THE CREATION</span><h2>A detail that makes the day yours.</h2><p>Every element contributes to the atmosphere of a celebration. Discover how this piece could complement your chosen venue and wedding style.</p></section>
  <section className="luxury-wide-photo"><img src={item.photo} alt={item.name+' editorial illustration'} loading="lazy"/></section>
  <section className="luxury-story"><span>02 — EXPLORE EVERY ANGLE</span><h2>See the details up close.</h2><p>Browse the photographic views above. A true interactive 360° model will appear here when the vendor supplies an approved, optimized 3D asset.</p><div className="luxury-3d-placeholder"><Rotate3D size={35}/><strong>Interactive 3D model coming soon</strong><small>We won't simulate a 3D model by rotating a flat photograph.</small></div></section>
@@ -43,7 +47,7 @@ function ProductDetail({item,onBack,onAdd,added,onOpen,onStartDesign,isFavourite
 const SHORT={'Floral Arrangements':'Floral','Ceremony & Decor':'Decor','Music & Entertainment':'Music','Lighting & Production':'Lighting','Hotel Catering':'Catering','Chauffeur & Transport':'Transport'};
 // Venues are chosen on the 3D map (Design page), so the marketplace lists
 // products and services only.
-export default function Marketplace({initialCategory=null,onBack,onAdd,added=[],favourites=[],onToggleFavourite=()=>{},onStartDesign=()=>{},onPlan=()=>{}}){
+export default function Marketplace({initialCategory=null,onBack,onAdd,added=[],savedItems=[],favourites=[],onToggleFavourite=()=>{},onStartDesign=()=>{},onPlan=()=>{}}){
  const tabsRef=useRef(null);
  const [category,setCategory]=useState(categories.includes(initialCategory)?initialCategory:'All'),[detail,setDetail]=useState(null),[query,setQuery]=useState('');
  const back=()=>{setDetail(null);window.scrollTo?.(0,0)};
@@ -51,7 +55,7 @@ export default function Marketplace({initialCategory=null,onBack,onAdd,added=[],
  const matches=item=>[item.name,item.vendor,item.category].join(' ').toLowerCase().includes(query.toLowerCase());
  const items=demoListings.filter(x=>(category==='All'||x.category===category)&&matches(x));
  useSlidingIndicator(tabsRef,[category,detail]);
- if(detail)return <div className="marketplace-screen luxury-market"><ProductDetail item={detail} onBack={back} onAdd={onAdd} added={added.includes(detail.id)} onOpen={open} onStartDesign={onStartDesign} isFavourite={favourites.includes(detail.id)} onToggleFavourite={onToggleFavourite}/></div>;
+ if(detail)return <div className="marketplace-screen luxury-market"><ProductDetail key={detail.id} item={detail} savedLineup={savedItems.find(x=>x.id===detail.id)?.lineup} onBack={back} onAdd={onAdd} added={added.includes(detail.id)} onOpen={open} onStartDesign={onStartDesign} isFavourite={favourites.includes(detail.id)} onToggleFavourite={onToggleFavourite}/></div>;
  return <div className="marketplace-screen mk">
   <div className="mk-head">
    <div><span className="mk-label">The wedding edit · {demoListings.length} listings</span><h1>Find what <em>belongs</em> in your room.</h1></div>

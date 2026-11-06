@@ -50,7 +50,7 @@ test('a marketplace listing places its item sensibly: hedges at the stage, stand
  d=placeForListing(base(),'carpet');assert.ok(d.carpet.tiles.length>=40);assert.ok(d.carpet.tiles.every(([,j])=>j===-1||j===0),'a 2 m runner on the centre line');
  d=placeForListing(placeForListing(base(),'arch'),'arch');assert.equal(d.decor.filter(x=>x.type==='arch').length,1,'one arch, not one per click');
  assert.throws(()=>placeForListing(base(),'nope'));
- assert.deepEqual([...LISTING_DECOR].sort(),['arch','carpet','flowerStand','flowerWall','hedge','lantern']);
+ assert.deepEqual([...LISTING_DECOR].sort(),['arch','carpet','ensemble','flowerStand','flowerWall','hedge','lantern']);
 });
 import {placeSavedListings} from '../src/studio/decor/decor.js';
 test('saved marketplace decor is placed once when the studio opens; removing it later sticks',()=>{
@@ -59,4 +59,16 @@ test('saved marketplace decor is placed once when the studio opens; removing it 
  assert.ok(d.decor.some(x=>x.type==='hedge'));assert.ok(d.carpet.tiles.length>0);assert.deepEqual(d.placedListings.sort(),['decor-hedges','decor-red-carpet']);
  d={...d,carpet:{...d.carpet,tiles:[]}};
  assert.equal(placeSavedListings(d,saved),d,'nothing new: same object, no extra undo step');
+});
+test('a music listing places one band per genre, with the chosen line-up; changing the line-up updates it',()=>{
+ const classical={id:'music-strings',inventoryType:'ensemble',genre:'classical',lineup:{violin:3,cello:1}};
+ let d=placeSavedListings(base(),[classical]);
+ let bands=d.decor.filter(x=>x.type==='ensemble');assert.equal(bands.length,1);
+ assert.deepEqual([bands[0].genre,bands[0].lineup],['classical',{violin:3,cello:1}]);
+ const moved=updateDecor(d,bands[0].id,{x:4,z:-5});
+ d=placeSavedListings(moved,[{...classical,lineup:{violin:4,viola:1,cello:1,piano:1}}]);
+ bands=d.decor.filter(x=>x.type==='ensemble');assert.equal(bands.length,1,'still one classical group');
+ assert.deepEqual(bands[0].lineup,{violin:4,viola:1,cello:1,piano:1});assert.deepEqual([bands[0].x,bands[0].z],[4,-5],'keeps where the couple dragged it');
+ d=placeSavedListings(d,[{...classical,lineup:{violin:4,viola:1,cello:1,piano:1}},{id:'music-pop',inventoryType:'ensemble',genre:'pop'}]);
+ assert.deepEqual(d.decor.filter(x=>x.type==='ensemble').map(x=>x.genre).sort(),['classical','pop']);
 });
