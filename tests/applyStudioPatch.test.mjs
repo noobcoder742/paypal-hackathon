@@ -21,3 +21,7 @@ test('the agent can place decor from its plan (hedges, carpet runner)',()=>{
  const l=applyStudioPatch(base(),{place:['hedge','carpet','spaceship']});
  assert.ok((l.decor||[]).some(x=>x.type==='hedge'));assert.ok(l.carpet.tiles.length>0);
 });
+test('the agent\'s plan places its band, by genre',()=>{
+ const l=applyStudioPatch(base(),{place:[{type:'ensemble',genre:'jazz'}]});
+ const band=(l.decor||[]).find(x=>x.type==='ensemble');assert.equal(band?.genre,'jazz');
+});
