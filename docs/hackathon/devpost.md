@@ -31,7 +31,7 @@ In Singapore a hotel wedding costs about S$60–80k, and couples juggle venue pa
 ## How we built it
 - **The site:** Vite + React + react-three-fiber. It draws a 3D map of Singapore from OpenStreetMap and a 3D ballroom.
 - **The server:** Vercel functions, with Upstash Redis for storage.
-- **The agents:** Vercel AI SDK with **Claude Haiku 5.5**, with **Gemini 2.5 Flash** as an automatic fallback.
+- **The agents:** Vercel AI SDK with **Claude Haiku 5.5**, with **Gemini Flash** as an automatic fallback.
 - **PayPal:**
   - **Orders v2**: the SGD deposit order with one line per vendor, captured on the server after approval, idempotent and amount-checked.
   - **JS SDK buttons**: for the couple's approval.
@@ -71,7 +71,7 @@ Agentic commerce works best when the agent prepares and explains, and the person
 
 ## Tools used (the AI services, and how they're used)
 - **Claude Haiku 5.5 (Anthropic):** runs the couple's planning agent (tool use), the hotel's quote and reminder writing, and every turn of the AG Studio agents.
-- **Gemini 2.5 Flash (Google AI Studio):** automatic fallback model.
+- **Gemini Flash (Google AI Studio):** automatic fallback model.
 - **AG Studio Agent Framework:** dashboard agents. Our Bookings assistant delegates to AG's built-in agents.
 - **PayPal Agent Toolkit:** the hotel agent's PayPal invoicing tools.
 - **Claude Code:** used to write much of the code, from the founder's designs and decisions.
