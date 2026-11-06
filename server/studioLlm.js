@@ -25,10 +25,10 @@ export async function runStudioTurn(request,{models}={}){
  const model=fallbackModel(models||await defaultModels());
  const messages=toMessages(request.input),system=request.instructions||undefined;
  if(request.responseFormat?.type==='json'){
-  const {object}=await generateObject({model,system,messages,schema:jsonSchema(request.responseFormat.schema),maxTokens:1500,temperature:0});
+  const {object}=await generateObject({model,maxRetries:0,system,messages,schema:jsonSchema(request.responseFormat.schema),maxTokens:1500,temperature:0});
   return {text:JSON.stringify(object),toolCalls:[],model:model.lastModelUsed()};
  }
  const tools=Object.fromEntries((request.tools||[]).slice(0,64).map(t=>[t.name,{description:t.description,parameters:jsonSchema(t.parameters||{type:'object',properties:{}})}]));
- const r=await generateText({model,system,messages,tools:Object.keys(tools).length?tools:undefined,toolChoice:Object.keys(tools).length?toolChoiceOf(request.toolChoice):undefined,maxSteps:1,maxTokens:1500,temperature:0});
+ const r=await generateText({model,maxRetries:0,system,messages,tools:Object.keys(tools).length?tools:undefined,toolChoice:Object.keys(tools).length?toolChoiceOf(request.toolChoice):undefined,maxSteps:1,maxTokens:1500,temperature:0});
  return {text:r.text||'',toolCalls:(r.toolCalls||[]).map(c=>({callId:c.toolCallId,name:c.toolName,arguments:JSON.stringify(c.args||{})})),model:model.lastModelUsed()};
 }

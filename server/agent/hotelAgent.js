@@ -22,12 +22,12 @@ export function hotelTools({store}){
 }
 export async function streamHotelQuote({store,enquiry,message}){
  const model=fallbackModel(await defaultModels());
- return streamText({model,system:HOTEL_PROMPT,tools:hotelTools({store}),maxSteps:3,maxTokens:600,temperature:0,
+ return streamText({model,maxRetries:0,system:HOTEL_PROMPT,tools:hotelTools({store}),maxSteps:3,maxTokens:600,temperature:0,
   messages:[{role:'user',content:`Enquiry ${enquiry.id}: ${enquiry.coupleName} would like ${enquiry.tables} tables on ${enquiry.date}. Couple's budget: ${enquiry.budget?'S$'+enquiry.budget:'not given'}.${message?' Sales manager: '+String(message).slice(0,300):''}`}]});
 }
 export async function draftReminder({enquiry,invoice}){
  const model=fallbackModel(await defaultModels());
- const {text}=await generateText({model,temperature:.3,maxTokens:200,
+ const {text}=await generateText({model,maxRetries:0,temperature:.3,maxTokens:200,
   system:'Write one friendly, low-pressure payment reminder (max 350 characters) from a hotel wedding team to a couple. Warm and helpful, like a heads-up from a friend, never a demand. No placeholders.',
   prompt:`Couple: ${enquiry.coupleName}. Wedding date: ${enquiry.date}. Deposit due: S$${invoice.amount.toLocaleString('en-SG')}. The date is held for them until the deposit is paid.`});
  return text.trim().slice(0,400);

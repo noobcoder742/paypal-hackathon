@@ -19,7 +19,7 @@ export async function POST(request){
  if(cached){if(cached.plan)await store.set('plan:'+planId,{...cached.plan,planId});return replayStream(cached.body,{'x-model-used':cached.model||'cache'})}
  let model;try{model=fallbackModel(await defaultModels())}catch(e){return json({error:'no_model'},503)}
  let toolNames=[];
- const result=streamText({model,system:COUPLE_PROMPT,messages,tools:coupleTools({store,planId}),maxSteps:8,maxTokens:1200,temperature:0,
+ const result=streamText({model,maxRetries:0,system:COUPLE_PROMPT,messages,tools:coupleTools({store,planId}),maxSteps:8,maxTokens:1200,temperature:0,
   onStepFinish:s=>{for(const c of s.toolCalls||[])toolNames.push(c.toolName)}});
  const res=result.toDataStreamResponse({getErrorMessage:agentErrorMessage});
  const [toClient,toCache]=res.body.tee();
