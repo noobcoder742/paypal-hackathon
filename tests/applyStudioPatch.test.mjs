@@ -17,3 +17,7 @@ test('flowers, lighting and theme are applied; unknown values ignored',()=>{
  const m=applyStudioPatch(base(),{flowers:'purple',theme:'neon',lighting:'disco'});assert.equal(m.flowers,'white');assert.equal(m.theme,'ivory');assert.equal(m.lighting,'bright');
 });
 test('the input layout is not modified',()=>{const b=base();applyStudioPatch(b,{tables:30,show:{arch:true}});assert.equal(b.tables.length,20);assert.equal(b.showArch,false)});
+test('the agent can place decor from its plan (hedges, carpet runner)',()=>{
+ const l=applyStudioPatch(base(),{place:['hedge','carpet','spaceship']});
+ assert.ok((l.decor||[]).some(x=>x.type==='hedge'));assert.ok(l.carpet.tiles.length>0);
+});

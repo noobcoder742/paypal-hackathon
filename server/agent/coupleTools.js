@@ -18,6 +18,7 @@ export function studioPatchFor(tables,lines){
  const flowers=has('floral-greenery')?'green':has('floral-roses')?'pink':has('floral-white')?'white':null;if(flowers)patch.flowers=flowers;
  if(has('light-ambient')||has('light-canopy'))patch.lighting='warm';
  if(Object.keys(show).length)patch.show=show;
+ const place=[...new Set(items.map(i=>i.inventoryType).filter(t=>['hedge','flowerStand','lantern','flowerWall','carpet'].includes(t)))];if(place.length)patch.place=place;
  return patch;
 }
 function budgetCheck({venueId,tables,lines,budget}){

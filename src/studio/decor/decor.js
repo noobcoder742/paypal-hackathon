@@ -70,3 +70,26 @@ export function hedgeRowForStage(stage){
   out.push(clampItem({x:stage.x+along[0]*t+front[0]*off*s,z:stage.z+along[1]*t+front[1]*off*s,rotation:rot}))}
  return out;
 }
+
+// What a marketplace listing (or the AI planner's plan) puts in the room.
+export const LISTING_DECOR=new Set(['arch','hedge','flowerStand','lantern','flowerWall','carpet']);
+const AISLE_X={from:-9,to:15};   // from the stage front to the far (entrance) wall
+export function placeForListing(data,type){
+ if(!LISTING_DECOR.has(type))throw new Error('no decor for '+type);
+ let d=migrateDecor(data);const has=t=>(d.decor||[]).some(x=>x.type===t);
+ if(type==='arch'||type==='flowerWall')return has(type)?d:addDecor(d,type);
+ if(type==='hedge')return has('hedge')?d:hedgeRowForStage(d.stage||{x:-13.9,z:0,width:10.2,depth:3.4,rotation:Math.PI/2}).reduce((acc,at)=>addDecor(acc,'hedge',at),d);
+ if(type==='flowerStand'){if(has(type))return d;for(let x=-7;x<=13;x+=4)for(const z of [-1.6,1.6])d=addDecor(d,'flowerStand',{x,z});return d}
+ if(type==='lantern'){if(has(type))return d;for(let x=-5;x<=11;x+=4)for(const z of [-1.25,1.25])d=addDecor(d,'lantern',{x,z});return d}
+ // carpet: a 2 m runner down the centre aisle
+ const cells=[];for(let i=AISLE_X.from;i<AISLE_X.to;i++)cells.push([i,-1],[i,0]);
+ return paintTiles(d,cells,'add');
+}
+/** Place saved marketplace items (planner.savedItems) the first time the studio sees them. */
+export function placeSavedListings(data,savedItems=[]){
+ const done=new Set(data.placedListings||[]);
+ const todo=savedItems.filter(i=>i&&LISTING_DECOR.has(i.inventoryType)&&!done.has(i.id));
+ if(!todo.length)return data;
+ let d=data;for(const i of todo)d=placeForListing(d,i.inventoryType);
+ return {...d,placedListings:[...done,...todo.map(i=>i.id)]};
+}

@@ -41,3 +41,22 @@ test('"line the stage" places hedges along the stage front, inside the room',()=
  assert.ok(row.length>=4);
  for(const h of row){assert.ok(h.x>st.x,'in front of the stage, towards the guests');assert.ok(Math.abs(h.z)<=st.width/2+.1)}
 });
+
+import {placeForListing,LISTING_DECOR} from '../src/studio/decor/decor.js';
+test('a marketplace listing places its item sensibly: hedges at the stage, stands and lanterns along the aisle, a runner to the stage',()=>{
+ let d=placeForListing(base(),'hedge');assert.ok(d.decor.filter(x=>x.type==='hedge').length>=4);
+ d=placeForListing(base(),'flowerStand');const st=d.decor.filter(x=>x.type==='flowerStand');assert.ok(st.length>=6);assert.ok(st.every(s=>Math.abs(Math.abs(s.z)-1.6)<.01),'both sides of a 2 m aisle');
+ d=placeForListing(base(),'lantern');assert.ok(d.decor.filter(x=>x.type==='lantern').length>=8);
+ d=placeForListing(base(),'carpet');assert.ok(d.carpet.tiles.length>=40);assert.ok(d.carpet.tiles.every(([,j])=>j===-1||j===0),'a 2 m runner on the centre line');
+ d=placeForListing(placeForListing(base(),'arch'),'arch');assert.equal(d.decor.filter(x=>x.type==='arch').length,1,'one arch, not one per click');
+ assert.throws(()=>placeForListing(base(),'nope'));
+ assert.deepEqual([...LISTING_DECOR].sort(),['arch','carpet','flowerStand','flowerWall','hedge','lantern']);
+});
+import {placeSavedListings} from '../src/studio/decor/decor.js';
+test('saved marketplace decor is placed once when the studio opens; removing it later sticks',()=>{
+ const saved=[{id:'decor-hedges',inventoryType:'hedge'},{id:'music-strings',inventoryType:null},{id:'decor-red-carpet',inventoryType:'carpet'}];
+ let d=placeSavedListings(base(),saved);
+ assert.ok(d.decor.some(x=>x.type==='hedge'));assert.ok(d.carpet.tiles.length>0);assert.deepEqual(d.placedListings.sort(),['decor-hedges','decor-red-carpet']);
+ d={...d,carpet:{...d.carpet,tiles:[]}};
+ assert.equal(placeSavedListings(d,saved),d,'nothing new: same object, no extra undo step');
+});
