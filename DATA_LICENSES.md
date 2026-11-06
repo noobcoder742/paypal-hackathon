@@ -5,6 +5,7 @@
 | Singapore buildings, roads, parks, water and coastline (`public/data/sg`, and the 3D city built from it) | © OpenStreetMap contributors, via the Geofabrik extract | Open Database License (ODbL) 1.0. The derived map data in this repo is offered under the ODbL too. Attribution is shown on the map |
 | Vendor photos in the marketplace, and the photos on My Wedding, the Planner, the venue cards, the sign-in panel and the signed-out pages (linked from images.unsplash.com, not stored; list in `src/data/photos.js`) | Unsplash | Unsplash License |
 | Homepage hero photo (`public/media/hero-ballroom.jpg`) | "Millennium Vee Hotel Ballroom" by Millennium77, [Wikimedia Commons](https://commons.wikimedia.org/w/index.php?curid=36268069). Cropped, a screen blurred, darkened | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The edited photo is shared under the same licence. Credited on the page |
+| Demo ballroom (`public/venues/demo-ballroom/`, `public/venues/ballroom-render.jpg`) | Made for this project in Blender (`scripts/blender/`) and rendered in Cycles; textures are procedural. No third-party art | Project's own work |
 | Fonts: Cormorant Garamond, Outfit | Google Fonts | SIL Open Font License 1.1 |
 | Icons | lucide-react | ISC |
 | 3D libraries: three.js, react-three-fiber, drei | npm | MIT |
