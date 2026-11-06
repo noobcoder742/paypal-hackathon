@@ -4,8 +4,13 @@ export const TTL_SECONDS=30*24*3600;
 let memory=new Map();
 export function resetMemoryStore(){memory=new Map()}
 let redis=null;
-async function getRedis(){if(redis)return redis;const {Redis}=await import('@upstash/redis');redis=new Redis({url:process.env.UPSTASH_REDIS_REST_URL,token:process.env.UPSTASH_REDIS_REST_TOKEN});return redis}
-const useRedis=()=>!!(process.env.UPSTASH_REDIS_REST_URL&&process.env.UPSTASH_REDIS_REST_TOKEN);
+/** Upstash's own variable names, or the KV_REST_API_* names Vercel's Upstash integration adds. */
+export function redisConfig(){
+ const url=process.env.UPSTASH_REDIS_REST_URL||process.env.KV_REST_API_URL,token=process.env.UPSTASH_REDIS_REST_TOKEN||process.env.KV_REST_API_TOKEN;
+ return url&&token?{url,token}:null;
+}
+async function getRedis(){if(redis)return redis;const {Redis}=await import('@upstash/redis');redis=new Redis(redisConfig());return redis}
+const useRedis=()=>!!redisConfig();
 export function getStore(){
  if(!useRedis())return {
   async get(k){const e=memory.get(k);if(!e)return null;if(e.exp<Date.now()){memory.delete(k);return null}return structuredClone(e.v)},
