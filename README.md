@@ -50,7 +50,7 @@ The toolkit's `create_order` tool only accepts USD, so the SGD deposit order use
 | Tool | How |
 | --- | --- |
 | **Claude Haiku 5.5** (Anthropic), via the **Vercel AI SDK** | Runs both agents: couple planning with tools, hotel quotes and reminders, and the AG Studio agents' turns |
-| **Gemini 2.5 Flash** (Google AI Studio, free tier) | Automatic fallback when Claude fails before answering (`server/models.js`) |
+| **Gemini Flash** (Google AI Studio, free tier; `gemini-flash-latest`, or set `GEMINI_MODEL`) | Automatic fallback when Claude fails before answering (`server/models.js`) |
 | **AG Studio Agent Framework** | Our Bookings assistant is the primary agent. It holds the PayPal-deposit tools and delegates widget building to AG's built-in agents. Every model turn goes through `/api/hotel/studio-llm`, so no key is ever in the browser (`src/hotel/studioAgent.js`) |
 | **Claude Code** | Used to write much of this code, from the founder's designs and decisions |
 

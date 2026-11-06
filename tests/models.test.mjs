@@ -18,3 +18,11 @@ test('uses the primary when it works and never calls the backup',async()=>{
 test('throws when every model fails',async()=>{
  const m=fallbackModel([broken('a'),broken('b')]);await assert.rejects(generateText({model:m,prompt:'hi'}),/overloaded/);
 });
+test('Gemini fallback uses the auto-updating Flash alias, overridable with GEMINI_MODEL',async()=>{
+ const {defaultModels}=await import('../server/models.js');
+ const saved={...process.env};delete process.env.ANTHROPIC_API_KEY;delete process.env.AGENT_FAKE;process.env.GOOGLE_GENERATIVE_AI_API_KEY='test-key';
+ try{
+  delete process.env.GEMINI_MODEL;assert.deepEqual((await defaultModels()).map(m=>m.modelId),['gemini-flash-latest']);
+  process.env.GEMINI_MODEL='gemini-3.6-flash';assert.deepEqual((await defaultModels()).map(m=>m.modelId),['gemini-3.6-flash']);
+ }finally{process.env=saved}
+});
