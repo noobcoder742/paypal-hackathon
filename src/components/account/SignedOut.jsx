@@ -1,4 +1,5 @@
 // Signed-out experience: the sign-in dialog, teaser screens for Design and
+import {PHOTOS} from '../../data/photos.js';
 // Planner (a glimpse of each feature without the real tools), and a gentle
 // sign-in bar. Every key action invites the visitor to sign in.
 import React,{useEffect,useRef,useState} from 'react';
@@ -48,13 +49,13 @@ export function SignInBar({onSignIn}){
 
 const TEASERS={
  studio:{kicker:'Design',title:<>See your venue <em>before</em> you book.</>,lede:'Explore partner hotels, churches and gardens on a 3D map of Singapore, then step inside the ballroom to arrange tables, lighting and florals.',
-  cta:'Sign in to start designing',image:'/venues/ballroom-render.jpg',
+  cta:'Sign in to start designing',image:PHOTOS.arch,
   points:[[MapIcon,'A 3D map of Singapore','Search venues and fly to them, with nearest MRT, parking and capacity at a glance.'],[Layers3,'Design in 3D','Tables, chairs, stage, florals and lighting in the real room dimensions.'],[Armchair,'See it from their seat','Preview the view from any guest\'s chair, and compare up to two drafts per hotel.']]},
  plan:{kicker:'Planner',title:<>Every detail, <em>in its place</em>.</>,lede:'A checklist that keeps you on track, a guest list sorted by side of the family, a budget that adds itself up, and a wedding-day check-in.',
-  cta:'Sign in to start planning',image:'/venues/ballroom-render.jpg',
+  cta:'Sign in to start planning',image:PHOTOS.table,
   points:[[ClipboardList,'Checklist by phase','From venue and date to the run sheet.'],[Users,'Guests by side','Hers, His and both, with RSVPs, diets and seats you assign in 3D.'],[Wallet,'Budget that adds up','Payments and saved vendor items against your total.'],[CalendarDays,'Wedding-day check-in','Tick guests in as they arrive, NFC tap-in coming soon.']]},
  dashboard:{kicker:'My Wedding',title:<>Your day, <em>at a glance</em>.</>,lede:'A countdown, your venue and drafts, guest responses and budget, all on one calm page that becomes your home once you sign in.',
-  cta:'Sign in to see My Wedding',image:'/venues/ballroom-render.jpg',
+  cta:'Sign in to see My Wedding',image:PHOTOS.coupleAlt,
   points:[[CalendarDays,'Countdown','Days to go and what to do next.'],[MapIcon,'Venue & drafts','Jump back into your latest design.'],[Users,'Guests & budget','Responses and spending in one view.']]}
 };
 /** A glimpse of a members-only page, with the real tools behind sign-in. */
