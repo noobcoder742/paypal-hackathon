@@ -25,3 +25,9 @@ test('the agent\'s plan places its band, by genre',()=>{
  const l=applyStudioPatch(base(),{place:[{type:'ensemble',genre:'jazz'}]});
  const band=(l.decor||[]).find(x=>x.type==='ensemble');assert.equal(band?.genre,'jazz');
 });
+import {tableGrid,AISLE_HALF} from '../src/explorer/agent/applyStudioPatch.js';
+test('table grid: up to 16 tables keep the centre aisle clear; tables never crowd (3.2 m apart) up to the room maximum of 24',()=>{
+ const gap=g=>Math.min(...g.flatMap((a,i)=>g.slice(i+1).map(b=>Math.hypot(a.x-b.x,a.z-b.z))));
+ for(const n of [2,7,12,16]){const g=tableGrid(n);assert.equal(g.length,n);assert.ok(g.every(p=>Math.abs(p.z)>AISLE_HALF),n+' tables leave the aisle');if(n>1)assert.ok(gap(g)>=3.2,n+' tables spaced')}
+ for(const n of [20,24]){const g=tableGrid(n);assert.equal(g.length,n);assert.ok(gap(g)>=3.19,n+' tables spaced');for(const p of g)assert.ok(p.x>ROOM.minX&&p.x<ROOM.maxX&&p.z>ROOM.minZ&&p.z<ROOM.maxZ)}
+});

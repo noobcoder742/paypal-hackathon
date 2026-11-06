@@ -3,8 +3,8 @@ import {GENRES,cleanLineup} from './ensembles.js';
 // and the carpet the couple lays tile by tile. Pure functions on the studio's saved
 // layout, so undo/redo and saving keep working unchanged.
 
-// Room interior, metres (31.4 m × 22.6 m), less a small wall margin.
-export const ROOM_BOUNDS={minX:-15.2,maxX:15.2,minZ:-10.8,maxZ:10.8};
+// Room interior, metres (16.8 m × 20.6 m), less a small wall margin.
+export const ROOM_BOUNDS={minX:-7.9,maxX:7.9,minZ:-9.8,maxZ:9.8};
 export const TILE=1;     // carpet tile: 1 m × 1 m, a thin layer on the floor
 
 export const DECOR_TYPES={
@@ -20,7 +20,7 @@ export const CARPET_COLOURS={red:'#8f1f2a',white:'#f2efe8',ivory:'#e6dccb',blush
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const nextId=list=>1+Math.max(0,...list.map(x=>x.id||0));
 const clampItem=it=>({...it,x:clamp(it.x,ROOM_BOUNDS.minX,ROOM_BOUNDS.maxX),z:clamp(it.z,ROOM_BOUNDS.minZ,ROOM_BOUNDS.maxZ)});
-const DEFAULT_SPOT={arch:{x:-10,z:0,rotation:Math.PI/2},flowerWall:{x:13.6,z:0,rotation:-Math.PI/2},ensemble:{x:-11,z:-7.5,rotation:Math.PI*.7}};
+const DEFAULT_SPOT={arch:{x:-5,z:0,rotation:Math.PI/2},flowerWall:{x:7.6,z:0,rotation:-Math.PI/2},ensemble:{x:-6.2,z:-7.4,rotation:Math.PI*.7}};
 
 export function addDecor(data,type,at={}){
  if(!DECOR_TYPES[type])throw new Error('unknown decor type '+type);
@@ -75,7 +75,7 @@ export function hedgeRowForStage(stage){
 
 // What a marketplace listing (or the AI planner's plan) puts in the room.
 export const LISTING_DECOR=new Set(['arch','hedge','flowerStand','lantern','flowerWall','carpet','ensemble']);
-const AISLE_X={from:-9,to:15};   // from the stage front to the far (entrance) wall
+const AISLE_X={from:-5,to:8};   // from the stage front to the far (entrance) wall
 export function placeForListing(data,type,listing={}){
  if(!LISTING_DECOR.has(type))throw new Error('no decor for '+type);
  let d=migrateDecor(data);const has=t=>(d.decor||[]).some(x=>x.type===t);
@@ -85,12 +85,12 @@ export function placeForListing(data,type,listing={}){
   const band=(d.decor||[]).find(x=>x.type==='ensemble'&&x.genre===genre);
   if(band)return updateDecor(d,band.id,{lineup});
   const n=(d.decor||[]).filter(x=>x.type==='ensemble').length;
-  return addDecor(d,'ensemble',{genre,lineup,listingId:listing.id,...(n?{x:-11,z:7.5,rotation:Math.PI*.3}:{})});
+  return addDecor(d,'ensemble',{genre,lineup,listingId:listing.id,...(n?{x:-6.2,z:7.4,rotation:Math.PI*.3}:{})});
  }
  if(type==='arch'||type==='flowerWall')return has(type)?d:addDecor(d,type);
- if(type==='hedge')return has('hedge')?d:hedgeRowForStage(d.stage||{x:-13.9,z:0,width:10.2,depth:3.4,rotation:Math.PI/2}).reduce((acc,at)=>addDecor(acc,'hedge',at),d);
- if(type==='flowerStand'){if(has(type))return d;for(let x=-7;x<=13;x+=4)for(const z of [-1.6,1.6])d=addDecor(d,'flowerStand',{x,z});return d}
- if(type==='lantern'){if(has(type))return d;for(let x=-5;x<=11;x+=4)for(const z of [-1.25,1.25])d=addDecor(d,'lantern',{x,z});return d}
+ if(type==='hedge')return has('hedge')?d:hedgeRowForStage(d.stage||{x:-6.95,z:0,width:7.2,depth:2.6,rotation:Math.PI/2}).reduce((acc,at)=>addDecor(acc,'hedge',at),d);
+ if(type==='flowerStand'){if(has(type))return d;for(let x=-4;x<=7;x+=3.5)for(const z of [-1.6,1.6])d=addDecor(d,'flowerStand',{x,z});return d}
+ if(type==='lantern'){if(has(type))return d;for(let x=-3;x<=7;x+=3.3)for(const z of [-1.25,1.25])d=addDecor(d,'lantern',{x,z});return d}
  // carpet: a 2 m runner down the centre aisle
  const cells=[];for(let i=AISLE_X.from;i<AISLE_X.to;i++)cells.push([i,-1],[i,0]);
  return paintTiles(d,cells,'add');

@@ -11,7 +11,8 @@ import {pendingPatchKey} from './agent/applyStudioPatch.js';
 import {VENUES,findVenue,findSpace} from '../data/venues.js';
 
 const KEY='wedding-design-v1';
-const BASE_STORAGE={'orchard-grand/grand-ballroom':'wedding-room-v1'};
+// v2: the Grand Ballroom was rebuilt at a new size (Nov 2026), so old layouts don't carry over
+const BASE_STORAGE={'orchard-grand/grand-ballroom':'wedding-room-v2'};
 export const MAX_DRAFTS_PER_VENUE=2;
 const LETTERS=['A','B','C'];
 const read=()=>{try{return JSON.parse(localStorage.getItem(KEY))||{}}catch{return {}}};

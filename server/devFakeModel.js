@@ -14,7 +14,7 @@ function plan(prompt){
  if(textOf(prompt.find(m=>m.role==='system')||{}).includes('banquet sales assistant'))return hotelPlan(prompt);
  const users=prompt.filter(m=>m.role==='user'),last=textOf(users[users.length-1]||{}).toLowerCase();
  const done=prompt.filter(m=>m.role==='tool').flatMap(m=>m.content.map(c=>c.toolName));
- const tables=+(last.match(/(\d+)\s*tables?/)||[])[1]||30,budget=(()=>{const m=last.match(/s?\$\s*([\d,]+)\s*(k)?/);return m?parseFloat(m[1].replace(/,/g,''))*(m[2]?1000:1):null})();
+ const tables=+(last.match(/(\d+)\s*tables?/)||[])[1]||16,budget=(()=>{const m=last.match(/s?\$\s*([\d,]+)\s*(k)?/);return m?parseFloat(m[1].replace(/,/g,''))*(m[2]?1000:1):null})();
  const style=['garden','classic','modern','romantic','minimal'].find(s=>last.includes(s))||'garden';
  const venueId='orchard-grand',lines=style==='garden'?[{id:'floral-greenery',qty:tables},{id:'floral-arch',qty:1},{id:'light-canopy',qty:1},{id:'music-strings',qty:1}]:[{id:'floral-white',qty:tables},{id:'light-ambient',qty:1},{id:'music-piano',qty:1}];
  if(/secure|deposit|pay/.test(last))return done.includes('create_deposit_order')?{text:'Your deposit order is ready. Approve it with the PayPal button below; nothing is charged until you do.'}:{call:'create_deposit_order',args:{}};

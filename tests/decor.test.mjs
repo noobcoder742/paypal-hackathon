@@ -47,7 +47,7 @@ test('a marketplace listing places its item sensibly: hedges at the stage, stand
  let d=placeForListing(base(),'hedge');assert.ok(d.decor.filter(x=>x.type==='hedge').length>=4);
  d=placeForListing(base(),'flowerStand');const st=d.decor.filter(x=>x.type==='flowerStand');assert.ok(st.length>=6);assert.ok(st.every(s=>Math.abs(Math.abs(s.z)-1.6)<.01),'both sides of a 2 m aisle');
  d=placeForListing(base(),'lantern');assert.ok(d.decor.filter(x=>x.type==='lantern').length>=8);
- d=placeForListing(base(),'carpet');assert.ok(d.carpet.tiles.length>=40);assert.ok(d.carpet.tiles.every(([,j])=>j===-1||j===0),'a 2 m runner on the centre line');
+ d=placeForListing(base(),'carpet');assert.ok(d.carpet.tiles.length>=24,'stage front to the entrance, 2 tiles wide');assert.ok(d.carpet.tiles.every(([,j])=>j===-1||j===0),'a 2 m runner on the centre line');
  d=placeForListing(placeForListing(base(),'arch'),'arch');assert.equal(d.decor.filter(x=>x.type==='arch').length,1,'one arch, not one per click');
  assert.throws(()=>placeForListing(base(),'nope'));
  assert.deepEqual([...LISTING_DECOR].sort(),['arch','carpet','ensemble','flowerStand','flowerWall','hedge','lantern']);

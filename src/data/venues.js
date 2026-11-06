@@ -13,16 +13,16 @@ export const VENUE_CATEGORIES=[
 
 export const VENUES=[
  {
-  id:'orchard-grand',banquet:{pricePerTable:2288,minTables:15,maxTables:38},name:'The Orchard Grand',area:'Tanglin · Orchard',category:'hotel',status:'3d',
+  id:'orchard-grand',banquet:{pricePerTable:2288,minTables:10,maxTables:24},name:'The Orchard Grand',area:'Tanglin · Orchard',category:'hotel',status:'3d',
   // Points inside the venue's buildings (used to highlight them on the map).
   points:[[1.3057577,103.8260358]],
-  facts:[['Nearest MRT','Orchard Boulevard (TE13), about 6 min walk'],['Parking','Hotel car park'],['Catering','In-house banquet kitchen'],['Banquet capacity','Up to 380']],
+  facts:[['Nearest MRT','Orchard Boulevard (TE13), about 6 min walk'],['Parking','Hotel car park'],['Catering','In-house banquet kitchen'],['Banquet capacity','Up to 240']],
   note:'Fictional demo venue on a real building. Name, prices and details are invented for the demo.',
   spaces:[{
-   id:'grand-ballroom',name:'Grand Ballroom',summary:'31 × 23 m · up to 380 guests',
+   id:'grand-ballroom',name:'Grand Ballroom',summary:'21 × 17 m · up to 240 guests',
    image:'/venues/ballroom-render.jpg',studio:'orchard-grand/grand-ballroom',
    // Highlight box on the map, metres relative to the venue's first point.
-   box:{x:0,y:4.2,z:0,width:31.4,height:8.3,depth:22.6}
+   box:{x:0,y:2.7,z:0,width:16.8,height:5.4,depth:20.6}
   }]
  },
  {id:'tanglin-house',banquet:{pricePerTable:2188,minTables:20,maxTables:80},name:'Tanglin House',area:'Orange Grove · Orchard',category:'hotel',status:'example',
