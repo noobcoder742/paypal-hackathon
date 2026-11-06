@@ -1,4 +1,5 @@
 import React,{useState,useEffect,useRef,Suspense,lazy} from 'react';
+import {PHOTOS} from '../data/photos.js';
 const HotelDashboard=lazy(()=>import('../hotel/HotelDashboard.jsx'));
 import useSlidingIndicator from './ui/useSlidingIndicator.js';
 import {Flower2,ArrowRight,ArrowUpRight,Check,CalendarDays,Users,Wallet,ClipboardList,Store,Building2,Heart,Settings,LogOut,UserRound,ChevronDown,Menu,Plus,Trash2,Search,Mail,Download,Save,Clock,MapPin} from 'lucide-react';
@@ -103,9 +104,9 @@ export default function PlatformApp({Studio}){
    <div className="home-venues">
     <button className="home-venue-feature" onClick={()=>go('studio')}><span className="home-venue-photo" style={{backgroundImage:'url(/venues/ballroom-render.jpg)'}}/><span className="home-venue-caption"><span className="home-flag">3D ready</span><h3>Grand Ballroom</h3><p>The Orchard Grand · Orchard · up to 380 guests · unofficial reconstruction</p></span></button>
     <div className="home-venue-list">
-     <article><span className="home-venue-thumb garden"/><div><span className="home-flag muted">3D coming</span><h3>Garden pavilion</h3><p>Example listing · outdoor · 150 guests</p></div></article>
-     <article><span className="home-venue-thumb chapel"/><div><span className="home-flag muted">3D coming</span><h3>Heritage chapel</h3><p>Example listing · ceremony · 120 guests</p></div></article>
-     <article><span className="home-venue-thumb map"/><div><span className="home-flag">New</span><h3>Search the map</h3><p>Find venues across Singapore in 3D, then step inside.</p></div></article>
+     <article><span className="home-venue-thumb garden" style={{backgroundImage:`url(${PHOTOS.garden})`}}/><div><span className="home-flag muted">3D coming</span><h3>Garden pavilion</h3><p>Example listing · outdoor · 150 guests</p></div></article>
+     <article><span className="home-venue-thumb chapel" style={{backgroundImage:`url(${PHOTOS.chapel})`}}/><div><span className="home-flag muted">3D coming</span><h3>Heritage chapel</h3><p>Example listing · ceremony · 120 guests</p></div></article>
+     <article><span className="home-venue-thumb map" style={{backgroundImage:"url(/map-snapshot.webp)"}}/><div><span className="home-flag">New</span><h3>Search the map</h3><p>Find venues across Singapore in 3D, then step inside.</p></div></article>
     </div>
    </div>
   </section>

@@ -1,4 +1,5 @@
 // Account area: My Wedding (overview), Profile and Settings.
+import {PHOTOS} from '../../data/photos.js';
 import React,{useMemo,useState} from 'react';
 import {ArrowRight,ArrowUpRight,CalendarDays,Users,Wallet,Sparkles,MapPin,Download,Trash2,ShieldCheck,Bell,Globe2,Box,UserRound,Lock,Info,Check} from 'lucide-react';
 import {CountUp,Ring,Reveal} from '../ui/motion.jsx';
@@ -20,7 +21,7 @@ export function MyWeddingPage({planner,go,openPlan,percent,completed}){
  const next=planner.tasks.filter(t=>!t.done).slice(0,4);
  return <main className="acct-page wed">
   <section className="wed-hero">
-   <div className="wed-hero-photo" style={{backgroundImage:`url(${thumb||'/venues/ballroom-render.jpg'})`}} aria-hidden="true"/>
+   <div className="wed-hero-photo" style={{backgroundImage:`url(${PHOTOS.couple})`}} aria-hidden="true"/>
    <div className="wed-hero-copy">
     <span className="acct-kicker">My wedding</span>
     {days!=null&&days>=0?<h1><span className="wed-days"><CountUp value={days}/></span> {days===1?'day':'days'} to go.</h1>:days!=null?<h1>Congratulations on your <em>wedding</em>.</h1>:<h1>Your day, <em>beautifully</em> planned.</h1>}
@@ -35,7 +36,7 @@ export function MyWeddingPage({planner,go,openPlan,percent,completed}){
     <div><h2>Planning progress</h2><p>{completed} of {planner.tasks.length} tasks complete</p><span className="wed-link">Open checklist <ArrowRight size={14}/></span></div>
    </Reveal>
    <Reveal index={1} className="wed-card wed-venue" onClick={()=>go('studio')} role="button" tabIndex={0}>
-    <div className="wed-venue-img" style={thumb?{backgroundImage:`url(${thumb})`}:undefined}>{!thumb&&<MapPin size={22}/>}</div>
+    <div className="wed-venue-img" style={{backgroundImage:`url(${thumb||'/venues/ballroom-render.jpg'})`}}/>
     <div><span className="acct-kicker">Venue & design</span><h2>{venue?venue.name:'Choose your venue'}</h2><p>{venue?`${space?.name||''} · ${draftTotal} saved draft${draftTotal===1?'':'s'}`:'Explore partner venues on the 3D map.'}</p><span className="wed-link">{venue?'Open your design':'Open the map'} <ArrowUpRight size={14}/></span></div>
    </Reveal>
    <Reveal index={2} className="wed-card wed-guests" onClick={()=>openPlan('guests')} role="button" tabIndex={0}>
