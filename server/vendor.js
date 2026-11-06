@@ -32,7 +32,8 @@ export async function requireVendor(request,store){
 
 const key=(vendorId,id)=>`vbooking:${vendorId}:${id}`;
 /** After a deposit order is captured: one booking per order line, filed under that line's vendor. Idempotent. */
-export async function recordBookings({store,orderId,lines=[],capture}){
+export async function recordBookings({store,orderId,planId=null,lines=[],capture}){
+ const plan=planId?await store.get('plan:'+planId):null;
  const payer=capture?.payer||{},name=[payer.name?.given_name,payer.name?.surname].filter(Boolean).join(' ')||'Couple';
  const email=payer.email_address||null;
  for(const [i,l] of lines.entries()){
@@ -41,11 +42,17 @@ export async function recordBookings({store,orderId,lines=[],capture}){
   if(await store.get(key(v.id,id)))continue;
   const total=round2(l.total),deposit=round2(l.deposit);
   await store.set(key(v.id,id),{id,vendorId:v.id,orderId,itemId:l.id,itemName:l.name,qty:l.qty,total,deposit,balance:round2(total-deposit),
-   couple:name,email,weddingDate:null,createdAt:Date.now(),seen:false,invoice:null,events:[{type:'deposit',at:Date.now(),amount:deposit}]});
+   couple:name,email,weddingDate:null,planId,venueId:plan?.venueId||null,tables:plan?.tables||null,planLines:(plan?.lines||[]).map(x=>({id:x.id,qty:x.qty})),createdAt:Date.now(),seen:false,invoice:null,events:[{type:'deposit',at:Date.now(),amount:deposit}]});
  }
 }
 export async function listBookings({store,vendorId}){
- return (await store.list(`vbooking:${vendorId}:`)).map(x=>x.value).sort((a,b)=>b.createdAt-a.createdAt);
+ const list=(await store.list(`vbooking:${vendorId}:`)).map(x=>x.value).sort((a,b)=>b.createdAt-a.createdAt);
+ // the wedding date arrives with the couple's enquiry to the venue (same plan)
+ if(list.some(b=>!b.weddingDate&&b.planId)){
+  const dates=new Map((await store.list('enquiry:')).map(e=>[e.value.planId,e.value.date]));
+  for(const b of list)if(!b.weddingDate&&dates.get(b.planId))b.weddingDate=dates.get(b.planId);
+ }
+ return list;
 }
 async function getOwn(store,vendorId,bookingId){
  if(!/^[A-Za-z0-9-]{3,80}$/.test(String(bookingId||'')))return null;

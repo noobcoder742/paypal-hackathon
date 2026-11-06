@@ -12,6 +12,6 @@ export async function captureOrder({orderId,store,paypalFetch}){
  if(res?.status!=='COMPLETED'||cap?.amount?.currency_code!=='SGD'||amount!==order.depositTotal){await store.set(key,{...order,status:'mismatch',captured:cap?.amount||null});return {status:'FAILED',reason:'amount_mismatch'}}
  await store.set(key,{...order,status:'captured',captureId:cap.id,capturedAt:Date.now()});
  // each vendor sees its booking (couple's name and email from PayPal); never blocks the capture
- try{await recordBookings({store,orderId,lines:order.lines,capture:res})}catch{}
+ try{await recordBookings({store,orderId,planId:order.planId,lines:order.lines,capture:res})}catch{}
  return {status:'COMPLETED',depositTotal:order.depositTotal,lines:order.lines,captureId:cap.id};
 }
