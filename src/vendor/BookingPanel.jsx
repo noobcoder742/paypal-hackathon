@@ -4,12 +4,13 @@ import {X,Send,Sparkles,RefreshCw,Check,ExternalLink} from 'lucide-react';
 import {bookingAction} from './api.js';
 import {StatusPill,dateText,ago} from './ui.jsx';
 import {sgd} from './status.js';
+import {celebrate} from './Confetti.jsx';
 
 const EVENT={deposit:'Deposit paid through PayPal',invoice:'Balance invoice sent with PayPal',reminder:'Friendly reminder sent',paid:'Balance paid in full'};
 export default function BookingPanel({booking:b,onClose,onChanged,inline=false}){
  const [busy,setBusy]=useState(''),[draft,setDraft]=useState(null),[err,setErr]=useState('');
  const act=async(action,extra)=>{setBusy(action);setErr('');
-  try{const r=await bookingAction(b.id,action,extra);if(action==='draft-reminder')setDraft(r.text);else{onChanged(r.booking);if(action==='send-reminder')setDraft(null)}}
+  try{const r=await bookingAction(b.id,action,extra);if(action==='refresh'&&r.booking.status==='paid_in_full'&&b.status!=='paid_in_full')celebrate(r.booking.balance,`balance paid by ${b.couple}`);if(action==='draft-reminder')setDraft(r.text);else{onChanged(r.booking);if(action==='send-reminder')setDraft(null)}}
   catch(e){setErr(e.code===503?'The AI assistant is unavailable right now. You can write the reminder yourself.':e.message==='no_couple_email'?'PayPal didn’t share this couple’s email, so an invoice can’t be sent.':'That didn’t work: '+e.message)}
   finally{setBusy('')}};
  const canAct=!b.isExample;

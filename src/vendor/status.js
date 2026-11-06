@@ -23,7 +23,8 @@ export function exampleBookings(vendor,now=Date.now()){
  return COUPLES.map((c,i)=>{
   const item=items[i%items.length],qty=item.unit==='table'||item.unit==='arrangement'?[24,30,18,26,34,22,28,30][i]:1;
   const total=Math.round(item.price*qty*100)/100,deposit=Math.round(total*20)/100,balance=Math.round((total-deposit)*100)/100;
-  const status=PLAN[i],day=new Date(Date.UTC(2027,1+i,6+i*3));
+  // one wedding four weeks away, so the 'get ready' to-do shows in the demo
+  const status=PLAN[i],day=i===2?new Date(now+28*864e5):new Date(Date.UTC(2027,1+i,6+i*3));
   const created=now-(i===0?2:i*6+3)*864e5;
   const invoice=['balance_invoiced','overdue','paid_in_full'].includes(status)?{id:'EXAMPLE',status:status==='paid_in_full'?'PAID':'SENT',amount:balance,sentAt:created+864e5*(status==='overdue'?1:3),reminders:status==='overdue'?1:0}:null;
   const events=[{type:'deposit',at:created,amount:deposit},...(invoice?[{type:'invoice',at:invoice.sentAt,amount:balance}]:[]),...(status==='overdue'?[{type:'reminder',at:invoice.sentAt+12*864e5}]:[]),...(status==='paid_in_full'?[{type:'paid',at:invoice.sentAt+5*864e5,amount:balance}]:[])];
@@ -37,7 +38,7 @@ export function exampleBookings(vendor,now=Date.now()){
 }
 /** One row per booking for AG Studio (fields documented in insights.js). */
 export function studioRows(bookings){
- return bookings.map(b=>({id:b.id,couple:b.couple,item:b.itemName,status:b.status,statusLabel:statusMeta(b.status).label,
+ return [...bookings].sort((a,b)=>(a.weddingDate||'9999').localeCompare(b.weddingDate||'9999')).map(b=>({id:b.id,couple:b.couple,item:b.itemName,status:b.status,statusLabel:statusMeta(b.status).label,
   weddingDate:b.weddingDate||null,weddingMonth:b.weddingDate?b.weddingDate.slice(0,7):'Date to confirm',
   total:b.total,deposit:b.deposit,balance:b.balance,balanceDue:balanceDue(b),paidInFull:isPaidInFull(b)?b.balance:0,
   moneyIn:b.deposit+(isPaidInFull(b)?b.balance:0),toInvoice:(b.status==='new'||b.status==='deposit_paid')?b.balance:0,overdueDue:b.status==='overdue'?b.balance:0,
