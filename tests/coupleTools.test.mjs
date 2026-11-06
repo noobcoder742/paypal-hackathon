@@ -7,17 +7,17 @@ function fakePayPal(){const calls=[];setPayPalFetch(async(path,init)=>{calls.pus
 const run=(tools,name,args)=>tools[name].execute(args,{toolCallId:'t',messages:[]});
 test('over budget: no plan can work, and it says why',async()=>{
  resetMemoryStore();const t=coupleTools({store:getStore(),planId:'plan-a1b2c3d4'});
- const r=await run(t,'check_budget',{venueId:VENUE,tables:30,lines:[{id:'floral-arch',qty:1}],budget:5000});
+ const r=await run(t,'check_budget',{venueId:VENUE,tables:20,lines:[{id:'floral-arch',qty:1}],budget:5000});
  assert.equal(r.ok,false);assert.ok(r.problems.some(p=>/budget/i.test(p)),JSON.stringify(r.problems));
 });
-test('over capacity: 45 tables in a 38-table room is refused',async()=>{
+test('over capacity: 30 tables in a 24-table room is refused',async()=>{
  resetMemoryStore();const t=coupleTools({store:getStore(),planId:'plan-a1b2c3d4'});
- const r=await run(t,'check_budget',{venueId:VENUE,tables:45,lines:[],budget:200000});
+ const r=await run(t,'check_budget',{venueId:VENUE,tables:30,lines:[],budget:200000});
  assert.equal(r.ok,false);assert.ok(r.problems.some(p=>/tables/i.test(p)));
 });
 test('deposit order: server-computed SGD amounts, one line per vendor item',async()=>{
  resetMemoryStore();const calls=fakePayPal();const store=getStore();const t=coupleTools({store,planId:'plan-a1b2c3d4'});
- await run(t,'place_in_ballroom',{venueId:VENUE,tables:30,lines:[{id:'floral-arch',qty:1},{id:'music-strings',qty:1}]});
+ await run(t,'place_in_ballroom',{venueId:VENUE,tables:20,lines:[{id:'floral-arch',qty:1},{id:'music-strings',qty:1}]});
  const r=await run(t,'create_deposit_order',{});
  assert.equal(r.depositTotal,404);assert.equal(calls.length,1);
  const pu=calls[0].body.purchase_units[0];assert.equal(pu.amount.currency_code,'SGD');assert.equal(pu.amount.value,'404.00');
@@ -26,17 +26,17 @@ test('deposit order: server-computed SGD amounts, one line per vendor item',asyn
 });
 test('unknown item: rejected, and no order is created',async()=>{
  resetMemoryStore();const calls=fakePayPal();const t=coupleTools({store:getStore(),planId:'plan-a1b2c3d4'});
- const p=await run(t,'place_in_ballroom',{venueId:VENUE,tables:30,lines:[{id:'gold-throne',qty:1}]});
+ const p=await run(t,'place_in_ballroom',{venueId:VENUE,tables:20,lines:[{id:'gold-throne',qty:1}]});
  assert.deepEqual(p,{error:'unknown_item',id:'gold-throne'});
  const r=await run(t,'create_deposit_order',{});assert.ok(r.error);assert.equal(calls.length,0);
 });
 test('placing items returns a studio patch derived from the items',async()=>{
  resetMemoryStore();const t=coupleTools({store:getStore(),planId:'plan-a1b2c3d4'});
- const r=await run(t,'place_in_ballroom',{venueId:VENUE,tables:30,lines:[{id:'floral-arch',qty:1},{id:'floral-greenery',qty:30},{id:'light-canopy',qty:1}]});
- assert.deepEqual(r.studioPatch,{tables:30,flowers:'green',lighting:'warm',show:{arch:true,decor:true}});
+ const r=await run(t,'place_in_ballroom',{venueId:VENUE,tables:20,lines:[{id:'floral-arch',qty:1},{id:'floral-greenery',qty:20},{id:'light-canopy',qty:1}]});
+ assert.deepEqual(r.studioPatch,{tables:20,flowers:'green',lighting:'warm',show:{arch:true,decor:true}});
 });
 import {studioPatchFor} from '../server/agent/coupleTools.js';
 test('a plan with music asks the studio to place that band',()=>{
- const p=studioPatchFor(30,[{id:'music-strings',qty:1},{id:'decor-red-carpet',qty:1}]);
+ const p=studioPatchFor(20,[{id:'music-strings',qty:1},{id:'decor-red-carpet',qty:1}]);
  assert.deepEqual(p.place,['carpet',{type:'ensemble',genre:'classical'}]);
 });

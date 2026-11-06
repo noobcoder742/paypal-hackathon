@@ -7,3 +7,7 @@ public/data/sg3d/
 map-performance-report.json
 .superpowers/
 !.env.example
+
+# Blender texture scratch and Python caches
+build/
+__pycache__/

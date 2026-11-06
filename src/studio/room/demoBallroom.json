@@ -1,0 +1,36 @@
+{
+ "lightmaps": {
+  "floor": {
+   "file": "lm-floor.webp",
+   "scale": 1.7211
+  },
+  "wall_head": {
+   "file": "lm-wall_head.webp",
+   "scale": 1.653
+  },
+  "wall_entrance": {
+   "file": "lm-wall_entrance.webp",
+   "scale": 0.8855
+  },
+  "wall_left": {
+   "file": "lm-wall_left.webp",
+   "scale": 1.0796
+  },
+  "wall_right": {
+   "file": "lm-wall_right.webp",
+   "scale": 1.0714
+  },
+  "ceiling": {
+   "file": "lm-ceiling.webp",
+   "scale": 8.0268
+  }
+ },
+ "env": "env.jpg",
+ "glb": "room.glb",
+ "dimensions": {
+  "length": 16.8,
+  "width": 20.6,
+  "height": 4.6,
+  "ceiling": 5.35
+ }
+}

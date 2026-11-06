@@ -7,11 +7,11 @@ import {findVenue} from '../src/data/venues.js';
 function fakeToolkit(){const calls=[];const mk=name=>({execute:async a=>{calls.push({name,a});return name==='create_invoice'?{href:'https://api-m.sandbox.paypal.com/v2/invoicing/invoices/INV2-AAAA-BBBB',id:'INV2-AAAA-BBBB'}:{status:'SENT',href:'https://www.sandbox.paypal.com/invoice/p/#INV2-AAAA-BBBB'}}});
  setPayPalToolkitFactory(()=>({getTools:()=>({create_invoice:mk('create_invoice'),send_invoice:mk('send_invoice'),get_invoice:mk('get_invoice'),send_invoice_reminder:mk('send_invoice_reminder'),list_invoices:mk('list_invoices')})}));return calls}
 async function seed(note){resetMemoryStore();const s=getStore();
- await s.set('enquiry:enq-1',{id:'enq-1',venueId:'orchard-grand',tables:30,date:'2027-06-12',coupleName:'Mei & Daniel',email:'buyer@example.com',status:'new'});
+ await s.set('enquiry:enq-1',{id:'enq-1',venueId:'orchard-grand',tables:20,date:'2027-06-12',coupleName:'Mei & Daniel',email:'buyer@example.com',status:'new'});
  if(note)await s.set('quote:enq-1',{text:note,deposit:1});return s}
 test('the invoice is for the computed 30% deposit',async()=>{
  const calls=fakeToolkit();const s=await seed();const r=await approveEnquiry({store:s,enquiryId:'enq-1'});
- const expected=banquetQuote(findVenue('orchard-grand'),30).deposit;
+ const expected=banquetQuote(findVenue('orchard-grand'),20).deposit;
  const inv=calls.find(c=>c.name==='create_invoice').a;assert.equal(inv.items[0].unit_amount.value,expected.toFixed(2));assert.equal(inv.currency_code,'SGD');
  assert.equal(inv.primary_recipients[0].billing_info.email_address,'buyer@example.com');assert.ok(calls.some(c=>c.name==='send_invoice'));assert.equal(r.amount,expected);
 });
