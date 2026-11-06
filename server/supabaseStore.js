@@ -1,12 +1,14 @@
 // Store on Supabase (Postgres) through its REST API: the public.kv table and the kv_incr
-// function from docs/supabase.sql. Server only, with the service role key.
+// function from docs/supabase.sql. Server only, with the project's secret key (sb_secret_…)
+// or a legacy service_role key.
 const enc=encodeURIComponent;
 // PostgREST "like" uses * as the wildcard; escape the SQL wildcards that could appear in a key.
 const likePrefix=p=>p.replace(/[\\%_]/g,m=>'\\'+m)+'*';
 
 export function supabaseStore({url,key,fetch:f=globalThis.fetch,ttlDefault}){
  const base=url.replace(/\/+$/,'')+'/rest/v1';
- const headers={apikey:key,authorization:'Bearer '+key,'content-type':'application/json'};
+ // New secret keys (sb_secret_…) go in the apikey header only; legacy JWT keys also as a Bearer token.
+ const headers={apikey:key,'content-type':'application/json',...(key.startsWith('sb_')?{}:{authorization:'Bearer '+key})};
  const call=async(path,init={})=>{
   const r=await f(base+path,{...init,headers:{...headers,...init.headers}});
   if(!r.ok)throw new Error(`Supabase ${r.status}: ${(await r.text().catch(()=>'')).slice(0,200)}`);
