@@ -16,7 +16,7 @@ export const DECOR_PHOTOS={
  flowerStand:'https://images.unsplash.com/photo-1469371670807-013ccf25f16a?auto=format&fit=crop&w=320&q=70',
  lantern:'https://images.unsplash.com/photo-1525772764200-be829a350797?auto=format&fit=crop&w=320&q=70',
  carpet:'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=320&q=70',
- classical:'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=320&q=70',
+ classical:'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=320&q=70',
  jazz:'https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&w=320&q=70',
  pop:'https://images.unsplash.com/photo-1505236858219-8359eb29e329?auto=format&fit=crop&w=320&q=70',
 };
