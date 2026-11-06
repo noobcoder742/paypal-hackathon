@@ -101,7 +101,7 @@ export default function PlatformApp({Studio}){
   <section className="home-section">
    <div className="home-section-head"><h2>Venues ready <em>in 3D</em></h2><button className="home-link" onClick={()=>go('studio')}>Explore the venue map <ArrowRight size={15}/></button></div>
    <div className="home-venues">
-    <button className="home-venue-feature" onClick={()=>go('studio')}><span className="home-venue-photo" style={{backgroundImage:'url(/venues/orchard-grand/grand-ballroom.jpg)'}}/><span className="home-venue-caption"><span className="home-flag">3D ready</span><h3>Grand Ballroom</h3><p>The Orchard Grand · Orchard · up to 380 guests · unofficial reconstruction</p></span></button>
+    <button className="home-venue-feature" onClick={()=>go('studio')}><span className="home-venue-photo" style={{backgroundImage:'url(/venues/ballroom-render.jpg)'}}/><span className="home-venue-caption"><span className="home-flag">3D ready</span><h3>Grand Ballroom</h3><p>The Orchard Grand · Orchard · up to 380 guests · unofficial reconstruction</p></span></button>
     <div className="home-venue-list">
      <article><span className="home-venue-thumb garden"/><div><span className="home-flag muted">3D coming</span><h3>Garden pavilion</h3><p>Example listing · outdoor · 150 guests</p></div></article>
      <article><span className="home-venue-thumb chapel"/><div><span className="home-flag muted">3D coming</span><h3>Heritage chapel</h3><p>Example listing · ceremony · 120 guests</p></div></article>

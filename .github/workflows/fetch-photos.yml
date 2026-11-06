@@ -1,0 +1,33 @@
+name: Fetch photo candidates (Unsplash free + Openverse)
+# Free: collects candidate photos for the site's image slots and commits them,
+# with licences, to the separate photo-candidates branch.
+on:
+  workflow_dispatch:
+  push:
+    branches: [updates_claude]
+    paths:
+      - scripts/fetch-photos.mjs
+      - .github/workflows/fetch-photos.yml
+permissions:
+  contents: write
+concurrency:
+  group: fetch-photos
+  cancel-in-progress: true
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/fetch-photos.mjs /tmp/photo-candidates
+      - name: Commit candidates to the photo-candidates branch
+        run: |
+          cd /tmp/photo-candidates
+          git init -q -b photo-candidates
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A && git commit -qm "Photo candidates"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" photo-candidates
