@@ -7,6 +7,7 @@ import {RoundedBox} from '@react-three/drei';
 import {FloralArch,Centrepiece} from '../florals/Florals.jsx';
 import {Ensemble} from './Musicians.jsx';
 import {ensembleFootprint} from './ensembles.js';
+import {beginDrag,dragTo} from '../floorDrag.js';
 import {assemble,hedgeItems,flowerWallItems} from '../florals/floralGeometry.js';
 import {DECOR_TYPES,CARPET_COLOURS,ROOM_BOUNDS,TILE,tileAt,carpetLine,paintTiles,updateDecor} from './decor.js';
 
@@ -67,9 +68,9 @@ function Draggable({item,selected,onSelect,update,onDragStart,onDragEnd,controls
  return <group position={[item.x,0,item.z]} rotation={[0,item.rotation||0,0]}
   onPointerOver={e=>{e.stopPropagation();document.body.style.cursor=tool==='select'?'grab':'auto'}}
   onPointerOut={()=>{document.body.style.cursor='auto'}}
-  onPointerDown={e=>{if(tool!=='select'||e.shiftKey)return;e.stopPropagation();onSelect({type:'decor',id:item.id});if(e.button!==0)return;drag.current=true;onDragStart();if(controlsRef.current)controlsRef.current.enabled=false;e.target.setPointerCapture?.(e.pointerId)}}
-  onPointerMove={e=>{if(!drag.current)return;e.stopPropagation();if(e.ray.intersectPlane(plane,hit))update(s=>updateDecor(s,item.id,{x:hit.x,z:hit.z}))}}
-  onPointerUp={e=>{if(!drag.current)return;drag.current=false;if(controlsRef.current)controlsRef.current.enabled=true;onDragEnd();if(e.target.hasPointerCapture?.(e.pointerId))e.target.releasePointerCapture(e.pointerId)}}>
+  onPointerDown={e=>{if(tool!=='select'||e.shiftKey)return;e.stopPropagation();onSelect({type:'decor',id:item.id});if(e.button!==0||!e.ray.intersectPlane(plane,hit))return;drag.current=beginDrag({itemX:item.x,itemZ:item.z,hitX:hit.x,hitZ:hit.z,screenX:e.clientX,screenY:e.clientY});onDragStart();if(controlsRef.current)controlsRef.current.enabled=false;e.target.setPointerCapture?.(e.pointerId)}}
+  onPointerMove={e=>{if(!drag.current)return;e.stopPropagation();if(e.ray.intersectPlane(plane,hit)){const p=dragTo(drag.current,{hitX:hit.x,hitZ:hit.z,screenX:e.clientX,screenY:e.clientY});if(p)update(s=>updateDecor(s,item.id,p))}}}
+  onPointerUp={e=>{if(!drag.current)return;drag.current=null;if(controlsRef.current)controlsRef.current.enabled=true;onDragEnd();if(e.target.hasPointerCapture?.(e.pointerId))e.target.releasePointerCapture(e.pointerId)}}>
   {/* an invisible footprint box makes thin items (arch, stands) easy to grab */}
   <mesh userData={{editable:'decor-'+item.id}} position={[0,.6,0]}><boxGeometry args={[w,1.2,Math.max(d,.5)]}/><meshBasicMaterial transparent opacity={0} depthWrite={false}/></mesh>
   <Model variant={variant} item={item}/>

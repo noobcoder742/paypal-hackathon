@@ -94,7 +94,7 @@ function GrandPiano(){
  const lid=G('pianoLid',()=>{const g=new THREE.ExtrudeGeometry(shape,{depth:.02,bevelEnabled:false,curveSegments:20});g.rotateX(Math.PI/2);return g});
  const blackKeys=useMemo(()=>{const out=[];for(let i=0;i<52;i++){const k=i%7;if(k===2||k===6)continue;out.push(-.72+(i+.7)*.0277)}return out},[]);
  // keyboard faces -z (towards the pianist); the case extends to +z
- return <group rotation={[0,Math.PI,0]}>
+ return <group>
   <mesh geometry={body} material={GLOSS()} castShadow position={[0,0,0]} rotation={[0,0,0]}/>
   <group position={[-.74,1.02,0]} rotation={[0,0,.5]}><mesh geometry={lid} material={GLOSS()} position={[.74,0,0]}/></group>
   {[[-.62,.12],[.62,.12],[-.2,1.55]].map(([x,z],i)=><mesh key={i} material={GLOSS()} position={[x,.37,z]}><cylinderGeometry args={[.045,.035,.74,10]}/></mesh>)}

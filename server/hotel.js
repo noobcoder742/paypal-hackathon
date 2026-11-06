@@ -7,9 +7,9 @@ import {runPayPalTool} from './paypal.js';
 const TOKEN_TTL=12*3600;
 
 export async function login({store,password}){
- const expected=process.env.HOTEL_DEMO_PASSWORD||'';
+ const expected=(process.env.HOTEL_DEMO_PASSWORD||'').trim();
  if(!expected||typeof password!=='string')return null;
- const a=Buffer.from(password),b=Buffer.from(expected);
+ const a=Buffer.from(password.trim()),b=Buffer.from(expected);   // stray spaces from copy-paste or autofill
  if(a.length!==b.length||!timingSafeEqual(a,b))return null;
  const token=randomBytes(32).toString('hex');
  await store.set('hotel-token:'+token,{at:Date.now()},{ttlSeconds:TOKEN_TTL});
