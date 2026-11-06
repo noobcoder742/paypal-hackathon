@@ -7,10 +7,10 @@
 import {createAiHarness,directLlmRunner} from 'ag-studio';
 import {stillToPay} from './dashboardData.js';
 
-export function studioAdapter(getToken){
+export function studioAdapter(getToken,endpoint='/api/hotel/studio-llm'){
  return {executeTurn(request,{signal}={}){
   const id='turn-'+Math.random().toString(36).slice(2,10);
-  const complete=fetch('/api/hotel/studio-llm',{method:'POST',signal,headers:{'content-type':'application/json',authorization:'Bearer '+getToken()},body:JSON.stringify(request)})
+  const complete=fetch(endpoint,{method:'POST',signal,headers:{'content-type':'application/json',authorization:'Bearer '+getToken()},body:JSON.stringify(request)})
    .then(async r=>{const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error==='rate_limited'?'The assistant has reached its hourly limit.':'The assistant is unavailable right now.');return j})
    .then(j=>({id,createdAt:Date.now(),status:'completed',model:j.model||undefined,output:[
     ...(j.text?[{id:id+'-msg',kind:'output',type:'message',role:'assistant',status:'completed',content:[{type:'text',text:j.text,annotations:[]}]}]:[]),
@@ -27,7 +27,7 @@ export function studioAdapter(getToken){
 }
 
 const sgd=n=>'S$'+Number(n||0).toLocaleString('en-SG',{maximumFractionDigits:2});
-const tool=(name,description,parameters,run)=>({name,description,kind:'client',
+export const tool=(name,description,parameters,run)=>({name,description,kind:'client',
  schema:()=>({name,description,parameters}),
  execute:async(call,ctx)=>{try{const {text,data}=await run(call.args||{});return ctx.success(text,data)}catch(e){return ctx.error(e.message||'failed')}}});
 

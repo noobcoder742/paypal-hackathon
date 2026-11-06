@@ -6,7 +6,7 @@ const iso=d=>d.toISOString().slice(0,10);
 const dayOf=v=>{if(v==null||v==='')return '';const d=v instanceof Date?v:new Date(v);return isNaN(d)?'':iso(d)};
 export default function DateCalendar(params){
  const rows=useWidgetRows(params,['date','status']);
- const byDate=useMemo(()=>{const m=new Map();for(const r of rows){const d=dayOf(r.date);if(!d)continue;const s=r.status==='paid'?'booked':'held';if(m.get(d)!=='booked')m.set(d,s)}return m},[rows]);
+ const byDate=useMemo(()=>{const m=new Map();for(const r of rows){const d=dayOf(r.date);if(!d)continue;const s=r.status==='paid'||r.status==='paid_in_full'||r.status==='Paid in full'?'booked':'held';if(m.get(d)!=='booked')m.set(d,s)}return m},[rows]);
  const first=[...byDate.keys()].sort()[0];
  const [month,setMonth]=useState(null);
  const start=new Date((month||first||iso(new Date())).slice(0,7)+'-01T00:00:00Z');
