@@ -46,3 +46,8 @@ test('a Supabase error surfaces instead of failing silently',async()=>{
  const s=supabaseStore({url:'https://abc.supabase.co',key:'k',fetch:async()=>({ok:false,status:401,text:async()=>'Invalid API key',json:async()=>null}),ttlDefault:60});
  await assert.rejects(s.get('x'),/Supabase 401: Invalid API key/);
 });
+test('a new secret key (sb_secret_…) is sent as apikey only, not as a Bearer token',async()=>{
+ const fake=fakeSupabase(),s=supabaseStore({url:'https://abc.supabase.co',key:'sb_secret_example',fetch:fake.fetch,ttlDefault:60});
+ await s.set('a',1);await s.get('a');
+ assert.ok(fake.seen.every(r=>r.headers.apikey==='sb_secret_example'&&!('authorization' in r.headers)));
+});

@@ -12,7 +12,7 @@ export function redisConfig(){
 }
 async function getRedis(){if(redis)return redis;const {Redis}=await import('@upstash/redis');redis=new Redis(redisConfig());return redis}
 const useRedis=()=>!!redisConfig();
-const supabaseConfig=()=>{const url=process.env.SUPABASE_URL||process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;return url&&key?{url,key}:null};
+const supabaseConfig=()=>{const url=process.env.SUPABASE_URL||process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;return url&&key?{url,key}:null};
 /** 'redis' (Upstash), 'supabase', or 'memory' (tests and local work: not shared between functions). */
 export const storageKind=()=>redisConfig()?'redis':supabaseConfig()?'supabase':'memory';
 let supa=null;

@@ -35,7 +35,7 @@ import {storageKind} from '../server/store.js';
 test('storage choice: Upstash, else Supabase (URL + service role key), else memory',()=>{
  const saved={...process.env};
  try{
-  for(const k of ['UPSTASH_REDIS_REST_URL','UPSTASH_REDIS_REST_TOKEN','KV_REST_API_URL','KV_REST_API_TOKEN','SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','NEXT_PUBLIC_SUPABASE_URL'])delete process.env[k];
+  for(const k of ['UPSTASH_REDIS_REST_URL','UPSTASH_REDIS_REST_TOKEN','KV_REST_API_URL','KV_REST_API_TOKEN','SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','SUPABASE_SECRET_KEY','NEXT_PUBLIC_SUPABASE_URL'])delete process.env[k];
   assert.equal(storageKind(),'memory');
   process.env.SUPABASE_URL='https://abc.supabase.co';assert.equal(storageKind(),'memory','a URL alone is not enough');
   process.env.SUPABASE_SERVICE_ROLE_KEY='k';assert.equal(storageKind(),'supabase');
