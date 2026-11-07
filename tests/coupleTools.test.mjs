@@ -33,10 +33,28 @@ test('unknown item: rejected, and no order is created',async()=>{
 test('placing items returns a studio patch derived from the items',async()=>{
  resetMemoryStore();const t=coupleTools({store:getStore(),planId:'plan-a1b2c3d4'});
  const r=await run(t,'place_in_ballroom',{venueId:VENUE,tables:20,lines:[{id:'floral-arch',qty:1},{id:'floral-greenery',qty:20},{id:'light-canopy',qty:1}]});
- assert.deepEqual(r.studioPatch,{tables:20,flowers:'green',lighting:'warm',show:{arch:true,decor:true}});
+ assert.deepEqual(r.studioPatch,{tables:20,flowers:'green',lighting:'warm',show:{arch:true,decor:true},place:[{type:'canopy',id:'light-canopy'}]});
 });
 import {studioPatchFor} from '../server/agent/coupleTools.js';
 test('a plan with music asks the studio to place that band',()=>{
  const p=studioPatchFor(20,[{id:'music-strings',qty:1},{id:'decor-red-carpet',qty:1}]);
- assert.deepEqual(p.place,['carpet',{type:'ensemble',genre:'classical'}]);
+ assert.deepEqual(p.place,[{type:'ensemble',id:'music-strings',genre:'classical'},{type:'carpet',id:'decor-red-carpet'}]);
+});
+import {applyStudioPatch} from '../src/explorer/agent/applyStudioPatch.js';
+import {CATALOG} from '../src/data/catalog.js';
+test('every vendor item the AI suggests shows up in the 3D room',()=>{
+ const vendorItems=CATALOG.filter(i=>!['table','stage'].includes(i.inventoryType));
+ for(const i of vendorItems)assert.ok(i.inventoryType,i.id+' has a 3D model');
+ const lines=vendorItems.map(i=>({id:i.id,qty:i.inventoryType==='flowers'?16:1}));
+ const base={tables:[],inventory:['table'],decor:[],carpet:{color:'red',tiles:[]},stage:{x:-6.95,z:0,width:7.2,depth:2.6,rotation:Math.PI/2}};
+ const room=applyStudioPatch(base,studioPatchFor(16,lines));
+ const placed=new Set(room.decor.map(d=>d.type));
+ for(const i of vendorItems){const t=i.inventoryType;
+  if(t==='flowers')assert.ok(room.showDecor,'centrepieces on the tables');
+  else if(t==='screen')assert.ok(room.showScreen,'LED screen');
+  else if(t==='arch')assert.ok(room.showArch||placed.has('arch'),'arch');
+  else if(t==='carpet')assert.ok(room.carpet.tiles.length>0,'aisle carpet');
+  else assert.ok(placed.has(t),i.id+' → '+t+' placed')}
+ assert.equal(room.decor.filter(d=>d.type==='car').length,2,'both wedding cars, each its own booking');
+ assert.ok(room.decor.filter(d=>d.type==='car').every(c=>c.x>=10),'cars wait outside the entrance');
 });

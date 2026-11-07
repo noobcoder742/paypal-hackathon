@@ -1,4 +1,5 @@
-// Draggable decor (arch, hedges, flower stands, lanterns, flower wall) and the carpet,
+// Draggable decor (arch, hedges, flower stands, lanterns, flower wall, music, lighting, photo
+// booth, dessert and service tables, bubble machines, wedding cars) and the carpet,
 // which the couple lays by dragging across the floor with the carpet tool.
 import React,{useMemo,useRef,useEffect} from 'react';
 import {useThree} from '@react-three/fiber';
@@ -6,6 +7,7 @@ import * as THREE from 'three';
 import {RoundedBox} from '@react-three/drei';
 import {FloralArch,Centrepiece} from '../florals/Florals.jsx';
 import {Ensemble} from './Musicians.jsx';
+import {Uplight,SpotlightTower,FairyCanopy,PhotoBooth,DessertTable,ServiceStation,BubbleMachine,WeddingCar} from './VendorProps.jsx';
 import {ensembleFootprint} from './ensembles.js';
 import {beginDrag,dragTo} from '../floorDrag.js';
 import {assemble,hedgeItems,flowerWallItems} from '../florals/floralGeometry.js';
@@ -59,12 +61,14 @@ function FlowerWall({variant}){
   <group position={[0,.05,.02]}>{geo.flowers&&<mesh geometry={geo.flowers} material={petalMat} castShadow/>}{geo.leaves&&<mesh geometry={geo.leaves} material={leafMat}/>}</group>
  </group>;
 }
-const MODELS={arch:({variant})=><FloralArch variant={variant} position={[0,0,0]}/>,hedge:Hedge,flowerStand:FlowerStand,lantern:Lantern,flowerWall:FlowerWall,ensemble:({item})=><Ensemble genre={item.genre} lineup={item.lineup}/>};
+const MODELS={arch:({variant})=><FloralArch variant={variant} position={[0,0,0]}/>,hedge:Hedge,flowerStand:FlowerStand,lantern:Lantern,flowerWall:FlowerWall,ensemble:({item})=><Ensemble genre={item.genre} lineup={item.lineup}/>,
+ uplight:Uplight,spotlight:SpotlightTower,canopy:FairyCanopy,photoBooth:PhotoBooth,dessertTable:DessertTable,buffet:ServiceStation,bubbles:BubbleMachine,car:({item})=><WeddingCar model={item.model}/>};
 
 /** One decor item, dragged across the floor like a table. */
 function Draggable({item,selected,onSelect,update,onDragStart,onDragEnd,controlsRef,tool,variant}){
  const drag=useRef(false),plane=useMemo(()=>new THREE.Plane(new THREE.Vector3(0,1,0),0),[]),hit=useMemo(()=>new THREE.Vector3(),[]);
  const [w,d]=item.type==='ensemble'?ensembleFootprint(item.genre,item.lineup):DECOR_TYPES[item.type].footprint;const Model=MODELS[item.type];
+ const grab=DECOR_TYPES[item.type].grab,ring=grab?Math.max(grab.size[0],grab.size[2])/2:Math.max(w,d)/2;
  return <group position={[item.x,0,item.z]} rotation={[0,item.rotation||0,0]}
   onPointerOver={e=>{e.stopPropagation();document.body.style.cursor=tool==='select'?'grab':'auto'}}
   onPointerOut={()=>{document.body.style.cursor='auto'}}
@@ -72,9 +76,10 @@ function Draggable({item,selected,onSelect,update,onDragStart,onDragEnd,controls
   onPointerMove={e=>{if(!drag.current)return;e.stopPropagation();if(e.ray.intersectPlane(plane,hit)){const p=dragTo(drag.current,{hitX:hit.x,hitZ:hit.z,screenX:e.clientX,screenY:e.clientY});if(p)update(s=>updateDecor(s,item.id,p))}}}
   onPointerUp={e=>{if(!drag.current)return;drag.current=null;if(controlsRef.current)controlsRef.current.enabled=true;onDragEnd();if(e.target.hasPointerCapture?.(e.pointerId))e.target.releasePointerCapture(e.pointerId)}}>
   {/* an invisible footprint box makes thin items (arch, stands) easy to grab */}
-  <mesh userData={{editable:'decor-'+item.id}} position={[0,.6,0]}><boxGeometry args={[w,1.2,Math.max(d,.5)]}/><meshBasicMaterial transparent opacity={0} depthWrite={false}/></mesh>
+  {grab?<mesh userData={{editable:'decor-'+item.id}} position={[0,grab.y,0]}><boxGeometry args={grab.size}/><meshBasicMaterial transparent opacity={0} depthWrite={false}/></mesh>
+   :<mesh userData={{editable:'decor-'+item.id}} position={[0,.6,0]}><boxGeometry args={[w,1.2,Math.max(d,.5)]}/><meshBasicMaterial transparent opacity={0} depthWrite={false}/></mesh>}
   <Model variant={variant} item={item}/>
-  {selected&&<mesh rotation={[-Math.PI/2,0,0]} position={[0,.03,0]}><ringGeometry args={[Math.max(w,d)/2+.15,Math.max(w,d)/2+.24,48]}/><meshBasicMaterial color="#c9a96a"/></mesh>}
+  {selected&&<mesh rotation={[-Math.PI/2,0,0]} position={[0,.03,0]}><ringGeometry args={[ring+.15,ring+.24,48]}/><meshBasicMaterial color="#c9a96a"/></mesh>}
  </group>;
 }
 

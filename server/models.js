@@ -21,7 +21,8 @@ export async function defaultModels(){
  */
 export function quickGemini(model,startMs=30000){
  const fast=o=>({...o,providerMetadata:{...o.providerMetadata,google:{...(o.providerMetadata?.google||{}),thinkingConfig:{thinkingBudget:0}}}});
- const refusedSetting=e=>(e?.statusCode===400||e?.status===400)&&/think/i.test(String(e?.message||'')+String(e?.responseBody||''));
+ // any 400 (bad request): the thinking setting is the only thing we add, so try once without it
+ const refusedSetting=e=>e?.statusCode===400||e?.status===400;
  const call=(fn,o)=>fn(fast(o)).catch(e=>{if(refusedSetting(e))return fn(o);throw e});
  const m=Object.create(model);
  m.doStream=o=>call(x=>model.doStream(x),o);

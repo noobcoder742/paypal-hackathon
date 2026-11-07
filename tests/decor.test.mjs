@@ -50,7 +50,7 @@ test('a marketplace listing places its item sensibly: hedges at the stage, stand
  d=placeForListing(base(),'carpet');assert.ok(d.carpet.tiles.length>=24,'stage front to the entrance, 2 tiles wide');assert.ok(d.carpet.tiles.every(([,j])=>j===-1||j===0),'a 2 m runner on the centre line');
  d=placeForListing(placeForListing(base(),'arch'),'arch');assert.equal(d.decor.filter(x=>x.type==='arch').length,1,'one arch, not one per click');
  assert.throws(()=>placeForListing(base(),'nope'));
- assert.deepEqual([...LISTING_DECOR].sort(),['arch','carpet','ensemble','flowerStand','flowerWall','hedge','lantern']);
+ assert.deepEqual([...LISTING_DECOR].sort(),['arch','bubbles','buffet','canopy','car','carpet','dessertTable','ensemble','flowerStand','flowerWall','hedge','lantern','photoBooth','spotlight','uplight']);
 });
 import {placeSavedListings} from '../src/studio/decor/decor.js';
 test('saved marketplace decor is placed once when the studio opens; removing it later sticks',()=>{
