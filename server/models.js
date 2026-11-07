@@ -8,8 +8,23 @@ export async function defaultModels(){
  if(process.env.AGENT_FAKE==='1'&&!process.env.VERCEL){const {fakeModel}=await import('./devFakeModel.js');return [fakeModel()]}
  const out=[];
  if(process.env.ANTHROPIC_API_KEY){const {anthropic}=await import('@ai-sdk/anthropic');out.push(anthropic('claude-haiku-5-5'))}
- if(process.env.GOOGLE_GENERATIVE_AI_API_KEY){const {google}=await import('@ai-sdk/google');out.push(google(process.env.GEMINI_MODEL||'gemini-flash-latest'))}
+ if(process.env.GOOGLE_GENERATIVE_AI_API_KEY){const {google}=await import('@ai-sdk/google');out.push(quickGemini(google(process.env.GEMINI_MODEL||'gemini-flash-latest')))}
  return out;
+}
+/**
+ * Newer Gemini Flash models "think" before answering, which can take longer than our time limit
+ * before the first word arrives. Ask for no thinking (thinkingBudget 0); if a model refuses that
+ * setting, send the request again without it. Gemini also gets a little longer to start.
+ */
+export function quickGemini(model,startMs=30000){
+ const fast=o=>({...o,providerMetadata:{...o.providerMetadata,google:{...(o.providerMetadata?.google||{}),thinkingConfig:{thinkingBudget:0}}}});
+ const refusedSetting=e=>(e?.statusCode===400||e?.status===400)&&/think/i.test(String(e?.message||'')+String(e?.responseBody||''));
+ const call=(fn,o)=>fn(fast(o)).catch(e=>{if(refusedSetting(e))return fn(o);throw e});
+ const m=Object.create(model);
+ m.doStream=o=>call(x=>model.doStream(x),o);
+ m.doGenerate=o=>call(x=>model.doGenerate(x),o);
+ m.firstChunkMs=startMs;
+ return m;
 }
 // A model that has not started answering by then is abandoned (the next model tries,
 // or the chat gets an error) instead of running into Vercel's 60 s function limit.
@@ -19,7 +34,8 @@ export function setFirstChunkTimeout(ms){firstChunkMs=ms}
 async function startStream(model,options){
  const ac=new AbortController();const outer=options.abortSignal;
  if(outer){if(outer.aborted)ac.abort(outer.reason);else outer.addEventListener('abort',()=>ac.abort(outer.reason),{once:true})}
- let timer;const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{const e=Object.assign(new Error(`${model.modelId} sent nothing for ${firstChunkMs} ms`),{name:'FirstChunkTimeout'});ac.abort(e);reject(e)},firstChunkMs)});
+ const ms=model.firstChunkMs||firstChunkMs;
+ let timer;const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{const e=Object.assign(new Error(`${model.modelId} sent nothing for ${ms} ms`),{name:'FirstChunkTimeout'});ac.abort(e);reject(e)},ms)});
  let reader,first;
  try{
   const res=await Promise.race([model.doStream({...options,abortSignal:ac.signal}),timeout]);
@@ -46,7 +62,7 @@ export function fallbackModel(models){
  return {
   specificationVersion:'v1',provider:'fallback',modelId:models.map(m=>m.modelId).join('>'),
   defaultObjectGenerationMode:models[0].defaultObjectGenerationMode||'tool',supportsImageUrls:false,
-  doGenerate:options=>tryEach(m=>generateWithin(m,options,firstChunkMs*1.5)),
+  doGenerate:options=>tryEach(m=>generateWithin(m,options,(m.firstChunkMs||firstChunkMs)*1.5)),
   doStream:options=>tryEach(m=>startStream(m,options)),
   lastModelUsed:()=>used
  };
