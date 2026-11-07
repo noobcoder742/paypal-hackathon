@@ -8,7 +8,10 @@ export async function defaultModels(){
  if(process.env.AGENT_FAKE==='1'&&!process.env.VERCEL){const {fakeModel}=await import('./devFakeModel.js');return [fakeModel()]}
  const out=[];
  if(process.env.ANTHROPIC_API_KEY){const {anthropic}=await import('@ai-sdk/anthropic');out.push(anthropic('claude-haiku-5-5'))}
- if(process.env.GOOGLE_GENERATIVE_AI_API_KEY){const {google}=await import('@ai-sdk/google');out.push(quickGemini(google(process.env.GEMINI_MODEL||'gemini-flash-latest')))}
+ if(process.env.GOOGLE_GENERATIVE_AI_API_KEY){const {google}=await import('@ai-sdk/google');const claude=out.length>0;
+  out.push(quickGemini(google(process.env.GEMINI_MODEL||'gemini-flash-latest'),claude?25000:30000));
+  // the free tier's main model is often busy (503); the lighter model usually still answers
+  out.push(quickGemini(google(process.env.GEMINI_BACKUP_MODEL||'gemini-flash-lite-latest'),claude?15000:25000))}
  return out;
 }
 /**
