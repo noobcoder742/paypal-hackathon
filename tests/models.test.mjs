@@ -42,3 +42,18 @@ test('a model that never starts answering is abandoned after the first-chunk tim
   await assert.rejects(fallbackModel([slowGen]).doGenerate({prompt:[]}),e=>e.name==='FirstChunkTimeout');
  }finally{setFirstChunkTimeout(20000)}
 });
+import {quickGemini} from '../server/models.js';
+test('Gemini is asked not to think before answering, and gets a longer start window',async()=>{
+ const seen=[];const g={modelId:'gemini-x',doStream:async o=>{seen.push(o.providerMetadata);return {stream:new ReadableStream({start(c){c.enqueue({type:'text-delta',textDelta:'hi'});c.close()}})}},doGenerate:async o=>{seen.push(o.providerMetadata);return {text:'ok'}}};
+ const q=quickGemini(g,30000);
+ assert.equal(q.modelId,'gemini-x');assert.equal(q.firstChunkMs,30000);
+ await q.doStream({providerMetadata:{google:{safetySettings:[]}}});await q.doGenerate({});
+ assert.deepEqual(seen[0].google,{safetySettings:[],thinkingConfig:{thinkingBudget:0}});
+ assert.deepEqual(seen[1].google.thinkingConfig,{thinkingBudget:0});
+});
+test('a Gemini model that refuses the no-thinking setting is asked again without it; other errors still fail',async()=>{
+ const calls=[];const g={modelId:'gemini-y',doGenerate:async o=>{calls.push(o.providerMetadata);if(o.providerMetadata?.google?.thinkingConfig)throw Object.assign(new Error('Thinking budget is not supported for this model'),{statusCode:400});return {text:'ok'}}};
+ assert.deepEqual(await quickGemini(g).doGenerate({}),{text:'ok'});assert.equal(calls.length,2);assert.equal(calls[1],undefined);
+ const bad={modelId:'gemini-z',doGenerate:async()=>{throw Object.assign(new Error('quota'),{statusCode:429})}};
+ await assert.rejects(quickGemini(bad).doGenerate({}),/quota/);
+});
