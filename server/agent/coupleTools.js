@@ -5,6 +5,7 @@ import {CATALOG,STYLES,findItem} from '../../src/data/catalog.js';
 import {VENUES,findVenue} from '../../src/data/venues.js';
 import {vendorPlanTotals,banquetQuote,UnknownItemError,round2} from '../pricing.js';
 import {createDepositOrder} from '../paypalApi.js';
+import {LISTING_DECOR} from '../../src/studio/decor/decor.js';
 const Lines=z.array(z.object({id:z.string(),qty:z.number().int().min(1).max(60)})).max(20);
 const venueSummary=(v,tables)=>{let estimate=null;try{estimate=banquetQuote(v,tables).total}catch{}
  return {id:v.id,name:v.name,area:v.area,pricePerTable:v.banquet.pricePerTable,minTables:v.banquet.minTables,maxTables:v.banquet.maxTables,has3D:v.spaces.some(s=>s.studio),banquetEstimate:estimate}};
@@ -18,8 +19,12 @@ export function studioPatchFor(tables,lines){
  const flowers=has('floral-greenery')?'green':has('floral-roses')?'pink':has('floral-white')?'white':null;if(flowers)patch.flowers=flowers;
  if(has('light-ambient')||has('light-canopy'))patch.lighting='warm';
  if(Object.keys(show).length)patch.show=show;
- const place=[...new Set(items.map(i=>i.inventoryType).filter(t=>['hedge','flowerStand','lantern','flowerWall','carpet'].includes(t)))];
- for(const i of items)if(i.inventoryType==='ensemble'&&!place.some(p=>p.genre===i.genre))place.push({type:'ensemble',genre:i.genre});   // bands: the listing's default line-up
+ // every other vendor item is placed in the 3D room: decor, lighting, photo booth, dessert table, cars…
+ const place=[];
+ for(const i of items){const t=i.inventoryType;
+  if(!LISTING_DECOR.has(t)||t==='arch')continue;   // the arch comes in through show.arch
+  if(t==='ensemble'){if(!place.some(p=>p.genre===i.genre))place.push({type:'ensemble',id:i.id,genre:i.genre});continue}   // bands: the listing's default line-up
+  if(!place.some(p=>p.id===i.id))place.push({type:t,id:i.id})}
  if(place.length)patch.place=place;
  return patch;
 }

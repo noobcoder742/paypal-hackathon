@@ -6,6 +6,9 @@ import {Trash2,Copy,Brush,MousePointer2,RotateCw,Store,ArrowRight} from 'lucide-
 import {DECOR_TYPES,CARPET_COLOURS,addDecor,removeDecor,updateDecor,removeDecorType} from './decor.js';
 import {GENRES,lineupText} from './ensembles.js';
 import {LineupPicker} from '../../components/marketplace/LineupPicker.jsx';
+import {CATALOG,findItem} from '../../data/catalog.js';
+/** The listing's own photo for items without a dedicated one (lighting, booth, desserts, cars…). */
+const listingPhoto=(type,listingId)=>(listingId&&findItem(listingId)?.photo||CATALOG.find(i=>i.inventoryType===type)?.photo||'').replace(/w=\d+/,'w=320');
 
 // Real-life photos for each item, like a marketplace listing (free Unsplash photos).
 // @placeholder DECOR_PHOTOS: hedge and carpet photos are close matches, not the exact item; swap for vendor photos.
@@ -26,9 +29,9 @@ export function VendorItems({data,setData,setSelected,tool,setTool,onOpenMarketp
  const decor=data.decor||[];
  const groups=[];
  for(const it of decor){
-  const key=it.type==='ensemble'?'band-'+it.genre:it.type;
+  const key=it.type==='ensemble'?'band-'+it.genre:it.type==='car'?'car-'+(it.listingId||it.model):it.type;
   let g=groups.find(x=>x.key===key);
-  if(!g){g={key,type:it.type,items:[],label:it.type==='ensemble'?GENRES[it.genre]?.label:DECOR_TYPES[it.type].label,photo:DECOR_PHOTOS[it.type==='ensemble'?it.genre:it.type]};groups.push(g)}
+  if(!g){g={key,type:it.type,items:[],label:it.type==='ensemble'?GENRES[it.genre]?.label:it.type==='car'?(findItem(it.listingId)?.name||DECOR_TYPES.car.label):DECOR_TYPES[it.type].label,photo:DECOR_PHOTOS[it.type==='ensemble'?it.genre:it.type]||listingPhoto(it.type,it.listingId)};groups.push(g)}
   g.items.push(it);
  }
  const hasCarpet=(data.inventory||[]).includes('carpet')||(data.carpet?.tiles?.length>0);
@@ -41,7 +44,7 @@ export function VendorItems({data,setData,setSelected,tool,setTool,onOpenMarketp
    <button type="button" className="vendor-row-main" onClick={()=>setSelected({type:'decor',id:g.items[0].id})}>
     <span>{g.label}</span><small>{g.type==='ensemble'?lineupText(g.items[0].genre,g.items[0].lineup):g.items.length>1?`${g.items.length} placed`:'Placed · drag to move'}</small>
    </button>
-   <button type="button" className="remove-type" onClick={()=>{setData(s=>g.type==='ensemble'?{...s,decor:s.decor.filter(x=>!(x.type==='ensemble'&&x.genre===g.items[0].genre))}:removeDecorType(s,g.type));setSelected(null)}}>Remove</button>
+   <button type="button" className="remove-type" onClick={()=>{setData(s=>g.type==='ensemble'?{...s,decor:s.decor.filter(x=>!(x.type==='ensemble'&&x.genre===g.items[0].genre))}:g.type==='car'?{...s,decor:s.decor.filter(x=>!(x.type==='car'&&x.listingId===g.items[0].listingId))}:removeDecorType(s,g.type));setSelected(null)}}>Remove</button>
   </div>)}
   {hasCarpet&&<div className="decor-carpet">
    <span className="inventory-thumb"><img src={DECOR_PHOTOS.carpet} alt="" loading="lazy"/></span>

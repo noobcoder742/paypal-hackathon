@@ -42,6 +42,6 @@ export function applyStudioPatch(layout,patch={}){
  if(LIGHTING.includes(patch.lighting))l.lighting=patch.lighting;
  const map={arch:['arch','showArch'],decor:['flowers','showDecor'],stage:['stage','showStage'],screen:['screen','showScreen']};
  for(const [k,on] of Object.entries(patch.show||{})){const m=map[k];if(!m||!on)continue;if(!l.inventory.includes(m[0]))l.inventory=[...l.inventory,m[0]];l[m[1]]=true}
- let out=l;for(const t of patch.place||[]){const type=typeof t==='string'?t:t?.type;if(LISTING_DECOR.has(type))out=placeForListing(out,type,typeof t==='object'?t:{})}   // hedges, aisle stands, lanterns, flower wall, carpet
+ let out=l;for(const t of patch.place||[]){const type=typeof t==='string'?t:t?.type;if(LISTING_DECOR.has(type))out=placeForListing(out,type,typeof t==='object'?t:{})}   // every vendor item in the plan: decor, music, lighting, booth, desserts, cars
  return out;
 }
