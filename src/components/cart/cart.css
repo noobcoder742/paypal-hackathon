@@ -100,3 +100,8 @@
  .cart-info{grid-area:info}.cart-qty{grid-area:qty;justify-self:start}.cart-price{grid-area:price}.cart-del{grid-area:del}
 }
 @media (prefers-reduced-motion:reduce){.cart-btn.bump,.cart-count,.cart-count::after,.cart-row,.cart-qty-n,.cart-chip,.cart-done-icon{animation:none}}
+.cart-make-payment{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:15px 18px;border:0;border-radius:999px;background:var(--ink);color:#fff;font:500 15px var(--f-ui);transition:transform .15s,background .15s}
+.cart-make-payment:hover:not(:disabled){background:#000;transform:translateY(-1px)}
+.cart-make-payment:disabled{opacity:.7;cursor:progress}
+.cart-spinner{width:15px;height:15px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:cart-spin .7s linear infinite}
+@keyframes cart-spin{to{transform:rotate(360deg)}}

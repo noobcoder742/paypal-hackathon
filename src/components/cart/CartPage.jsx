@@ -1,8 +1,7 @@
 // Cart and payment page: every vendor deposit is paid here, whether the items came from the
 // marketplace, the 3D studio or the AI planner. Quantities, a promo code, and PayPal.
 import React,{useEffect,useMemo,useState} from 'react';
-import {Minus,Plus,Trash2,ShoppingBag,Check,Tag,X,ArrowRight,ShieldCheck} from 'lucide-react';
-import PayPalCheckout from './PayPalCheckout.jsx';
+import {Minus,Plus,Trash2,ShoppingBag,Check,Tag,X,ArrowRight,ShieldCheck,Lock} from 'lucide-react';
 import Confetti,{celebrate} from '../../vendor/Confetti.jsx';
 import {cartItems,specLine,payable,unitPrice,orderLines,previewTotals,setQty,removeItem,markPaid,MAX_QTY} from './cart.js';
 import './cart.css';
@@ -19,7 +18,7 @@ export default function CartPage({planner,patch,go}){
  const items=cartItems(planner.savedItems,tables);
  const lines=orderLines(items);
  const [code,setCode]=useState(''),[promo,setPromo]=useState(null),[promoError,setPromoError]=useState('');
- const [quote,setQuote]=useState(null),[error,setError]=useState(''),[paid,setPaid]=useState(null);
+ const [quote,setQuote]=useState(null),[error,setError]=useState(''),[paid,setPaid]=useState(null),[paying,setPaying]=useState(false);
  const key=JSON.stringify([lines,promo]);
  useEffect(()=>{if(!lines.length){setQuote(null);return}let live=true;
   post({action:'quote',lines,promo}).then(r=>{if(!live)return;if(r.totals){setQuote(r.totals);setError('')}else if(r.error==='bad_promo'){setPromo(null)}else setError(r.message||'')}).catch(()=>{});
@@ -29,11 +28,21 @@ export default function CartPage({planner,patch,go}){
  const applyPromo=async e=>{e.preventDefault();const c=code.trim();if(!c)return;setPromoError('');
   const r=await post({action:'quote',lines,promo:c});if(r.totals){setPromo(c.toUpperCase());setQuote(r.totals);setCode('')}else setPromoError(r.message||'That promo code isn’t valid.')};
  const planId=()=>{let id=planner.checkoutPlanId;if(!id){id='plan-'+(crypto.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2));patch({checkoutPlanId:id})}return id};
- const createOrder=async()=>{setError('');const r=await post({action:'create',planId:planId(),lines,promo,...context()});
-  if(!r.orderId){setError(r.message||'PayPal couldn’t create the order. Nothing was charged.');throw new Error(r.error||'create_failed')}return r};
- const onPaid=r=>{const ids=items.filter(payable).map(i=>i.id),receipt={orderId:r.captureId,at:Date.now(),amount:r.depositTotal};
-  setPaid({amount:r.depositTotal,items:items.filter(payable)});patch({savedItems:markPaid(planner.savedItems,ids,receipt),checkoutPlanId:null});
+ // Make payment: the server creates the order, then PayPal's own page asks the couple to approve it
+ const makePayment=async()=>{setError('');setPaying(true);
+  const r=await post({action:'create',planId:planId(),lines,promo,...context()}).catch(()=>({}));
+  if(!r.approveUrl){setPaying(false);setError(r.message||'PayPal couldn’t create the order. Nothing was charged; please try again.');return}
+  window.location.assign(r.approveUrl)};
+ const onPaid=r=>{const ids=(r.lines||[]).map(l=>l.id);
+  setPaid({amount:r.depositTotal,items:(r.lines||[]).map(l=>({id:l.id,name:l.name,vendor:l.vendor}))});patch({savedItems:markPaid(planner.savedItems,ids,{captureId:r.captureId,at:Date.now(),amount:r.depositTotal}),checkoutPlanId:null});
   setTimeout(()=>celebrate(r.depositTotal,'paid in deposits with PayPal'),300)};
+ // back from PayPal: ?checkout=return&token=<order id>, or ?checkout=cancel
+ useEffect(()=>{const q=new URLSearchParams(window.location.search),state=q.get('checkout'),orderId=q.get('token');if(!state)return;
+  history.replaceState(null,'',window.location.pathname+'#cart');
+  if(state==='cancel'){setError('Payment cancelled. Nothing was charged.');return}
+  if(!orderId)return;setPaying(true);
+  post({action:'capture',orderId}).then(r=>{if(r.status==='COMPLETED')onPaid(r);else setError('PayPal couldn’t complete this payment. Nothing was charged; please try again.')})
+   .catch(()=>setError('We couldn’t reach PayPal. Nothing was charged; please try again.')).finally(()=>setPaying(false))},[]);
 
  if(paid)return <main className="platform-page cart-page"><Confetti/>
   <section className="cart-done">
@@ -84,7 +93,8 @@ export default function CartPage({planner,patch,go}){
      <p className="cart-muted">More payment methods are coming.</p>
     </div>
     {error&&<p className="cart-error" role="alert">{error}</p>}
-    <div className="cart-pay">{lines.length?<PayPalCheckout createOrder={createOrder} onPaid={onPaid} onError={setError}/>:<p className="cart-muted">Nothing here can be paid online yet.</p>}</div>
+    <div className="cart-pay">{lines.length?<button type="button" className="cart-make-payment" disabled={paying} onClick={makePayment}>{paying?<><span className="cart-spinner" aria-hidden="true"/> Opening PayPal…</>:<><Lock size={15}/> Make payment · {sgd(totals.dueToday)}</>}</button>
+     :<p className="cart-muted">Nothing here can be paid online yet.</p>}<p className="cart-muted">You’ll approve the payment on PayPal’s secure page, then come back here.</p></div>
     <p className="cart-trust"><ShieldCheck size={14}/> PayPal sandbox: no real money moves. You approve every payment in PayPal.</p>
    </aside>
   </div>}

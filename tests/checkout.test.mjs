@@ -46,3 +46,11 @@ test('an AI plan keeps its venue and table count when the couple pays from the c
  await createCheckout({store,planId:'plan-ai-00000001',lines:[{id:'floral-arch',qty:1},{id:'light-canopy',qty:1}],create:async()=>({id:'ORDER-AI'})});
  const plan=await store.get('plan:plan-ai-00000001');assert.deepEqual([plan.venueId,plan.tables,plan.lines.length],['orchard-grand',18,2]);
 });
+test('Make payment: the order carries PayPal return and cancel links back to this site, and the approval link comes back',async()=>{
+ resetMemoryStore();let sent;
+ const r=await createCheckout({store:getStore(),planId:'plan-cart-0002',lines:[{id:'floral-arch',qty:1}],origin:'https://wedding-studio-gray.vercel.app',
+  create:async args=>{sent=args;return {id:'ORDER-R',links:[{rel:'self',href:'https://api/x'},{rel:'payer-action',href:'https://www.sandbox.paypal.com/checkoutnow?token=ORDER-R'}]}}});
+ assert.equal(sent.returnUrl,'https://wedding-studio-gray.vercel.app/?checkout=return');
+ assert.equal(sent.cancelUrl,'https://wedding-studio-gray.vercel.app/?checkout=cancel');
+ assert.equal(r.approveUrl,'https://www.sandbox.paypal.com/checkoutnow?token=ORDER-R');
+});

@@ -17,7 +17,8 @@ export async function POST(request){
   if(body?.action==='create'){
    const rate=await store.incr('rate:checkout:'+clientIp(request),{ttlSeconds:3600});
    if(rate.n>30)return json({error:'rate_limited',resetSeconds:rate.expiresIn},429);
-   return json(await createCheckout({store,...body}));
+   const {planId,lines,promo,venueId,tables}=body;
+   return json(await createCheckout({store,planId,lines,promo,venueId,tables,origin:request.headers.get('origin')}));
   }
   const r=await captureOrder({orderId:body?.orderId,store,paypalFetch});
   return json(r,r.error?404:r.status==='COMPLETED'?200:402);

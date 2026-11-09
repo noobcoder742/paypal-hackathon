@@ -21,8 +21,11 @@ export async function paypalFetch(path,init={}){
  return body;
 }
 const money=n=>n.toFixed(2);
-/** One order, one line per vendor deposit. Amounts come from server/pricing.js only. */
-export async function createDepositOrder({planId,totals}){
+/**
+ * One order, one line per vendor deposit; the couple approves it on PayPal's page and comes
+ * back to returnUrl (cancelUrl if they cancel). Returns PayPal's order with its approval link.
+ */
+export async function createDepositOrder({planId,totals,returnUrl,cancelUrl}){
  const items=totals.lines.map(l=>({name:`${l.vendor} — ${l.name} (20% deposit)`.slice(0,127),quantity:'1',unit_amount:{currency_code:'SGD',value:money(l.deposit)},description:`${l.qty} × S$${l.unitPrice} · platform commission S$${money(l.commission)}`.slice(0,127)}));
  const discount=totals.discount||0,due=totals.dueToday??totals.depositTotal;
  // same cart + same code = same order (safe to retry); any change makes a new one
@@ -30,5 +33,8 @@ export async function createDepositOrder({planId,totals}){
  const breakdown={item_total:{currency_code:'SGD',value:money(totals.depositTotal)},...(discount?{discount:{currency_code:'SGD',value:money(discount)}}:{})};
  return paypalFetch('/v2/checkout/orders',{method:'POST',headers:{'PayPal-Request-Id':'order-'+planId+'-'+fingerprint},
   body:JSON.stringify({intent:'CAPTURE',purchase_units:[{reference_id:planId,description:'Wedding vendor deposits (Wedding Studio demo)',
-   amount:{currency_code:'SGD',value:money(due),breakdown},items}]})});
+   amount:{currency_code:'SGD',value:money(due),breakdown},items}],
+   ...(returnUrl?{payment_source:{paypal:{experience_context:{return_url:returnUrl,cancel_url:cancelUrl||returnUrl,user_action:'PAY_NOW',shipping_preference:'NO_SHIPPING',brand_name:'Wedding Studio (demo)'}}}}:{})})});
 }
+/** The link that sends the couple to PayPal to approve an order. */
+export const approvalLink=order=>(order?.links||[]).find(l=>l.rel==='payer-action'||l.rel==='approve')?.href||null;
