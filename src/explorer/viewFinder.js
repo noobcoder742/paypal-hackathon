@@ -7,46 +7,78 @@
 // go to the direction closest to the current view so the camera turns as
 // little as possible. If every side is blocked (dense downtown) it tilts the
 // camera towards a top-down view until the venue is visible.
-import {pointInPolygon} from './geo.js';
+import { pointInPolygon } from './geo.js';
 
-const THETAS=24;                       // directions tried around the target
+const THETAS = 24; // directions tried around the target
 // Bird's-eye rule (CLAUDE.md, Phase 2 spec): tilt 40–65° from vertical, never
 // near top-down. Order: most cinematic first.
-export const BIRDS_EYE={min:.70,max:1.13,order:[.95,.85,1.05,.75]};
-const PHIS=BIRDS_EYE.order;
-const STEP=3;                          // metres between ray samples
+export const BIRDS_EYE = { min: 0.7, max: 1.13, order: [0.95, 0.85, 1.05, 0.75] };
+const PHIS = BIRDS_EYE.order;
+const STEP = 3; // metres between ray samples
 
-function prepare(buildings,skip){
- const list=[];let maxH=0;
- for(const b of buildings){
-  const [h,minH,, ,,flat]=b;if(skip(b))continue;
-  let x0=1e9,z0=1e9,x1=-1e9,z1=-1e9;
-  for(let i=0;i<flat.length;i+=2){x0=Math.min(x0,flat[i]);x1=Math.max(x1,flat[i]);z0=Math.min(z0,flat[i+1]);z1=Math.max(z1,flat[i+1])}
-  list.push({h,minH,flat,x0,z0,x1,z1});maxH=Math.max(maxH,h);
- }
- return {list,maxH};
+function prepare(buildings, skip) {
+  const list = [];
+  let maxH = 0;
+  for (const b of buildings) {
+    const [h, minH, , , , flat] = b;
+    if (skip(b)) continue;
+    let x0 = 1e9,
+      z0 = 1e9,
+      x1 = -1e9,
+      z1 = -1e9;
+    for (let i = 0; i < flat.length; i += 2) {
+      x0 = Math.min(x0, flat[i]);
+      x1 = Math.max(x1, flat[i]);
+      z0 = Math.min(z0, flat[i + 1]);
+      z1 = Math.max(z1, flat[i + 1]);
+    }
+    list.push({ h, minH, flat, x0, z0, x1, z1 });
+    maxH = Math.max(maxH, h);
+  }
+  return { list, maxH };
 }
 
 // True if the straight line from the sample point to the camera hits a building.
-function blocked({list,maxH},[sx,sy,sz],[cx,cy,cz]){
- if(sy>=maxH)return false;
- const dx=cx-sx,dy=cy-sy,dz=cz-sz,horiz=Math.hypot(dx,dz);
- if(dy<=0||horiz<1)return false;
- // only the part of the ray below the tallest building can be blocked
- const reach=Math.min(horiz,(maxH-sy)/dy*horiz);
- const ux=dx/horiz,uz=dz/horiz,slope=dy/horiz;
- const ex=sx+ux*reach,ez=sz+uz*reach;
- const bx0=Math.min(sx,ex),bx1=Math.max(sx,ex),bz0=Math.min(sz,ez),bz1=Math.max(sz,ez);
- const near=list.filter(b=>b.x1>=bx0&&b.x0<=bx1&&b.z1>=bz0&&b.z0<=bz1);
- if(!near.length)return false;
- for(let d=STEP;d<=reach;d+=STEP){
-  const x=sx+ux*d,z=sz+uz*d,y=sy+slope*d;
-  for(const b of near)if(y<b.h&&y>=b.minH&&x>=b.x0&&x<=b.x1&&z>=b.z0&&z<=b.z1&&pointInPolygon(x,z,b.flat))return true;
- }
- return false;
+function blocked({ list, maxH }, [sx, sy, sz], [cx, cy, cz]) {
+  if (sy >= maxH) return false;
+  const dx = cx - sx,
+    dy = cy - sy,
+    dz = cz - sz,
+    horiz = Math.hypot(dx, dz);
+  if (dy <= 0 || horiz < 1) return false;
+  // only the part of the ray below the tallest building can be blocked
+  const reach = Math.min(horiz, ((maxH - sy) / dy) * horiz);
+  const ux = dx / horiz,
+    uz = dz / horiz,
+    slope = dy / horiz;
+  const ex = sx + ux * reach,
+    ez = sz + uz * reach;
+  const bx0 = Math.min(sx, ex),
+    bx1 = Math.max(sx, ex),
+    bz0 = Math.min(sz, ez),
+    bz1 = Math.max(sz, ez);
+  const near = list.filter(b => b.x1 >= bx0 && b.x0 <= bx1 && b.z1 >= bz0 && b.z0 <= bz1);
+  if (!near.length) return false;
+  for (let d = STEP; d <= reach; d += STEP) {
+    const x = sx + ux * d,
+      z = sz + uz * d,
+      y = sy + slope * d;
+    for (const b of near)
+      if (
+        y < b.h &&
+        y >= b.minH &&
+        x >= b.x0 &&
+        x <= b.x1 &&
+        z >= b.z0 &&
+        z <= b.z1 &&
+        pointInPolygon(x, z, b.flat)
+      )
+        return true;
+  }
+  return false;
 }
 
-const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
+const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 
 /**
  * @param buildings  tile building rows around the target
@@ -57,26 +89,32 @@ const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
  * @param skip       building row -> true for the venue's own buildings
  * @returns {theta,phi,hits}
  */
-export function findClearView({buildings,target,samples,r,theta,skip,phis=PHIS}){
- const scene=prepare(buildings,skip);
- let best=null;
- for(const phi of phis){
-  for(let i=0;i<THETAS;i++){
-   const t=theta+wrap(i*2*Math.PI/THETAS);
-   const cam=[target.x+r*Math.sin(phi)*Math.sin(t),r*Math.cos(phi),target.z+r*Math.sin(phi)*Math.cos(t)];
-   const hits=samples.reduce((n,s)=>n+(blocked(scene,s,cam)?1:0),0);
-   const turn=Math.abs(wrap(t-theta));
-   if(!best||hits<best.hits||(hits===best.hits&&turn<best.turn))best={hits,turn,theta:theta+wrap(t-theta),phi};
+export function findClearView({ buildings, target, samples, r, theta, skip, phis = PHIS }) {
+  const scene = prepare(buildings, skip);
+  let best = null;
+  for (const phi of phis) {
+    for (let i = 0; i < THETAS; i++) {
+      const t = theta + wrap((i * 2 * Math.PI) / THETAS);
+      const cam = [
+        target.x + r * Math.sin(phi) * Math.sin(t),
+        r * Math.cos(phi),
+        target.z + r * Math.sin(phi) * Math.cos(t),
+      ];
+      const hits = samples.reduce((n, s) => n + (blocked(scene, s, cam) ? 1 : 0), 0);
+      const turn = Math.abs(wrap(t - theta));
+      if (!best || hits < best.hits || (hits === best.hits && turn < best.turn))
+        best = { hits, turn, theta: theta + wrap(t - theta), phi };
+    }
+    if (best.hits === 0) break; // clear view found at the most cinematic tilt
   }
-  if(best.hits===0)break;    // clear view found at the most cinematic tilt
- }
- return {theta:best.theta,phi:best.phi,hits:best.hits};
+  return { theta: best.theta, phi: best.phi, hits: best.hits };
 }
 
 /** Camera distance (m) at which a box {w,d,h} spans ~fill of the shorter screen side. */
-export function fitDistance({box:{w,d,h},fov=38,aspect=1.6,fill=.55}){
- const radius=Math.hypot(w,d,h)/2,t=Math.tan(fov*Math.PI/360)*Math.min(1,aspect);
- return Math.max(120,radius/(t*fill));
+export function fitDistance({ box: { w, d, h }, fov = 38, aspect = 1.6, fill = 0.55 }) {
+  const radius = Math.hypot(w, d, h) / 2,
+    t = Math.tan((fov * Math.PI) / 360) * Math.min(1, aspect);
+  return Math.max(120, radius / (t * fill));
 }
 
 /**
@@ -86,14 +124,15 @@ export function fitDistance({box:{w,d,h},fov=38,aspect=1.6,fill=.55}){
  * least-blocked view. It never flattens to top-down.
  * @returns {theta,phi,r,hits}
  */
-export function venueView({buildings,own,target,samples,theta=0,r0}){
- let best=null;
- for(const k of [1,1.25,1.5,1.75,2,2.25,2.5]){
-  const r=r0*k,v=findClearView({buildings,target,samples,r,theta,skip:own,phis:BIRDS_EYE.order});
-  if(!best||v.hits<best.hits)best={...v,r};
-  if(v.hits===0)return {...v,r};
- }
- return {...best,r:r0*2.5};
+export function venueView({ buildings, own, target, samples, theta = 0, r0 }) {
+  let best = null;
+  for (const k of [1, 1.25, 1.5, 1.75, 2, 2.25, 2.5]) {
+    const r = r0 * k,
+      v = findClearView({ buildings, target, samples, r, theta, skip: own, phis: BIRDS_EYE.order });
+    if (!best || v.hits < best.hits) best = { ...v, r };
+    if (v.hits === 0) return { ...v, r };
+  }
+  return { ...best, r: r0 * 2.5 };
 }
 
 /**
@@ -101,19 +140,69 @@ export function venueView({buildings,own,target,samples,theta=0,r0}){
  * its footprint bounds), box {w,d,h} for fitDistance, and line-of-sight
  * samples (centre, roof and corners of each part).
  */
-export function venueFraming(rows){
- let x0=1e9,z0=1e9,x1=-1e9,z1=-1e9,h=0;
- for(const [hh,,,,,f] of rows){h=Math.max(h,hh);for(let i=0;i<f.length;i+=2){x0=Math.min(x0,f[i]);x1=Math.max(x1,f[i]);z0=Math.min(z0,f[i+1]);z1=Math.max(z1,f[i+1])}}
- const samples=rows.slice(0,10).flatMap(([hh,minH,,,,f])=>{let x=0,z=0;const n=f.length/2;for(let i=0;i<f.length;i+=2){x+=f[i];z+=f[i+1]}x/=n;z/=n;const mid=minH+(hh-minH)*.5,out=[[x,mid,z],[x,hh*.95,z]];
-  for(let k=0;k<Math.min(6,n);k++){const i=Math.floor(k*n/Math.min(6,n))*2;out.push([x+(f[i]-x)*.8,mid,z+(f[i+1]-z)*.8])}return out});
- return {target:{x:(x0+x1)/2,z:(z0+z1)/2},box:{w:x1-x0,d:z1-z0,h},samples};
+export function venueFraming(rows) {
+  let x0 = 1e9,
+    z0 = 1e9,
+    x1 = -1e9,
+    z1 = -1e9,
+    h = 0;
+  for (const [hh, , , , , f] of rows) {
+    h = Math.max(h, hh);
+    for (let i = 0; i < f.length; i += 2) {
+      x0 = Math.min(x0, f[i]);
+      x1 = Math.max(x1, f[i]);
+      z0 = Math.min(z0, f[i + 1]);
+      z1 = Math.max(z1, f[i + 1]);
+    }
+  }
+  const samples = rows.slice(0, 10).flatMap(([hh, minH, , , , f]) => {
+    let x = 0,
+      z = 0;
+    const n = f.length / 2;
+    for (let i = 0; i < f.length; i += 2) {
+      x += f[i];
+      z += f[i + 1];
+    }
+    x /= n;
+    z /= n;
+    const mid = minH + (hh - minH) * 0.5,
+      out = [
+        [x, mid, z],
+        [x, hh * 0.95, z],
+      ];
+    for (let k = 0; k < Math.min(6, n); k++) {
+      const i = Math.floor((k * n) / Math.min(6, n)) * 2;
+      out.push([x + (f[i] - x) * 0.8, mid, z + (f[i + 1] - z) * 0.8]);
+    }
+    return out;
+  });
+  return { target: { x: (x0 + x1) / 2, z: (z0 + z1) / 2 }, box: { w: x1 - x0, d: z1 - z0, h }, samples };
 }
 
 /** Base blocks around a venue, minus the venue's own (rows: the venue's source buildings). */
-export function withoutVenueBlocks(boxes,rows){
- // a block is the venue's own when they overlap at all: any corner or its centre inside a venue
- // footprint, or a venue corner inside the block (concave and split footprints have centres outside)
- const inVenue=([,,,,,f])=>{let x=0,z=0;for(let i=0;i<8;i+=2){x+=f[i];z+=f[i+1]}const pts=[[x/4,z/4],[f[0],f[1]],[f[2],f[3]],[f[4],f[5]],[f[6],f[7]]];
-  return rows.some(rw=>{const p=rw[5];if(pts.some(([px,pz])=>pointInPolygon(px,pz,p)))return true;for(let i=0;i<p.length;i+=2)if(pointInPolygon(p[i],p[i+1],f))return true;return false})};
- return boxes.filter(b=>!inVenue(b));
+export function withoutVenueBlocks(boxes, rows) {
+  // a block is the venue's own when they overlap at all: any corner or its centre inside a venue
+  // footprint, or a venue corner inside the block (concave and split footprints have centres outside)
+  const inVenue = ([, , , , , f]) => {
+    let x = 0,
+      z = 0;
+    for (let i = 0; i < 8; i += 2) {
+      x += f[i];
+      z += f[i + 1];
+    }
+    const pts = [
+      [x / 4, z / 4],
+      [f[0], f[1]],
+      [f[2], f[3]],
+      [f[4], f[5]],
+      [f[6], f[7]],
+    ];
+    return rows.some(rw => {
+      const p = rw[5];
+      if (pts.some(([px, pz]) => pointInPolygon(px, pz, p))) return true;
+      for (let i = 0; i < p.length; i += 2) if (pointInPolygon(p[i], p[i + 1], f)) return true;
+      return false;
+    });
+  };
+  return boxes.filter(b => !inVenue(b));
 }

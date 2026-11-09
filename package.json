@@ -11,7 +11,9 @@
   "build": "vite build",
   "preview": "vite preview",
   "test:map": "node scripts/perf/map-performance.mjs",
-  "test": "node --test tests/*.test.mjs"
+  "test": "node --test tests/*.test.mjs",
+  "lint": "eslint src server api tests scripts",
+  "format": "prettier --write \"src/**/*.{js,jsx,css}\" \"server/**/*.js\" \"api/**/*.js\" \"tests/**/*.mjs\" \"scripts/**/*.{js,mjs}\""
  },
  "dependencies": {
   "@ai-sdk/anthropic": "^1.2.12",
@@ -31,6 +33,11 @@
   "zod": "^3.25.76"
  },
  "devDependencies": {
+  "eslint": "^9.39.5",
+  "eslint-plugin-react": "^7.37.5",
+  "eslint-plugin-react-hooks": "^5.2.0",
+  "globals": "^15.15.0",
+  "prettier": "^3.9.10",
   "vite": "^6.0.5"
  }
 }

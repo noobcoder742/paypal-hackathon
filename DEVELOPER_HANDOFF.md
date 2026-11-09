@@ -305,3 +305,11 @@ The studio's room is now a fictional 16.8 m × 20.6 m ballroom modelled in Blend
 - Room-size consequences: venue config `dimensions` {16.8, 20.6, 5.35}, capacity 240, The Orchard Grand takes 10–24 tables, the demo plan defaults to 16 tables, `tableGrid()` keeps a centre aisle up to 16 tables, decor defaults moved, and layouts are stored under `wedding-room-v2` (old saves were for the larger room). Chandeliers and suspended AV are off by default (the reference room has neither); both toggles remain.
 - The old procedural walls, ceiling, carpet and exit doors were removed from `src/main.jsx`.
 
+
+### Cart, checkout and code quality (Nov 2026)
+
+- **Cart** (`src/components/cart/`): the couple's unpaid saved items (`planner.savedItems`) with quantities. `CartButton` sits in the top bar (count pops when items are added); `CartPage` lists items (+/−, delete), the summary (deposits, promo code, balance) and a **Make payment** button.
+- **Checkout** (`server/checkout.js`, `api/paypal/order.js`): `quote` (server prices, band line-ups via `unitPriceFor`, promo codes from `PROMO_CODES` in `server/pricing.js`), `create` (PayPal order with return/cancel links to `/?checkout=return|cancel`; the browser goes to PayPal's approval page), `capture` (on return; checks the discounted amount). Demo code: `PAYPALDEMO` (10% off deposits).
+- **AI planner**: `open_checkout` puts the plan's items in the cart and opens the payment page; the AI never creates PayPal orders itself.
+- **Tooling**: `npm run lint` (ESLint 9, flat config in `eslint.config.js`), `npm run format` (Prettier, `.prettierrc`). Shared helpers live in `src/lib/format.js` (`sgd`, `sgdWhole`, `sgdCents`, `round2`, `createCache`).
+- **Public copy**: `scripts/tidy-public.py` drops the internal `@placeholder`/`@prototype`/`@todo` notes while `make-public-repo.sh` rewrites history; the private repo keeps them.

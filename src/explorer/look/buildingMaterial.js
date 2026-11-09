@@ -16,37 +16,79 @@ import * as THREE from 'three';
 //  mask    {mode:'cell'|'base', texture, grid, tileSize}: a per-cell mask
 //          texture cross-dissolves the always-loaded base blocks with the
 //          full-detail cells (value 1 = full detail shown in that cell)
-export function makeBuildingMaterial({sunDir,lit=.035,transparent=false,packed=false,mask=null}={}){
- const mat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.86,metalness:0,transparent,flatShading:packed});
- const uniforms={
-  uSun:{value:new THREE.Vector3(sunDir?.x??-.9,sunDir?.y??.12,sunDir?.z??.3).normalize()},
-  uLit:{value:lit},
-  uDetailFar:{value:1400},
-  uTint:{value:new THREE.Color('#ffffff')},uTintAmt:{value:0},
-  uMask:{value:mask?.texture||null},uGrid:{value:new THREE.Vector4(mask?.grid.ix0||0,mask?.grid.iz0||0,mask?.grid.w||1,mask?.grid.h||1)},uTile:{value:mask?.tileSize||1000},uShift:{value:new THREE.Vector2()},
-  // middle level (2 km districts): its own mask over the district grid
-  uMidMask:{value:mask?.mid?.texture||null},uMidGrid:{value:new THREE.Vector4(mask?.mid?.grid.dx0||0,mask?.mid?.grid.dz0||0,mask?.mid?.grid.w||1,mask?.mid?.grid.h||1)},uMidSize:{value:mask?.mid?.size||2000}
- };
- // 0 plain, 1 full-detail cell, 2 base blocks, 3 middle-level district
- const MODE=mask?({base:2,mid:3}[mask.mode]||1):0,HAS_MID=!!mask?.mid;
- mat.userData.uniforms=uniforms;
- mat.onBeforeCompile=shader=>{
-  Object.assign(shader.uniforms,uniforms);
-  shader.vertexShader=shader.vertexShader
-   .replace('#include <common>',`#include <common>
+export function makeBuildingMaterial({
+  sunDir,
+  lit = 0.035,
+  transparent = false,
+  packed = false,
+  mask = null,
+} = {}) {
+  const mat = new THREE.MeshStandardMaterial({
+    vertexColors: true,
+    roughness: 0.86,
+    metalness: 0,
+    transparent,
+    flatShading: packed,
+  });
+  const uniforms = {
+    uSun: { value: new THREE.Vector3(sunDir?.x ?? -0.9, sunDir?.y ?? 0.12, sunDir?.z ?? 0.3).normalize() },
+    uLit: { value: lit },
+    uDetailFar: { value: 1400 },
+    uTint: { value: new THREE.Color('#ffffff') },
+    uTintAmt: { value: 0 },
+    uMask: { value: mask?.texture || null },
+    uGrid: {
+      value: new THREE.Vector4(
+        mask?.grid.ix0 || 0,
+        mask?.grid.iz0 || 0,
+        mask?.grid.w || 1,
+        mask?.grid.h || 1
+      ),
+    },
+    uTile: { value: mask?.tileSize || 1000 },
+    uShift: { value: new THREE.Vector2() },
+    // middle level (2 km districts): its own mask over the district grid
+    uMidMask: { value: mask?.mid?.texture || null },
+    uMidGrid: {
+      value: new THREE.Vector4(
+        mask?.mid?.grid.dx0 || 0,
+        mask?.mid?.grid.dz0 || 0,
+        mask?.mid?.grid.w || 1,
+        mask?.mid?.grid.h || 1
+      ),
+    },
+    uMidSize: { value: mask?.mid?.size || 2000 },
+  };
+  // 0 plain, 1 full-detail cell, 2 base blocks, 3 middle-level district
+  const MODE = mask ? { base: 2, mid: 3 }[mask.mode] || 1 : 0,
+    HAS_MID = !!mask?.mid;
+  mat.userData.uniforms = uniforms;
+  mat.onBeforeCompile = shader => {
+    Object.assign(shader.uniforms, uniforms);
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        '#include <common>',
+        `#include <common>
 attribute vec3 aRoof;attribute vec3 aStyle;
 varying vec3 vRoof;varying vec3 vStyle;varying vec3 vWPos;varying vec3 vWNormal;varying float vMask;varying vec2 vCellP;
 uniform sampler2D uMask;uniform vec4 uGrid;uniform float uTile;uniform vec2 uShift;
 uniform sampler2D uMidMask;uniform vec4 uMidGrid;uniform float uMidSize;
 float cellMaskAt(vec2 p){ivec2 c=ivec2(floor(p/uTile)-uGrid.xy);if(c.x<0||c.y<0||c.x>=int(uGrid.z)||c.y>=int(uGrid.w))return 0.;return texelFetch(uMask,c,0).r;}
 float midMaskAt(vec2 p){ivec2 c=ivec2(floor(p/uMidSize)-uMidGrid.xy);if(c.x<0||c.y<0||c.x>=int(uMidGrid.z)||c.y>=int(uMidGrid.w))return 0.;return texelFetch(uMidMask,c,0).r;}
-${MODE===2?'attribute float aCell;attribute vec2 aPos;attribute vec4 aSize;attribute float aAng;':''}`)
-   .replace('#include <begin_vertex>',`#include <begin_vertex>
-${MODE===2?`// base block placed on the GPU straight from the file: centre, size (0.25 m), height and base (0.1 m), angle
+${MODE === 2 ? 'attribute float aCell;attribute vec2 aPos;attribute vec4 aSize;attribute float aAng;' : ''}`
+      )
+      .replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>
+${
+  MODE === 2
+    ? `// base block placed on the GPU straight from the file: centre, size (0.25 m), height and base (0.1 m), angle
 {vec3 p=position;float w=max(aSize.x/4.,.5),d=max(aSize.y/4.,.5),h=aSize.z/10.,mh=aSize.w/10.;
  p.x*=w;p.z*=d;p.y=mh+p.y*max(h-mh,.5);float a=aAng/255.*PI,c=cos(a),s=sin(a);
- transformed=vec3(p.x*c-p.z*s,p.y,p.x*s+p.z*c)+vec3(aPos.x,0.,aPos.y);}`:''}
-vRoof=aRoof;vStyle=${packed?'vec3(aStyle.x,aStyle.y/20.,aStyle.z/255.)':'aStyle'};
+ transformed=vec3(p.x*c-p.z*s,p.y,p.x*s+p.z*c)+vec3(aPos.x,0.,aPos.y);}`
+    : ''
+}
+vRoof=aRoof;vStyle=${packed ? 'vec3(aStyle.x,aStyle.y/20.,aStyle.z/255.)' : 'aStyle'};
 #ifdef USE_INSTANCING
 vWPos=(modelMatrix*instanceMatrix*vec4(transformed,1.)).xyz;
 #else
@@ -54,29 +96,49 @@ vWPos=(modelMatrix*vec4(transformed,1.)).xyz;
 #endif
 vWNormal=normalize(mat3(modelMatrix)*objectNormal);
 vMask=1.;
-${MODE===1?`{ivec2 c=ivec2(floor((modelMatrix[3].x-uShift.x)/uTile)-uGrid.x,floor((modelMatrix[3].z-uShift.y)/uTile)-uGrid.y);vMask=texelFetch(uMask,c,0).r;}`:''}
-${MODE===2?`{float w=uGrid.z;ivec2 c=ivec2(mod(aCell,w),floor(aCell/w));vMask=1.-texelFetch(uMask,c,0).r;
- ${HAS_MID?'vMask*=1.-midMaskAt((vec2(c)+uGrid.xy+.5)*uTile);':''}}`:''}
-${MODE===3?`vMask=midMaskAt(modelMatrix[3].xz-uShift);vCellP=vWPos.xz-uShift;`:''}`)
-   .replace('#include <fog_vertex>',`#include <fog_vertex>
-${MODE===2||MODE===3?'if(vMask<.004)gl_Position=vec4(2.,2.,2.,1.);  // hidden where a finer level is shown':''}`);
-  shader.fragmentShader=shader.fragmentShader
-   .replace('#include <common>',`#include <common>
+${MODE === 1 ? `{ivec2 c=ivec2(floor((modelMatrix[3].x-uShift.x)/uTile)-uGrid.x,floor((modelMatrix[3].z-uShift.y)/uTile)-uGrid.y);vMask=texelFetch(uMask,c,0).r;}` : ''}
+${
+  MODE === 2
+    ? `{float w=uGrid.z;ivec2 c=ivec2(mod(aCell,w),floor(aCell/w));vMask=1.-texelFetch(uMask,c,0).r;
+ ${HAS_MID ? 'vMask*=1.-midMaskAt((vec2(c)+uGrid.xy+.5)*uTile);' : ''}}`
+    : ''
+}
+${MODE === 3 ? `vMask=midMaskAt(modelMatrix[3].xz-uShift);vCellP=vWPos.xz-uShift;` : ''}`
+      )
+      .replace(
+        '#include <fog_vertex>',
+        `#include <fog_vertex>
+${MODE === 2 || MODE === 3 ? 'if(vMask<.004)gl_Position=vec4(2.,2.,2.,1.);  // hidden where a finer level is shown' : ''}`
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        '#include <common>',
+        `#include <common>
 uniform vec3 uSun;uniform float uLit;uniform float uDetailFar;uniform vec3 uTint;uniform float uTintAmt;
 varying vec3 vRoof;varying vec3 vStyle;varying vec3 vWPos;varying vec3 vWNormal;
 float hash2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 // Anti-aliased box: 1 inside [a,b] of a repeating cell, softened by pixel footprint.
 float band(float x,float a,float b,float w){return smoothstep(a-w,a+w,x)-smoothstep(b-w,b+w,x);}
 float facadeLit=0.;float facadeGlass=0.;varying float vMask;
-${MODE===3?`varying vec2 vCellP;uniform sampler2D uMask;uniform vec4 uGrid;uniform float uTile;
-float cellMaskAt(vec2 p){ivec2 c=ivec2(floor(p/uTile)-uGrid.xy);if(c.x<0||c.y<0||c.x>=int(uGrid.z)||c.y>=int(uGrid.w))return 0.;return texelFetch(uMask,c,0).r;}`:''}`)
-   .replace('#include <clipping_planes_fragment>',`#include <clipping_planes_fragment>
+${
+  MODE === 3
+    ? `varying vec2 vCellP;uniform sampler2D uMask;uniform vec4 uGrid;uniform float uTile;
+float cellMaskAt(vec2 p){ivec2 c=ivec2(floor(p/uTile)-uGrid.xy);if(c.x<0||c.y<0||c.x>=int(uGrid.z)||c.y>=int(uGrid.w))return 0.;return texelFetch(uMask,c,0).r;}`
+    : ''
+}`
+      )
+      .replace(
+        '#include <clipping_planes_fragment>',
+        `#include <clipping_planes_fragment>
 // dissolve between base blocks and full detail (screen-space dither, no popping)
-${MODE===3?'float vMaskF=vMask*(1.-cellMaskAt(vCellP));  // a district gives way, cell by cell, to full detail':'float vMaskF=vMask;'}
-if(fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))))>vMaskF)discard;`)
-   .replace('#include <color_fragment>',`#include <color_fragment>
+${MODE === 3 ? 'float vMaskF=vMask*(1.-cellMaskAt(vCellP));  // a district gives way, cell by cell, to full detail' : 'float vMaskF=vMask;'}
+if(fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))))>vMaskF)discard;`
+      )
+      .replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
 {
- vec3 n=${packed?'normalize(cross(dFdx(vWPos),dFdy(vWPos)));if(dot(n,cameraPosition-vWPos)<0.)n=-n':'normalize(vWNormal)'};
+ vec3 n=${packed ? 'normalize(cross(dFdx(vWPos),dFdy(vWPos)));if(dot(n,cameraPosition-vWPos)<0.)n=-n' : 'normalize(vWNormal)'};
  if(n.y>.5){ diffuseColor.rgb=vRoof; }
  else if(abs(n.y)<.5){
   float kind=vStyle.x,storey=max(2.5,vStyle.y),seed=vStyle.z;
@@ -117,12 +179,20 @@ if(fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))))>vMask
   facadeGlass=win;
  }
  diffuseColor.rgb=mix(diffuseColor.rgb,uTint,uTintAmt);
-}`)
-   .replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
-roughnessFactor=mix(roughnessFactor,.18,facadeGlass);`)
-   .replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
-totalEmissiveRadiance+=vec3(1.,.72,.42)*facadeLit*.45;`);
- };
- mat.customProgramCacheKey=()=>'building-facade-v3'+(transparent?'-t':'')+(packed?'-p':'')+'-m'+MODE;
- return mat;
+}`
+      )
+      .replace(
+        '#include <roughnessmap_fragment>',
+        `#include <roughnessmap_fragment>
+roughnessFactor=mix(roughnessFactor,.18,facadeGlass);`
+      )
+      .replace(
+        '#include <emissivemap_fragment>',
+        `#include <emissivemap_fragment>
+totalEmissiveRadiance+=vec3(1.,.72,.42)*facadeLit*.45;`
+      );
+  };
+  mat.customProgramCacheKey = () =>
+    'building-facade-v3' + (transparent ? '-t' : '') + (packed ? '-p' : '') + '-m' + MODE;
+  return mat;
 }

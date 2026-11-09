@@ -10,5 +10,5 @@ export const grandBallroom = {
   status: 'unofficial-concept',
   notes: 'Fictional demo room modelled in Blender from reference images; dimensions are estimates.',
   // v2: the room changed size, so layouts saved for the old room start fresh
-  storageKey: 'wedding-room-v2'
+  storageKey: 'wedding-room-v2',
 };
