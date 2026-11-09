@@ -16,8 +16,8 @@ function plan(prompt){
  const done=prompt.filter(m=>m.role==='tool').flatMap(m=>m.content.map(c=>c.toolName));
  const tables=+(last.match(/(\d+)\s*tables?/)||[])[1]||16,budget=(()=>{const m=last.match(/s?\$\s*([\d,]+)\s*(k)?/);return m?parseFloat(m[1].replace(/,/g,''))*(m[2]?1000:1):null})();
  const style=['garden','classic','modern','romantic','minimal'].find(s=>last.includes(s))||'garden';
- const venueId='orchard-grand',lines=style==='garden'?[{id:'floral-greenery',qty:tables},{id:'floral-arch',qty:1},{id:'light-canopy',qty:1},{id:'music-strings',qty:1}]:[{id:'floral-white',qty:tables},{id:'light-ambient',qty:1},{id:'music-piano',qty:1}];
- if(/secure|deposit|pay/.test(last))return done.includes('create_deposit_order')?{text:'Your deposit order is ready. Approve it with the PayPal button below; nothing is charged until you do.'}:{call:'create_deposit_order',args:{}};
+ const venueId='orchard-grand',lines=style==='garden'?[{id:'floral-greenery',qty:tables},{id:'floral-arch',qty:1},{id:'light-canopy',qty:1},{id:'music-strings',qty:1}]:[{id:'floral-white',qty:tables},{id:'light-ambient',qty:1},{id:'music-jazz',qty:1}];
+ if(/secure|deposit|pay/.test(last))return done.includes('open_checkout')?{text:'Your vendors are in your cart. Review them on the payment page and pay the deposits with PayPal.'}:{call:'open_checkout',args:{}};
  if(/enquiry|send to/.test(last))return done.includes('send_enquiry')?{text:'Sent. The venue will reply with a quote and a deposit invoice.'}:{call:'send_enquiry',args:{coupleName:'Mei & Daniel',email:'couple@example.com',date:'2027-06-12'}};
  const steps=[['search_venues',{tables}],['search_vendors',{style}],['check_budget',{venueId,tables,lines,budget:budget??undefined}],['place_in_ballroom',{venueId,tables,lines,budget:budget??undefined}]];
  const next=steps.find(([n])=>!done.includes(n));

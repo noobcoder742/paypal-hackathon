@@ -5,7 +5,7 @@ import {CATALOG} from '../../src/data/catalog.js';
 import {VENUES} from '../../src/data/venues.js';
 // stored runs are only valid for the data they were made with
 const dataVersion=()=>createHash('sha256').update(JSON.stringify([CATALOG.map(i=>[i.id,i.price,i.name,i.vendor]),VENUES.map(v=>[v.id,v.name,v.banquet])])).digest('hex').slice(0,12);
-export const UNCACHEABLE=new Set(['create_deposit_order','send_enquiry']);
+export const UNCACHEABLE=new Set(['open_checkout','send_enquiry']);
 const text=m=>typeof m.content==='string'?m.content:(m.content||[]).map(p=>p.text||'').join(' ');
 export function normalise(s){
  return s.toLowerCase().replace(/(s?\$)\s*([\d,]+(?:\.\d+)?)\s*(k)?/g,(_,cur,num,k)=>{const v=parseFloat(num.replace(/,/g,''))*(k?1000:1);return 's$'+Math.round(v/1000)*1000})

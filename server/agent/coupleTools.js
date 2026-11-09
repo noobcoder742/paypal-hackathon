@@ -4,7 +4,6 @@ import {z} from 'zod';
 import {CATALOG,STYLES,findItem} from '../../src/data/catalog.js';
 import {VENUES,findVenue} from '../../src/data/venues.js';
 import {vendorPlanTotals,banquetQuote,UnknownItemError,round2} from '../pricing.js';
-import {createDepositOrder} from '../paypalApi.js';
 import {LISTING_DECOR} from '../../src/studio/decor/decor.js';
 const Lines=z.array(z.object({id:z.string(),qty:z.number().int().min(1).max(60)})).max(20);
 const venueSummary=(v,tables)=>{let estimate=null;try{estimate=banquetQuote(v,tables).total}catch{}
@@ -57,14 +56,12 @@ export function coupleTools({store,planId}){
     const totals=vendorPlanTotals(lines),plan={planId,venueId,tables,budget:budget??null,lines,totals,studioPatch:studioPatchFor(tables,lines),savedAt:Date.now()};
     await store.set('plan:'+planId,plan);
     return {venueId,venueName:findVenue(venueId).name,studioPatch:plan.studioPatch,totals,banquetTotal:check.banquetTotal,grandTotal:check.grandTotal,remaining:check.remaining}}}),
-  create_deposit_order:tool({description:'Create the PayPal sandbox order for 20% deposits on every vendor item in the saved plan. The couple approves it in PayPal; nothing is charged before that.',
+  open_checkout:tool({description:'Put every vendor item in the saved plan into the couple\'s cart and open the payment page, where they review quantities, add a promo code and pay the 20% deposits with PayPal. Call this when the couple asks to secure, book or pay for the vendors.',
    // One optional field: Gemini (the fallback model) rejects a tool with no parameters. The plan always comes from the session.
    parameters:z.object({note:z.string().max(200).optional().describe('Optional note for the couple; leave empty.')}),
    execute:async()=>{const plan=await store.get('plan:'+planId);if(!plan)return {error:'no_plan',message:'Place the plan in the ballroom first.'};
     let totals;try{totals=vendorPlanTotals(plan.lines)}catch(e){return {error:'invalid_plan',message:e.message}}
-    const order=await createDepositOrder({planId,totals});
-    await store.set('order:'+order.id,{planId,depositTotal:totals.depositTotal,lines:totals.lines,status:'created'});
-    return {orderId:order.id,depositTotal:totals.depositTotal,commissionTotal:totals.commissionTotal,lines:totals.lines}}}),
+    return {checkout:true,planId,depositTotal:totals.depositTotal,lines:totals.lines.map(l=>({id:l.id,qty:l.qty,...(l.lineup?{lineup:l.lineup}:{})}))}}}),
   send_enquiry:tool({description:'Send the saved plan to the venue as a qualified enquiry.',
    parameters:z.object({coupleName:z.string().min(1).max(80),email:z.string().email(),date:z.string().regex(/^\d{4}-\d{2}-\d{2}$/)}),
    execute:async({coupleName,email,date})=>{const plan=await store.get('plan:'+planId);if(!plan)return {error:'no_plan'};

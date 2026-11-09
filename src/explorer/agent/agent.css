@@ -39,3 +39,5 @@
 @media (max-width:850px){.agent-panel{top:auto;left:8px;right:8px;width:auto;height:72vh;bottom:8px}}
 .design-studio-wrap{display:contents}
 @media (min-width:1100px){body.agent-open .embedded-studio,body.agent-open .explorer{margin-right:424px;transition:margin-right .25s var(--ease)}}
+.agent-checkout{margin:6px 0 4px 22px;padding:9px 16px;border:0;border-radius:999px;background:var(--ink,#1d1a16);color:#fff;font-weight:500;font-size:13px}
+.agent-checkout:hover{background:#000}

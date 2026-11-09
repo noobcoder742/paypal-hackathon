@@ -1,5 +1,6 @@
 // Direct PayPal REST calls (sandbox only): OAuth token, deposit orders in SGD, capture.
 // The Agent Toolkit is used for invoices (see server/paypal.js); its create_order only allows USD.
+import {createHash} from 'node:crypto';
 import {env,assertSandbox,PAYPAL_BASE} from './env.js';
 let token=null,fetcher=null;
 /** Tests replace the network call: fn(path, init) → parsed JSON. */
@@ -23,7 +24,11 @@ const money=n=>n.toFixed(2);
 /** One order, one line per vendor deposit. Amounts come from server/pricing.js only. */
 export async function createDepositOrder({planId,totals}){
  const items=totals.lines.map(l=>({name:`${l.vendor} — ${l.name} (20% deposit)`.slice(0,127),quantity:'1',unit_amount:{currency_code:'SGD',value:money(l.deposit)},description:`${l.qty} × S$${l.unitPrice} · platform commission S$${money(l.commission)}`.slice(0,127)}));
- return paypalFetch('/v2/checkout/orders',{method:'POST',headers:{'PayPal-Request-Id':'order-'+planId+'-'+Math.round(totals.depositTotal*100)},
+ const discount=totals.discount||0,due=totals.dueToday??totals.depositTotal;
+ // same cart + same code = same order (safe to retry); any change makes a new one
+ const fingerprint=createHash('sha256').update(JSON.stringify([totals.lines.map(l=>[l.id,l.qty,l.unitPrice]),totals.promo?.code||''])).digest('hex').slice(0,16);
+ const breakdown={item_total:{currency_code:'SGD',value:money(totals.depositTotal)},...(discount?{discount:{currency_code:'SGD',value:money(discount)}}:{})};
+ return paypalFetch('/v2/checkout/orders',{method:'POST',headers:{'PayPal-Request-Id':'order-'+planId+'-'+fingerprint},
   body:JSON.stringify({intent:'CAPTURE',purchase_units:[{reference_id:planId,description:'Wedding vendor deposits (Wedding Studio demo)',
-   amount:{currency_code:'SGD',value:money(totals.depositTotal),breakdown:{item_total:{currency_code:'SGD',value:money(totals.depositTotal)}}},items}]})});
+   amount:{currency_code:'SGD',value:money(due),breakdown},items}]})});
 }
