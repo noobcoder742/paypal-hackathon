@@ -31,7 +31,15 @@ import DepositInvoices from './DepositInvoices.jsx';
 import { sgdWhole } from '../../lib/format.js';
 import { celebrate } from '../../vendor/Confetti.jsx';
 import { cartItems, unitPrice, payable } from '../cart/cart.js';
-import { markDepositsPaid, paidSoFar, itemStage, STAGES } from './progress.js';
+import {
+  markDepositsPaid,
+  paidSoFar,
+  itemStage,
+  STAGES,
+  insertTask,
+  insertSection,
+  renameSection,
+} from './progress.js';
 import './progress.css';
 
 /**
@@ -51,6 +59,7 @@ function useProgressShow(planner, patch, setPlanTab) {
       .map(p => ({ item: planner.savedItems.find(i => i.id === p.itemId), total: p.total }))
       .filter(p => p.item);
     setShow({
+      banner: true,
       step: 'budget',
       items: new Set(c.paid.map(p => p.itemId)),
       tasks: new Set(c.tasks),
@@ -63,6 +72,7 @@ function useProgressShow(planner, patch, setPlanTab) {
         window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 110, behavior: 'smooth' });
     };
     setPlanTab('budget');
+    at(3000, () => setShow(s => s && { ...s, banner: false }));
     at(250, () => reveal('.plan2-budget'));
     at(1000, () => patch({ payments: markDepositsPaid(planner.payments, items) }));
     at(3300, () => {
@@ -71,11 +81,7 @@ function useProgressShow(planner, patch, setPlanTab) {
     });
     at(3450, () => reveal('.plan2-task.just-done'));
     at(5000, () => {
-      celebrate(
-        0,
-        c.tasks.length ? `${c.tasks.length} task${c.tasks.length === 1 ? '' : 's'} completed` : '',
-        'Good progress!'
-      );
+      celebrate(0, '');
       patch({ celebration: null });
     });
     at(7400, () => {
@@ -85,6 +91,57 @@ function useProgressShow(planner, patch, setPlanTab) {
   }, [planner.celebration]); // eslint-disable-line react-hooks/exhaustive-deps
   return show;
 }
+/** (+) at the end of a checklist row: pops out "Add a task" and "Add a section". */
+function AddMenu({ onTask, onSection }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = e => {
+      if (e.type === 'keydown' ? e.key === 'Escape' : !ref.current?.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', close);
+    document.addEventListener('keydown', close);
+    return () => {
+      document.removeEventListener('pointerdown', close);
+      document.removeEventListener('keydown', close);
+    };
+  }, [open]);
+  const pick = f => e => {
+    e.preventDefault();
+    e.stopPropagation();
+    setOpen(false);
+    f();
+  };
+  return (
+    <span className={'plan2-addmenu' + (open ? ' open' : '')} ref={ref}>
+      {open && (
+        <span className="plan2-addopts" role="menu">
+          <button type="button" role="menuitem" onClick={pick(onTask)}>
+            Add a task
+          </button>
+          <button type="button" role="menuitem" onClick={pick(onSection)}>
+            Add a section
+          </button>
+        </span>
+      )}
+      <button
+        type="button"
+        className="plan2-plus"
+        aria-label="Add a task or section here"
+        aria-expanded={open}
+        onClick={e => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen(o => !o);
+        }}
+      >
+        <Plus size={14} />
+      </button>
+    </span>
+  );
+}
+
 export default function PlannerPage(p) {
   const {
     planner,
@@ -112,6 +169,24 @@ export default function PlannerPage(p) {
   useSlidingIndicator(tabsRef, [tab]);
   const attending = planner.guests.filter(g => g.rsvp === 'Attending').length;
   const show = useProgressShow(planner, patch, setPlanTab);
+  const [focusId, setFocusId] = useState(null);
+  useEffect(() => {
+    if (!focusId) return;
+    const el = document.querySelector(`[data-task="${focusId}"]`);
+    el?.focus();
+    el?.select();
+    setFocusId(null);
+  }, [focusId, planner.tasks]);
+  const addTask = where => {
+    const r = insertTask(planner.tasks, where);
+    patch({ tasks: r.tasks });
+    setFocusId(r.id);
+  };
+  const addSection = group => {
+    const r = insertSection(planner.tasks, group);
+    patch({ tasks: r.tasks });
+    setFocusId(r.id);
+  };
   const paid = planner.payments.reduce((s, x) => s + paidSoFar(x), 0);
   const scheduled = planner.payments.reduce((s, x) => s + Number(x.amount || 0), 0);
   // cart items not yet on the budget still count against it
@@ -176,7 +251,7 @@ export default function PlannerPage(p) {
         ))}
       </nav>
 
-      {show && show.count > 0 && (
+      {show?.banner && show.count > 0 && (
         <div className="plan2-congrats" role="status">
           Congrats! {show.count} task{show.count === 1 ? '' : 's'} completed!
         </div>
@@ -210,10 +285,20 @@ export default function PlannerPage(p) {
                       <span className="plan2-node">
                         {done === list.length ? <Check size={13} /> : gi + 1}
                       </span>
-                      <h3>{group}</h3>
+                      <input
+                        className="plan2-phase-title"
+                        value={group}
+                        aria-label="Section name"
+                        onChange={e => patch({ tasks: renameSection(planner.tasks, group, e.target.value) })}
+                        onBlur={e =>
+                          !e.target.value.trim() &&
+                          patch({ tasks: renameSection(planner.tasks, group, 'Untitled section') })
+                        }
+                      />
                       <small>
                         {done}/{list.length}
                       </small>
+                      <AddMenu onTask={() => addTask({ group })} onSection={() => addSection(group)} />
                     </div>
                     {list.map(t => (
                       <label
@@ -234,6 +319,7 @@ export default function PlannerPage(p) {
                         </span>
                         <input
                           className="plan2-task-title"
+                          data-task={t.id}
                           value={t.title}
                           aria-label="Task name"
                           onChange={e =>
@@ -244,30 +330,21 @@ export default function PlannerPage(p) {
                             })
                           }
                         />
+                        <AddMenu
+                          onTask={() => addTask({ afterId: t.id })}
+                          onSection={() => addSection(t.group)}
+                        />
                       </label>
                     ))}
                   </Reveal>
                 );
               })}
             </ol>
-            <button
-              className="plan2-add"
-              onClick={() =>
-                patch({
-                  tasks: [
-                    ...planner.tasks,
-                    {
-                      id: 'task' + Date.now(),
-                      title: 'New wedding task',
-                      group: 'Custom tasks',
-                      done: false,
-                    },
-                  ],
-                })
-              }
-            >
-              <Plus size={15} /> Add a task
-            </button>
+            {!planner.tasks.length && (
+              <button className="plan2-add" onClick={() => addSection('')}>
+                <Plus size={15} /> Add a section
+              </button>
+            )}
           </>
         )}
 
@@ -434,7 +511,7 @@ export default function PlannerPage(p) {
                 className={vendorTab === 'inventory' ? 'active' : ''}
                 onClick={() => setVendorTab('inventory')}
               >
-                Progress <span>{planner.savedItems.length}</span>
+                My Cart <span>{planner.savedItems.length}</span>
               </button>
               <button
                 role="tab"
@@ -455,13 +532,11 @@ export default function PlannerPage(p) {
                       <small>{item.vendor?.replace(' (demo)', '')}</small>
                     </span>
                     <ol className={'plan2-stages at-' + itemStage(item)} aria-label="Progress">
-                      {STAGES.filter(([k]) => k !== 'enquiry' || itemStage(item) === 'enquiry').map(
-                        ([k, label]) => (
-                          <li key={k} className={k === itemStage(item) ? 'now' : ''}>
-                            {label}
-                          </li>
-                        )
-                      )}
+                      {STAGES.map(([k, label]) => (
+                        <li key={k} className={k === itemStage(item) ? 'now' : ''}>
+                          {label}
+                        </li>
+                      ))}
                     </ol>
                     <button
                       className="text-link"

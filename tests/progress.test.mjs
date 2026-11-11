@@ -56,7 +56,27 @@ test('budget: "To pay" until the deposit is paid, then 20% counts as paid; added
 });
 test('each saved item shows its stage', () => {
   assert.equal(itemStage(findItem('catering-banquet')), 'enquiry');
-  assert.equal(itemStage(findItem('floral-arch')), 'cart');
-  assert.equal(itemStage(findItem('music-strings')), 'cart');
-  assert.equal(itemStage({ ...findItem('floral-arch'), paid: { at: 1 } }), 'paid');
+  assert.equal(itemStage(findItem('floral-arch')), 'enquiry');
+  assert.equal(itemStage({ ...findItem('floral-arch'), paid: { at: 1 } }), 'deposit');
+  assert.equal(itemStage({ ...findItem('floral-arch'), paid: { at: 1 }, fullyPaid: { at: 2 } }), 'paid');
+});
+import { insertTask, insertSection, renameSection } from '../src/components/planner/progress.js';
+test('add a task below any row, or a new section after any section', () => {
+  let r = insertTask(SEED_TASKS, { afterId: 'guests' });
+  assert.equal(r.tasks[r.tasks.findIndex(t => t.id === 'guests') + 1].id, r.id);
+  assert.equal(r.tasks.find(t => t.id === r.id).group, 'Guests');
+  r = insertTask(SEED_TASKS, { group: 'Vendors' });
+  assert.equal(
+    r.tasks.find(t => t.group === 'Vendors').id,
+    r.id,
+    'from a section header: first in that section'
+  );
+  const s = insertSection(SEED_TASKS, 'Guests');
+  const groups = [...new Set(s.tasks.map(t => t.group))];
+  assert.deepEqual(groups, ['Venue', 'Guests', 'New section', 'Vendors', 'Logistics']);
+  assert.ok(
+    insertSection(s.tasks, 'Venue').tasks.some(t => t.group === 'New section 2'),
+    'names stay unique'
+  );
+  assert.ok(renameSection(s.tasks, 'New section', 'Cake').some(t => t.group === 'Cake'));
 });

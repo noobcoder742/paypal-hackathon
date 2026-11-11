@@ -26,7 +26,7 @@ function listingPhotos(item) {
 }
 // Product card: moving the pointer to the right steps through the photos, the
 // card nudges right on hover, and hover reveals a favourite star and an
-// add-to-inventory bar (always visible on touch screens).
+// add-to-cart bar (always visible on touch screens).
 function Listing({ item, onOpen, isFavourite = false, onToggleFavourite, onAdd, added = false }) {
   const photos = listingPhotos(item),
     [index, setIndex] = useState(0);
@@ -94,7 +94,7 @@ function Listing({ item, onOpen, isFavourite = false, onToggleFavourite, onAdd, 
               </>
             ) : (
               <>
-                <Plus size={15} /> Add to inventory
+                <Plus size={15} /> Add to Cart
               </>
             )}
           </button>
@@ -194,7 +194,7 @@ function ProductDetail({
               onAdd(item.genre ? { ...item, lineup, price: ensemblePrice(item.genre, lineup) } : item)
             }
           >
-            {added && !changed ? 'Added to inventory' : changed ? 'Update my line-up' : 'Add to inventory'}{' '}
+            {added && !changed ? 'In your cart' : changed ? 'Update my line-up' : 'Add to Cart'}{' '}
             <ArrowRight size={17} />
           </button>
           <button className="luxury-secondary" onClick={() => onToggleFavourite(item)}>

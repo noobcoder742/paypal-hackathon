@@ -214,7 +214,7 @@ export default function PlatformApp({ Studio }) {
         ? planner.savedItems.map(x => (x.id === item.id ? item : x))
         : [...planner.savedItems, item],
     });
-    setNotice(item.name + (existing ? ' line-up updated' : ' saved to your wedding'));
+    setNotice(item.name + (existing ? ' line-up updated' : ' added to your cart'));
     setTimeout(() => setNotice(''), 2400);
   };
   const toggleFavourite = item =>

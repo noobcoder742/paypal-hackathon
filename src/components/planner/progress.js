@@ -63,14 +63,34 @@ export function markDepositsPaid(payments, paid) {
 export const paidSoFar = p =>
   p.paid ? Number(p.amount || 0) : p.status === 'deposit' ? Number(p.deposit || 0) : 0;
 
-/** Where a saved item stands. */
-export function itemStage(item) {
-  if (item.paid) return 'paid';
-  const band = item.inventoryType === 'ensemble';
-  return item.price == null && !band ? 'enquiry' : 'cart';
-}
+/** Where a saved item stands: enquiry until the deposit is paid, fully paid once the vendor's balance is. */
+export const itemStage = item => (item.fullyPaid ? 'paid' : item.paid ? 'deposit' : 'enquiry');
 export const STAGES = [
   ['enquiry', 'Enquiry'],
-  ['cart', 'In cart'],
-  ['paid', 'Deposit paid'],
+  ['deposit', 'Deposit paid'],
+  ['paid', 'Fully paid'],
 ];
+
+/* Adding tasks and sections anywhere in the checklist (a section is the tasks sharing a group name). */
+const newId = () => 'task' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+/** A new task right after `afterId`, or first in `group` when no task is given. */
+export function insertTask(tasks, { afterId, group }) {
+  const at = afterId ? tasks.findIndex(t => t.id === afterId) : tasks.findIndex(t => t.group === group);
+  const g = afterId ? tasks[at]?.group : group;
+  const task = { id: newId(), title: 'New task', group: g || 'My tasks', done: false };
+  const i = at < 0 ? tasks.length : afterId ? at + 1 : at;
+  return { tasks: [...tasks.slice(0, i), task, ...tasks.slice(i)], id: task.id };
+}
+/** A new section (with one task to fill in) right after the section `group`. */
+export function insertSection(tasks, group) {
+  const names = new Set(tasks.map(t => t.group));
+  let name = 'New section',
+    n = 2;
+  while (names.has(name)) name = 'New section ' + n++;
+  const last = tasks.map(t => t.group).lastIndexOf(group);
+  const task = { id: newId(), title: 'New task', group: name, done: false };
+  const i = last < 0 ? tasks.length : last + 1;
+  return { tasks: [...tasks.slice(0, i), task, ...tasks.slice(i)], id: task.id };
+}
+export const renameSection = (tasks, from, to) =>
+  tasks.map(t => (t.group === from ? { ...t, group: to } : t));

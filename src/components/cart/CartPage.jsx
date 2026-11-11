@@ -138,7 +138,7 @@ export default function CartPage({ planner, patch, go }) {
       celebration: { tasks: done.ids, paid: lines.map(l => ({ itemId: l.id, total: l.total })) },
       checkoutPlanId: null,
     });
-    setTimeout(() => celebrate(r.depositTotal, 'paid with PayPal'), 300);
+    setTimeout(() => celebrate(0, ''), 300);
   };
   // back from PayPal: ?checkout=return&token=<order id>, or ?checkout=cancel
   useEffect(() => {
