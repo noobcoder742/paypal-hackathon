@@ -2,7 +2,7 @@
 // wedding day. Same data and functions as before, restructured as an
 // editorial page with a photo header, live summary figures, sliding section
 // tabs and animated progress.
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
   Check,
@@ -29,6 +29,62 @@ export const PLANNER_SECTIONS = [
 
 import DepositInvoices from './DepositInvoices.jsx';
 import { sgdWhole } from '../../lib/format.js';
+import { celebrate } from '../../vendor/Confetti.jsx';
+import { cartItems, unitPrice, payable } from '../cart/cart.js';
+import { markDepositsPaid, paidSoFar, itemStage, STAGES } from './progress.js';
+import './progress.css';
+
+/**
+ * After a purchase the planner shows the progress, one step at a time: the budget lines turn
+ * "Paid 20% deposit", then the completed tasks strike through, then confetti.
+ */
+function useProgressShow(planner, patch, setPlanTab) {
+  const [show, setShow] = useState(null);
+  const timers = useRef([]);
+  // timers live until the show ends or the planner closes (clearing the celebration must not cut it short)
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  useEffect(() => {
+    const c = planner.celebration;
+    if (!c || timers.current.length) return;
+    const at = (ms, f) => timers.current.push(setTimeout(f, ms));
+    const items = c.paid
+      .map(p => ({ item: planner.savedItems.find(i => i.id === p.itemId), total: p.total }))
+      .filter(p => p.item);
+    setShow({
+      step: 'budget',
+      items: new Set(c.paid.map(p => p.itemId)),
+      tasks: new Set(c.tasks),
+      count: c.tasks.length,
+    });
+    // bring the part that changes into view (the sticky top bar is ~90 px tall)
+    const reveal = selector => {
+      const el = document.querySelector(selector);
+      if (el)
+        window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 110, behavior: 'smooth' });
+    };
+    setPlanTab('budget');
+    at(250, () => reveal('.plan2-budget'));
+    at(1000, () => patch({ payments: markDepositsPaid(planner.payments, items) }));
+    at(3300, () => {
+      setPlanTab('tasks');
+      setShow(s => s && { ...s, step: 'tasks' });
+    });
+    at(3450, () => reveal('.plan2-task.just-done'));
+    at(5000, () => {
+      celebrate(
+        0,
+        c.tasks.length ? `${c.tasks.length} task${c.tasks.length === 1 ? '' : 's'} completed` : '',
+        'Good progress!'
+      );
+      patch({ celebration: null });
+    });
+    at(7400, () => {
+      setShow(null);
+      timers.current = [];
+    });
+  }, [planner.celebration]); // eslint-disable-line react-hooks/exhaustive-deps
+  return show;
+}
 export default function PlannerPage(p) {
   const {
     planner,
@@ -55,12 +111,14 @@ export default function PlannerPage(p) {
   const [nfcAsked, setNfcAsked] = useState(false);
   useSlidingIndicator(tabsRef, [tab]);
   const attending = planner.guests.filter(g => g.rsvp === 'Attending').length;
-  const paid = planner.payments.filter(x => x.paid).reduce((s, x) => s + Number(x.amount || 0), 0);
+  const show = useProgressShow(planner, patch, setPlanTab);
+  const paid = planner.payments.reduce((s, x) => s + paidSoFar(x), 0);
   const scheduled = planner.payments.reduce((s, x) => s + Number(x.amount || 0), 0);
-  const itemsCost = planner.savedItems.reduce(
-    (s, i) => s + (i.price || 0) * (planner.inventoryQuantities?.[i.id] || 1),
-    0
-  );
+  // cart items not yet on the budget still count against it
+  const itemsCost = cartItems(planner.savedItems)
+    .filter(i => payable(i) && !planner.payments.some(p => p.itemId === i.id))
+    .reduce((s, i) => s + unitPrice(i) * i.qty, 0);
+  const booked = planner.savedItems.filter(i => i.paid).length;
   const groups = [...new Set(planner.tasks.map(t => t.group))];
   const stats = [
     [
@@ -73,12 +131,7 @@ export default function PlannerPage(p) {
     ],
     ['guests', 'Guests', <CountUp value={planner.guests.length} />, `${attending} attending`],
     ['budget', 'Budget', <CountUp value={planner.budget} format={sgdWhole} />, `${sgdWhole(paid)} paid`],
-    [
-      'vendors',
-      'Saved items',
-      <CountUp value={planner.savedItems.length} />,
-      `${planner.favourites.length} favourites`,
-    ],
+    ['vendors', 'Vendors', <CountUp value={planner.savedItems.length} />, `${booked} booked`],
   ];
   return (
     <main className="plan2">
@@ -89,7 +142,6 @@ export default function PlannerPage(p) {
           <h1>
             Every detail, <em>in its place</em>.
           </h1>
-          <p>Your checklist, guests, budget and suppliers, together and always in sync with your 3D room.</p>
         </div>
       </div>
       <DepositInvoices />
@@ -124,14 +176,19 @@ export default function PlannerPage(p) {
         ))}
       </nav>
 
+      {show && show.count > 0 && (
+        <div className="plan2-congrats" role="status">
+          Congrats! {show.count} task{show.count === 1 ? '' : 's'} completed!
+        </div>
+      )}
       <div className="plan2-body" key={tab}>
         {tab === 'tasks' && (
           <>
             <div className="plan2-head">
               <div>
-                <h2>Planning checklist</h2>
+                <h2>Checklist</h2>
                 <p>
-                  {completed} of {planner.tasks.length} complete. Tap a task's name to rename it.
+                  {completed} of {planner.tasks.length} done
                 </p>
               </div>
               <Ring value={percent / 100} size={96} stroke={5} label={`${percent}% complete`}>
@@ -159,7 +216,14 @@ export default function PlannerPage(p) {
                       </small>
                     </div>
                     {list.map(t => (
-                      <label key={t.id} className={'plan2-task' + (t.done ? ' done' : '')}>
+                      <label
+                        key={t.id}
+                        className={
+                          'plan2-task' +
+                          (t.done ? ' done' : '') +
+                          (show?.step === 'tasks' && show.tasks.has(t.id) ? ' just-done' : '')
+                        }
+                      >
                         <input
                           type="checkbox"
                           checked={t.done}
@@ -223,8 +287,7 @@ export default function PlannerPage(p) {
           <>
             <div className="plan2-head">
               <div>
-                <h2>Budget & payments</h2>
-                <p>Planning estimates only. Vendor quotes replace them once confirmed.</p>
+                <h2>Budget</h2>
               </div>
             </div>
             <div className="plan2-budget">
@@ -266,13 +329,13 @@ export default function PlannerPage(p) {
                 </span>
                 <span>
                   <b className="items" />
-                  Saved items {sgdWhole(itemsCost)}
+                  In cart {sgdWhole(itemsCost)}
                 </span>
                 <span className="rest">Remaining {sgdWhole(planner.budget - scheduled - itemsCost)}</span>
               </div>
             </div>
             <div className="plan2-head small">
-              <h3>Payment milestones</h3>
+              <h3>Payments</h3>
               <button
                 className="plan2-add"
                 onClick={() =>
@@ -288,7 +351,15 @@ export default function PlannerPage(p) {
               </button>
             </div>
             {planner.payments.map(x => (
-              <div className={'plan2-pay' + (x.paid ? ' paid' : '')} key={x.id}>
+              <div
+                className={
+                  'plan2-pay' +
+                  (x.paid ? ' paid' : '') +
+                  (x.itemId ? ' item status-' + x.status : '') +
+                  (show?.items.has(x.itemId) ? ' just-paid' : '')
+                }
+                key={x.id}
+              >
                 <input
                   value={x.name}
                   aria-label="Payment name"
@@ -312,20 +383,26 @@ export default function PlannerPage(p) {
                     })
                   }
                 />
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={x.paid}
-                    onChange={e =>
-                      patch({
-                        payments: planner.payments.map(y =>
-                          y.id === x.id ? { ...y, paid: e.target.checked } : y
-                        ),
-                      })
-                    }
-                  />{' '}
-                  Paid
-                </label>
+                {x.itemId && !x.paid ? (
+                  <span className="plan2-pay-status" key={x.status}>
+                    {x.status === 'deposit' ? 'Paid 20% deposit' : 'To pay'}
+                  </span>
+                ) : (
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={!!x.paid}
+                      onChange={e =>
+                        patch({
+                          payments: planner.payments.map(y =>
+                            y.id === x.id ? { ...y, paid: e.target.checked } : y
+                          ),
+                        })
+                      }
+                    />{' '}
+                    Paid
+                  </label>
+                )}
                 <button
                   aria-label="Remove payment"
                   onClick={() => patch({ payments: planner.payments.filter(y => y.id !== x.id) })}
@@ -335,7 +412,7 @@ export default function PlannerPage(p) {
               </div>
             ))}
             {!planner.payments.length && (
-              <p className="acct-muted">Add deposits and balances to see them against your budget.</p>
+              <p className="acct-muted">Add items from your cart, or add a payment.</p>
             )}
           </>
         )}
@@ -344,11 +421,7 @@ export default function PlannerPage(p) {
           <>
             <div className="plan2-head">
               <div>
-                <h2>Vendors & saved items</h2>
-                <p>
-                  Your planned items, and the favourites you're comparing. Nothing here is a confirmed
-                  booking.
-                </p>
+                <h2>Vendors</h2>
               </div>
               <button className="btn-ink" onClick={() => go('market')}>
                 Browse marketplace <ArrowRight size={15} />
@@ -361,7 +434,7 @@ export default function PlannerPage(p) {
                 className={vendorTab === 'inventory' ? 'active' : ''}
                 onClick={() => setVendorTab('inventory')}
               >
-                Inventory <span>{planner.savedItems.length}</span>
+                Progress <span>{planner.savedItems.length}</span>
               </button>
               <button
                 role="tab"
@@ -379,29 +452,17 @@ export default function PlannerPage(p) {
                     <div className="plan2-item-img" style={{ backgroundImage: `url(${item.photo})` }} />
                     <span className="plan2-item-name">
                       {item.name}
-                      <small>
-                        {item.vendor} ·{' '}
-                        {item.price == null ? 'Quote required' : sgdWhole(item.price) + ' estimated'}
-                      </small>
+                      <small>{item.vendor?.replace(' (demo)', '')}</small>
                     </span>
-                    <label>
-                      Qty{' '}
-                      <input
-                        aria-label={'Quantity for ' + item.name}
-                        type="number"
-                        min="1"
-                        max="999"
-                        value={planner.inventoryQuantities?.[item.id] ?? 1}
-                        onChange={e =>
-                          patch({
-                            inventoryQuantities: {
-                              ...planner.inventoryQuantities,
-                              [item.id]: Math.max(1, Number(e.target.value) || 1),
-                            },
-                          })
-                        }
-                      />
-                    </label>
+                    <ol className={'plan2-stages at-' + itemStage(item)} aria-label="Progress">
+                      {STAGES.filter(([k]) => k !== 'enquiry' || itemStage(item) === 'enquiry').map(
+                        ([k, label]) => (
+                          <li key={k} className={k === itemStage(item) ? 'now' : ''}>
+                            {label}
+                          </li>
+                        )
+                      )}
+                    </ol>
                     <button
                       className="text-link"
                       onClick={() => patch({ savedItems: planner.savedItems.filter(x => x.id !== item.id) })}
@@ -413,8 +474,8 @@ export default function PlannerPage(p) {
                 {!planner.savedItems.length && (
                   <div className="plan2-empty">
                     <Sparkles size={22} />
-                    <strong>Your inventory is empty</strong>
-                    <span>Add items from the marketplace and they appear here and in your 3D room.</span>
+                    <strong>Nothing here yet</strong>
+                    <span>Add vendors from the marketplace.</span>
                   </div>
                 )}
               </div>

@@ -3,8 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import { prefersReducedMotion } from '../components/ui/motion.jsx';
 
-export const celebrate = (amount, label = 'came in') =>
-  window.dispatchEvent(new CustomEvent('vs-confetti', { detail: { amount, label } }));
+/** celebrate(amount, label) shows "+S$amount"; give a title instead for words, e.g. "Good progress!". */
+export const celebrate = (amount, label = 'came in', title = '') =>
+  window.dispatchEvent(new CustomEvent('vs-confetti', { detail: { amount, label, title } }));
 const COLOURS = ['#f2a7bd', '#f6d28b', '#9fd3b5', '#a9c7f2', '#c9b3f0', '#f4b6a0'];
 export default function Confetti() {
   const [burst, setBurst] = useState(null);
@@ -51,10 +52,10 @@ export default function Confetti() {
           }}
         />
       ))}
-      {burst.amount > 0 && (
+      {(burst.amount > 0 || burst.title) && (
         <div className="vs-cheer">
-          <b>+S${Math.round(burst.amount).toLocaleString('en-SG')}</b>
-          <span>{burst.label}</span>
+          <b>{burst.title || `+S$${Math.round(burst.amount).toLocaleString('en-SG')}`}</b>
+          {burst.label && <span>{burst.label}</span>}
         </div>
       )}
     </div>

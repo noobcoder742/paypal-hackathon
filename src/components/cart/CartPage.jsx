@@ -1,8 +1,21 @@
 // Cart and payment page: every vendor deposit is paid here, whether the items came from the
 // marketplace, the 3D studio or the AI planner. Quantities, a promo code, and PayPal.
 import React, { useEffect, useMemo, useState } from 'react';
-import { Minus, Plus, Trash2, ShoppingBag, Check, Tag, X, ArrowRight, ShieldCheck, Lock } from 'lucide-react';
-import Confetti, { celebrate } from '../../vendor/Confetti.jsx';
+import {
+  Minus,
+  Plus,
+  Trash2,
+  ShoppingBag,
+  Check,
+  Tag,
+  X,
+  ArrowRight,
+  ShieldCheck,
+  Lock,
+  Wallet,
+} from 'lucide-react';
+import { celebrate } from '../../vendor/Confetti.jsx';
+import { completeTasksFor, addToBudget, inBudget } from '../planner/progress.js';
 import {
   cartItems,
   specLine,
@@ -107,21 +120,25 @@ export default function CartPage({ planner, patch, go }) {
     }
     window.location.assign(r.approveUrl);
   };
+  // Paid: the items are booked, their checklist tasks tick, and the planner plays the progress
+  // (budget lines turn "Paid 20% deposit", the tasks strike through) the next time it opens.
   const onPaid = r => {
-    const ids = (r.lines || []).map(l => l.id);
-    setPaid({
-      amount: r.depositTotal,
-      items: (r.lines || []).map(l => ({ id: l.id, name: l.name, vendor: l.vendor })),
-    });
+    const lines = r.lines || [],
+      ids = lines.map(l => l.id);
+    const paidItems = planner.savedItems.filter(i => ids.includes(i.id));
+    const done = completeTasksFor(planner.tasks, paidItems);
+    setPaid({ amount: r.depositTotal, items: lines, tasks: done.ids.length });
     patch({
       savedItems: markPaid(planner.savedItems, ids, {
         captureId: r.captureId,
         at: Date.now(),
         amount: r.depositTotal,
       }),
+      tasks: done.tasks,
+      celebration: { tasks: done.ids, paid: lines.map(l => ({ itemId: l.id, total: l.total })) },
       checkoutPlanId: null,
     });
-    setTimeout(() => celebrate(r.depositTotal, 'paid in deposits with PayPal'), 300);
+    setTimeout(() => celebrate(r.depositTotal, 'paid with PayPal'), 300);
   };
   // back from PayPal: ?checkout=return&token=<order id>, or ?checkout=cancel
   useEffect(() => {
@@ -148,19 +165,19 @@ export default function CartPage({ planner, patch, go }) {
   if (paid)
     return (
       <main className="platform-page cart-page">
-        <Confetti />
         <section className="cart-done">
           <span className="cart-done-icon">
             <Check size={28} />
           </span>
-          <span className="page-eyebrow">PAYMENT COMPLETE</span>
           <h1>
             Your vendors are <em>booked</em>
           </h1>
-          <p>
-            {sgdCents(paid.amount)} in deposits paid with PayPal (sandbox). Each vendor has your booking and
-            will invoice the balance through PayPal before the wedding.
-          </p>
+          <p>{sgdCents(paid.amount)} in deposits paid with PayPal.</p>
+          {paid.tasks > 0 && (
+            <p className="cart-congrats">
+              Congrats! {paid.tasks} task{paid.tasks === 1 ? '' : 's'} completed!
+            </p>
+          )}
           <ul>
             {paid.items.map(i => (
               <li key={i.id}>
@@ -171,7 +188,7 @@ export default function CartPage({ planner, patch, go }) {
           </ul>
           <div className="cart-done-actions">
             <button className="cart-primary" onClick={() => go('plan')}>
-              See your planner <ArrowRight size={16} />
+              Update my plan <ArrowRight size={16} />
             </button>
             <button className="cart-link" onClick={() => go('market')}>
               Keep browsing
@@ -188,7 +205,7 @@ export default function CartPage({ planner, patch, go }) {
         <h1>
           Ready to <em>book</em>
         </h1>
-        <p>Pay 20% deposits to secure your vendors. Each vendor invoices the balance later through PayPal.</p>
+        <p>20% deposits today. Vendors invoice the rest later.</p>
       </div>
       {!items.length ? (
         <section className="cart-empty">
@@ -216,8 +233,16 @@ export default function CartPage({ planner, patch, go }) {
                   <div className="cart-info">
                     <h3>{i.name}</h3>
                     <p className="cart-spec">{specLine(i)}</p>
-                    {!ok && (
-                      <p className="cart-spec">Not paid here: the hotel adds it to your banquet quote.</p>
+                    {ok && (
+                      <button
+                        type="button"
+                        className={'cart-budget' + (inBudget(planner.payments, i.id) ? ' on' : '')}
+                        disabled={inBudget(planner.payments, i.id)}
+                        onClick={() => patch({ payments: addToBudget(planner.payments, i, line) })}
+                      >
+                        {inBudget(planner.payments, i.id) ? <Check size={13} /> : <Wallet size={13} />}
+                        {inBudget(planner.payments, i.id) ? 'In budget' : 'Add to budget'}
+                      </button>
                     )}
                   </div>
                   {ok ? (
@@ -337,7 +362,6 @@ export default function CartPage({ planner, patch, go }) {
                   <small>PayPal balance, bank or card through PayPal</small>
                 </span>
               </label>
-              <p className="cart-muted">More payment methods are coming.</p>
             </div>
             {error && (
               <p className="cart-error" role="alert">
@@ -360,13 +384,9 @@ export default function CartPage({ planner, patch, go }) {
               ) : (
                 <p className="cart-muted">Nothing here can be paid online yet.</p>
               )}
-              <p className="cart-muted">
-                You’ll approve the payment on PayPal’s secure page, then come back here.
-              </p>
             </div>
             <p className="cart-trust">
-              <ShieldCheck size={14} /> PayPal sandbox: no real money moves. You approve every payment in
-              PayPal.
+              <ShieldCheck size={14} /> You approve on PayPal. Sandbox: no real money.
             </p>
           </aside>
         </div>

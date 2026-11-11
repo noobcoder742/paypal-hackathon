@@ -628,3 +628,7 @@
     transform: rotate(360deg);
   }
 }
+.cart-budget{display:inline-flex;align-items:center;gap:5px;margin-top:7px;padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#6f655b;font-size:12px;transition:background .2s,color .2s,border-color .2s}
+.cart-budget:hover:not(:disabled){border-color:var(--champagne);color:var(--ink)}
+.cart-budget.on{background:#eef6f0;border-color:#cfe6d6;color:#2f7a52;cursor:default}
+.cart-congrats{font:600 17px var(--f-ui);color:#2f7a52;margin:2px 0 0;animation:cart-pop .6s cubic-bezier(.2,1.6,.3,1) .4s both}

@@ -141,8 +141,10 @@ export default function AgentPanel({ onPlan, onPaid }) {
             })
           );
         }
-        if (t.toolName === 'send_enquiry' && t.result?.enquiryId && !replayRef.current)
+        if (t.toolName === 'send_enquiry' && t.result?.enquiryId && !replayRef.current) {
           rememberEnquiry({ enquiryId: t.result.enquiryId, venueName: t.result.venueName });
+          window.dispatchEvent(new CustomEvent('wedding-task-done', { detail: { id: 'venue-enquiry' } }));
+        }
       }
   }, [messages, onPlan]);
   useEffect(() => {

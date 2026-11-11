@@ -21,25 +21,16 @@ import { applyGlobalSettings } from '../data/settings.js';
 import { useAuth, signOut } from '../data/auth.js';
 import { SignInDialog, SignInBar, Teaser } from './account/SignedOut.jsx';
 import CartButton from './cart/CartButton.jsx';
+import Confetti from '../vendor/Confetti.jsx';
 import { cartCount, mergeLines } from './cart/cart.js';
+import { SEED_TASKS, migrateTasks } from './planner/progress.js';
 const KEY = 'wedding-platform-planner-v1';
-const seedTasks = [
-  { id: 'venue', title: 'Shortlist and confirm a venue', group: 'Venue & date', done: false },
-  { id: 'date', title: 'Choose your wedding date', group: 'Venue & date', done: false },
-  { id: 'guests', title: 'Draft your guest list', group: 'Guests & invitations', done: false },
-  { id: 'invite', title: 'Prepare digital invitations', group: 'Guests & invitations', done: false },
-  { id: 'seating', title: 'Arrange guest seating', group: 'Guests & invitations', done: false },
-  { id: 'floral', title: 'Choose floral arrangements', group: 'Vendors & styling', done: false },
-  { id: 'music', title: 'Confirm music and entertainment', group: 'Vendors & styling', done: false },
-  { id: 'deposit', title: 'Review vendor payment milestones', group: 'Budget & logistics', done: false },
-  { id: 'run', title: 'Prepare wedding-day run sheet', group: 'Budget & logistics', done: false },
-];
 const initial = {
   profile: {},
   couple: 'Your wedding',
   date: '',
   budget: 35000,
-  tasks: seedTasks,
+  tasks: SEED_TASKS,
   guests: [],
   vendors: [],
   payments: [],
@@ -55,7 +46,13 @@ function load() {
     if (!value) return initial;
     // venues are now chosen on the map, not saved from the marketplace
     const strip = list => (list || []).filter(x => x.category !== 'Venues');
-    return { ...initial, ...value, savedItems: strip(value.savedItems), favourites: strip(value.favourites) };
+    return {
+      ...initial,
+      ...value,
+      tasks: migrateTasks(value.tasks),
+      savedItems: strip(value.savedItems),
+      favourites: strip(value.favourites),
+    };
   } catch {
     return initial;
   }
@@ -168,6 +165,15 @@ export default function PlatformApp({ Studio }) {
     };
     window.addEventListener('wedding-checkout', on);
     return () => window.removeEventListener('wedding-checkout', on);
+  }, []);
+  // tasks other parts of the app complete, e.g. the venue enquiry sent from the AI planner
+  useEffect(() => {
+    const on = e => {
+      const id = e.detail?.id;
+      setPlanner(prev => ({ ...prev, tasks: prev.tasks.map(t => (t.id === id ? { ...t, done: true } : t)) }));
+    };
+    window.addEventListener('wedding-task-done', on);
+    return () => window.removeEventListener('wedding-task-done', on);
   }, []);
   const go = (next, options = {}) => {
     if (next === 'home' && sessionRef.current) next = 'dashboard';
@@ -835,6 +841,7 @@ export default function PlatformApp({ Studio }) {
         />
       )}
       {notice && <div className="platform-toast">{notice}</div>}
+      <Confetti />
       {page === 'hotel' && (
         <Suspense
           fallback={
