@@ -14,7 +14,7 @@ export async function defaultModels() {
   const out = [];
   if (process.env.ANTHROPIC_API_KEY) {
     const { anthropic } = await import('@ai-sdk/anthropic');
-    out.push(anthropic('claude-haiku-5-5'));
+    out.push(withoutSampling(anthropic('claude-haiku-5-5')));
   }
   if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     const { google } = await import('@ai-sdk/google');
@@ -161,4 +161,16 @@ export function fallbackModel(models) {
     doStream: options => tryEach(m => startStream(m, options)),
     lastModelUsed: () => used,
   };
+}
+
+/**
+ * Newer Claude models reject sampling settings ("`temperature` is deprecated for this model"),
+ * and the AI SDK sends temperature 0 by default. Claude gets the request without them.
+ */
+export function withoutSampling(model) {
+  const strip = o => ({ ...o, temperature: undefined, topP: undefined, topK: undefined });
+  const m = Object.create(model);
+  m.doStream = o => model.doStream(strip(o));
+  m.doGenerate = o => model.doGenerate(strip(o));
+  return m;
 }

@@ -177,3 +177,14 @@ test('a Gemini model that refuses the no-thinking setting is asked again without
   };
   await assert.rejects(quickGemini(bad).doGenerate({}), /quota/);
 });
+import { withoutSampling } from '../server/models.js';
+test('Claude is called without temperature, topP or topK (newer models reject them)', async () => {
+  const seen = [];
+  const m = withoutSampling({ modelId: 'claude-x', doGenerate: async o => (seen.push(o), { text: 'ok' }) });
+  await m.doGenerate({ temperature: 0, topP: 1, topK: 5, maxTokens: 9 });
+  assert.equal(m.modelId, 'claude-x');
+  assert.deepEqual(
+    [seen[0].temperature, seen[0].topP, seen[0].topK, seen[0].maxTokens],
+    [undefined, undefined, undefined, 9]
+  );
+});
