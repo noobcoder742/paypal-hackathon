@@ -19,3 +19,27 @@ export function health() {
     demoPassword: has('DEMO_PASSWORD') || has('HOTEL_DEMO_PASSWORD'),
   };
 }
+
+/** One tiny call per configured model. Reports ok or the error's type, status and message (no keys). */
+export async function aiCheck() {
+  const { generateText } = await import('ai');
+  const { defaultModels } = await import('./models.js');
+  const out = {};
+  for (const model of await defaultModels()) {
+    try {
+      const r = await generateText({ model, prompt: 'Reply with the word ok.', maxTokens: 5, maxRetries: 0 });
+      out[model.modelId] = { ok: true, reply: r.text.slice(0, 20) };
+    } catch (e) {
+      const inner = e?.lastError || e;
+      out[model.modelId] = {
+        ok: false,
+        error: inner?.name || 'Error',
+        status: inner?.statusCode || null,
+        message: String(inner?.message || '')
+          .replace(/sk-[\w-]+/g, '[key]')
+          .slice(0, 200),
+      };
+    }
+  }
+  return out;
+}
