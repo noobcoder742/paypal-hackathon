@@ -1,101 +1,103 @@
-# Devpost submission draft: Wedding Studio
+# Devpost submission: Wedding Studio
 
-*Copy each section into the matching Devpost field. Replace the bracketed items before submitting.*
+*Copy each section into the matching Devpost field.*
 
 ## Project name
-Wedding Studio: plan a wedding with an AI agent, pay deposits with PayPal
+Wedding Studio
 
-## Tagline (one line)
-An AI agent plans your wedding in a 3D ballroom and takes vendor deposits with PayPal, while the venue's agent turns your enquiry into a PayPal invoice.
+## Tagline
+Plan and book your wedding in one place, and see every vendor's work in your venue in 3D before you pay.
 
 ## Inspiration
-In Singapore a hotel wedding costs about S$60–80k, and couples juggle venue packages, a dozen vendors, deposits and spreadsheets for months. Hotels spend hours on show-rounds and on chasing deposits. We wanted one place where a couple can **see** their wedding in the actual room, and **pay** for it safely, with AI doing the legwork on both sides.
+Planning a wedding means a dozen vendors, dozens of chat threads, quotes in PDFs and deposits sent by bank transfer,
+all tracked in a spreadsheet. Couples pay for flowers and décor they have never seen in their own venue. Vendors chase
+balances by text. We wanted one platform where couples can see the wedding in the room, plan it with help, and book
+it in one payment, and where vendors get paid without the chasing.
 
 ## What it does
-**For couples, "Plan with AI".**
-- You type your tables, budget and style, for example "30 tables, S$95,000, garden style, near Orchard".
-- The agent compares venues and searches vendors.
-- It checks the budget, including the ++ (10% service charge, then 9% GST), and says plainly when something can't work.
-- It places the tables and décor in the 3D ballroom while you watch.
-- "Secure these vendors" creates **one PayPal order with a 20% deposit line for each vendor**. You approve it in PayPal, and nothing is charged before that.
-- "Send enquiry" passes the plan to the venue as a qualified lead.
+**For couples**
+- **See it in 3D.** Every florist, band, lighting and décor listing can be placed in an interactive 3D ballroom. Drag
+  items around, switch to a guest's seat, and compare.
+- **Plan with AI.** Type "Garden wedding, 16 tables, S$60k". The planner searches venues and vendors, checks the
+  budget (including service charge and GST), says plainly when something can't fit, and places the whole plan in the
+  room while you watch.
+- **Book in one checkout.** "Secure these vendors" (or Add to Cart from the marketplace) fills the cart. Adjust
+  quantities, add a promo code, press Make payment and approve once in PayPal: a 20% deposit for every vendor.
+- **The plan updates itself.** Paid items tick their checklist tasks, turn "Paid 20% deposit" on the budget and show
+  their stage under Vendors.
 
-**For venues, the "Banquet Sales" dashboard on AG Studio.**
-- The enquiry arrives with its date, tables and budget. The hotel's agent drafts a warm quote from the venue's rate card.
-- The sales manager approves, and the agent creates and sends a **PayPal invoice** for the 30% banquet deposit.
-- For unpaid deposits, the agent writes a friendly reminder (a heads-up, never a demand), sent as a **PayPal invoice reminder**.
-- The dashboard shows the pipeline, deposits paid with PayPal, a "Still to pay" scoreboard, a ballroom date calendar and a floor-plan preview.
-- A Bookings assistant answers "who still owes a deposit?" and asks AG Studio's built-in agents to build new charts.
-- The couple sees the invoice in their Planner, pays it, and the venue's dashboard flips to "Deposit paid: date secured".
+**For vendors**
+- **Bookings arrive with context.** Each paid deposit appears in the vendor's workspace with the date, venue, guest
+  count and a floor plan of where their items go.
+- **Get paid without chasing.** Send the 80% balance as a PayPal invoice in one click. Overdue? Open the to-do and
+  send a friendly reminder the AI drafted, through PayPal.
+- **Know the month at a glance.** Money in, due, overdue and weddings coming up, with a confetti burst when money
+  arrives.
 
 ## How we built it
-- **The site:** Vite + React + react-three-fiber. It draws a 3D map of Singapore from OpenStreetMap and a 3D ballroom.
-- **The server:** Vercel functions, with Upstash Redis for storage.
-- **The agents:** Vercel AI SDK with **Claude Haiku 5.5**, with **Gemini Flash** as an automatic fallback.
+- **Front end:** React, Vite and react-three-fiber. The ballroom was modelled in Blender and lit in Cycles, with the
+  lighting baked into textures so it runs smoothly in a browser.
+- **Server:** Vercel functions and Supabase.
+- **AI:** Vercel AI SDK with Claude Haiku, and Gemini Flash as an automatic fallback. The planner uses tools for
+  venues, vendors, budget, room placement and checkout.
 - **PayPal:**
-  - **Orders v2**: the SGD deposit order with one line per vendor, captured on the server after approval, idempotent and amount-checked.
-  - **JS SDK buttons**: for the couple's approval.
-  - **PayPal Agent Toolkit**: `create_invoice`, `send_invoice`, `send_invoice_reminder`, `get_invoice`, `list_invoices` for the venue.
-- **AG Studio:**
-  - a custom theme matching the site;
-  - three custom widgets that read live, cross-filtered data;
-  - the **Studio Agent Framework**, with our own adapter routing every model turn through our server. Our Bookings agent is primary and delegates to AG's built-in agents.
-- **Safety by design:**
-  - Every amount is computed in server code, never taken from model text.
-  - A person approves every payment and invoice.
-  - Each agent has only the PayPal tools it needs.
-  - Plan IDs come from the session, not the model.
-  - Rate limits and a 30-day answer cache keep costs low; PayPal actions are never cached.
-  - A clearly labelled recorded example run plays if the AI is unavailable.
+  - **Orders v2**: one SGD order with a deposit line per vendor, created on the server from the cart, approved on
+    PayPal's page and captured on the server with an amount check.
+  - **PayPal Agent Toolkit**: `create_invoice`, `send_invoice`, `send_invoice_reminder` and `get_invoice` for vendor
+    balances.
+- **Guardrails:** every amount is computed in server code, never by the model or the browser. A person approves every
+  payment, invoice and reminder. Each agent only has the tools it needs, and AI use is rate-limited and cached.
 
 ## Challenges we ran into
-- The toolkit's `create_order` only accepts USD, so the SGD deposit order uses Orders v2 directly, and the toolkit handles all invoicing.
-- AG Studio's agents run in the browser. We wrote an adapter so their model turns go through our server with our models, keeping keys off the client.
-- Making the 3D room update as the agent works, without losing the conversation between the map and the studio.
+- Making a photoreal room run in a browser: we baked Cycles lighting into textures so the room costs almost nothing to
+  draw, while furniture keeps live lighting.
+- One payment for many vendors: one PayPal order with a line per vendor, then splitting it into bookings per vendor
+  after capture.
+- Promo codes and band line-ups change the price, so the server reprices the cart and checks the captured amount
+  against the approved order.
 
 ## Accomplishments that we're proud of
-- A full loop: plan, then 3D room, then PayPal deposits, then the venue lead, PayPal invoice, reminder, and paid. Both sides are driven by agents, and a human approves every payment.
-- Money that the AI can't get wrong, because the AI never sets it.
+- A full loop on both sides: plan with AI, see it in 3D, pay once with PayPal, the plan updates itself, the vendor
+  gets the booking and collects the balance with PayPal invoices.
+- Money the AI can't get wrong, because the AI never sets it.
 
 ## What we learned
-Agentic commerce works best when the agent prepares and explains, and the person approves. We also learned that the way the agent shows its work matters, from the visible steps to the room filling in.
+AI works best when it prepares and explains and the person approves. Showing the result, a room that fills in, a
+budget that turns green, matters as much as the answer.
 
 ## What's next for Wedding Studio
-- Paying vendors directly with the commission split (PayPal multiparty).
-- Real venue partners with live date availability.
-- The hotel subscription through PayPal Subscriptions.
-- More 3D ballrooms.
+- A workspace for hotels and venues: enquiries, quotes and banquet deposits with PayPal invoices.
+- Paying vendors directly with the platform commission split (PayPal multiparty).
+- Real vendor partners with live availability, and more 3D venues.
 
 ## Built with
-`paypal-orders-v2`, `paypal-js-sdk`, `paypal-agent-toolkit`, `claude-haiku`, `gemini`, `vercel-ai-sdk`, `ag-studio`, `react`, `three.js`, `react-three-fiber`, `vercel`, `upstash`, `openstreetmap`
+`paypal-orders-v2`, `paypal-agent-toolkit`, `claude-haiku`, `gemini`, `vercel-ai-sdk`, `react`, `three.js`,
+`react-three-fiber`, `blender`, `vercel`, `supabase`
 
-## Tools used (the AI services, and how they're used)
-- **Claude Haiku 5.5 (Anthropic):** runs the couple's planning agent (tool use), the hotel's quote and reminder writing, and every turn of the AG Studio agents.
+## AI tools used
+- **Claude Haiku (Anthropic):** the couple's planning agent and the vendor's reminder drafts and assistant.
 - **Gemini Flash (Google AI Studio):** automatic fallback model.
-- **AG Studio Agent Framework:** dashboard agents. Our Bookings assistant delegates to AG's built-in agents.
-- **PayPal Agent Toolkit:** the hotel agent's PayPal invoicing tools.
+- **PayPal Agent Toolkit:** PayPal invoicing tools for vendors.
 - **Claude Code:** used to write much of the code, from the founder's designs and decisions.
 
 ## Built during the submission period
-The project was **newly created**: its first commit is 31 Oct 2026. The 3D map, ballroom and planner were built from 31 Oct to 5 Nov. The PayPal checkout, invoicing and both AI agents were built from 5 to 10 Nov. Every commit is in the public repository.
+The project was newly created: its first commit is 31 Oct 2026, and every commit is in the public repository.
 
 ## Testing instructions (for judges)
-- **Hosted demo:** [URL]
-- **Couple sign-in:** any email (demo sign-in).
-- **PayPal sandbox buyer:** email [sandbox buyer email], password [sandbox buyer password]. This is test money only.
-- **Venue dashboard:** on the landing page, For venues → Venue sign-in (or open `/#venues`). Password: [HOTEL_DEMO_PASSWORD].
+- **Live demo:** https://wedding-studio-gray.vercel.app
+- **Couple:** sign in with any email.
+- **PayPal sandbox buyer (Personal account):** email `[SANDBOX PERSONAL EMAIL]`, password `[SANDBOX PERSONAL PASSWORD]`.
+  Test money only.
+- **Promo code:** `PAYPALDEMO` (10% off deposits).
+- **Vendor workspace:** landing page → **For vendors** → `hello@petalandstem.sg`, password `hackathondemo2026`.
 - **Path:**
-  1. Design → Plan with AI → choose the first suggestion.
-  2. Secure these vendors → approve in PayPal.
-  3. Send enquiry to the venue, using the sandbox buyer email.
-  4. For venues → Draft quote with AI → Approve and send PayPal invoice.
-  5. Planner → Venue deposits → Pay with PayPal.
-  6. On the dashboard: Ask the dashboard (AI).
+  1. **Design** → **The Orchard Grand** → the 3D ballroom opens.
+  2. **Plan with AI** → "Garden wedding, 16 tables, S$60k". Watch the items appear in the room.
+  3. "Secure these vendors" → the cart → **Make payment** → approve with the sandbox buyer above.
+  4. **Update my plan** → see the budget and checklist update.
+  5. **For vendors** → Petal & Stem → open the new booking → **Send balance invoice**.
 - **If the AI hourly limit is reached,** the panel offers a labelled recorded example run.
 
 ## Links
-- **Repository:** [public GitHub URL]
+- **Repository:** https://github.com/noobcoder742/paypal-hackathon
 - **Video:** [YouTube URL]
-
-## Prize categories
-Grand prizes, Best Use of PayPal + AI, Best Use of Agentic Commerce, Best Use of AG Grid (AG Studio).

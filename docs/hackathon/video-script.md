@@ -1,23 +1,18 @@
 # Demo video script (target 2:45, under 3:00)
 
-**Recording rules:**
-- Record the hosted demo at 1440×900 with no music, or royalty-free music only.
-- Show no real hotel names or logos. The PayPal sandbox pages are fine.
-- Voice-over is in English.
+One couple, one vendor, one wedding. Each pain point is shown, then solved on screen.
 
-| Time | Scene | Voice-over (say roughly this) |
+| Time | Scene | Voice-over |
 | --- | --- | --- |
-| 0:00–0:15 | Homepage, then the 3D map of Singapore | "A hotel wedding in Singapore costs sixty to eighty thousand dollars and months of spreadsheets. Wedding Studio lets couples see their wedding in the real room, and pay for it safely, with an AI agent on each side." |
-| 0:15–0:50 | Design → Plan with AI → click "30 tables, S$95,000, garden style". The steps stream in; the map flies to The Orchard Grand; the ballroom fills with 30 tables, greenery and the arch | "I give the agent my tables, budget and style. It compares venues, searches vendors and checks the budget, including service charge and GST. Then it sets up the ballroom while I watch." |
-| 0:50–1:05 | The plan card: venue estimate, vendor lines, S$4,921 left | "Every number here is computed by our server from the rate card, never by the model, so the AI can't get the money wrong." |
-| 1:05–1:30 | "Secure these vendors" → the PayPal button → sandbox login → approve → "Deposits paid with PayPal" | "The agent prepares one PayPal order with a 20% deposit for each vendor. Nothing is charged until I approve it in PayPal. The server captures it and checks the amount." |
-| 1:30–1:40 | "Send enquiry to the venue" | "Then the agent sends the plan to the venue as a qualified lead." |
-| 1:40–2:10 | Landing page → For venues → Banquet Sales on AG Studio. The enquiry arrives → "Draft quote with AI" streams → "Approve and send PayPal invoice" | "On the venue's side, the enquiry arrives with the date, tables and budget. The hotel's agent drafts the quote, the manager approves, and the PayPal Agent Toolkit creates and sends the deposit invoice." |
-| 2:10–2:25 | Planner → Venue deposits → Pay with PayPal → dashboard: "Deposit paid: date secured"; the Still to pay scoreboard and calendar update | "The couple pays the invoice in their planner. The date is secured, and the dashboard updates." |
-| 2:25–2:40 | "Ask the dashboard (AI)" → "Who still owes a deposit?" → answer; "Add a chart of deposits by month" → the chart appears | "Our Bookings agent answers from PayPal deposit data, writes friendly reminders, and asks AG Studio's own agents to build charts." |
-| 2:40–2:50 | The 3D room, then the logo | "AI does the planning. PayPal handles the money. The couple and the venue stay in control. Wedding Studio." |
+| 0:00–0:12 | Chat bubbles, a spreadsheet, PDF quotes and transfer slips pile up | "Planning a wedding means a dozen vendors, endless chats, and a spreadsheet that never adds up." |
+| 0:12–0:18 | Wedding Studio homepage | "Wedding Studio puts it all in one place." |
+| 0:18–0:48 | Design → The Orchard Grand → 3D ballroom → Plan with AI: "Garden wedding, 16 tables, S$60k"; the plan appears in the room | "Tell the planner your guests, budget and style. It finds venues and vendors, checks the budget including service charge and GST, and places everything in the actual ballroom." |
+| 0:48–1:00 | Drag the arch; Guest view | "Move anything. See it from a guest's seat, before you pay a cent." |
+| 1:00–1:28 | "Secure these vendors" → cart → quantity, `PAYPALDEMO` → Make payment → approve in PayPal | "When you're ready, one checkout pays every vendor's deposit. You approve it on PayPal, and our server checks every amount." |
+| 1:28–1:45 | Confetti → "Congrats! 3 tasks completed!" → Update my plan: budget turns green, tasks strike through | "Your plan updates itself: deposits on the budget, tasks ticked off." |
+| 1:45–2:20 | Vendor workspace: new booking with floor plan → Send balance invoice → AI-drafted reminder → Send with PayPal → confetti | "Vendors get every booking with a floor plan of where their work goes. They invoice the balance and send a friendly reminder the AI drafts, all through PayPal. No more chasing." |
+| 2:20–2:35 | Diagram: AI planner → server pricing → PayPal Orders v2; vendor → PayPal Agent Toolkit invoices | "AI does the legwork. PayPal moves the money. People approve every payment." |
+| 2:35–2:45 | The 3D ballroom; logo | "Wedding Studio. See it, plan it, book it." |
 
-**Before recording:**
-- Use a fresh browser profile.
-- Check the sandbox buyer login works, and send one enquiry before recording so the dashboard isn't empty.
-- Keep a second take ready of the AG Studio chart step, because model output varies.
+Record the live site in a desktop browser with a GPU, at 1440×900 or 1920×1080. English voice-over and captions;
+royalty-free music only; no real hotel names, logos or chat-app branding.
