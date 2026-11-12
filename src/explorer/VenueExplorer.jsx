@@ -1380,6 +1380,7 @@ export { loadIndex, VENUE_GEO, Pins, SUN };
 export default function VenueExplorer({
   onOpenSpace,
   initialVenueId = null,
+  focus: focusRequest = null,
   draftCounts = {},
   active = true,
 }) {
@@ -1500,16 +1501,32 @@ export default function VenueExplorer({
   }, [initialVenueId, select]);
   // the same map is reused for the whole visit: coming back from the ballroom studio,
   // clear the dive and fly back out to the hotel's bird's-eye view
+  // a request from the planning assistant: show a venue, or the whole area with nothing selected
+  const focusDone = useRef(0);
   const wasActive = useRef(active);
   useEffect(() => {
-    if (active && !wasActive.current && diving) {
+    if (active && !wasActive.current && diving && (focusRequest?.n || 0) === focusDone.current) {
       setDiving(false);
       const id = focus.venueId || initialVenueId;
       if (id && VENUE_GEO[id]) select(id);
       else flyTo({ r: 1900, phi: 0.8 });
     }
     wasActive.current = active;
-  }, [active, diving, focus.venueId, initialVenueId, select, flyTo]);
+  }, [active, diving, focus.venueId, initialVenueId, select, flyTo, focusRequest?.n]);
+  useEffect(() => {
+    if (!focusRequest || focusRequest.n === focusDone.current) return;
+    focusDone.current = focusRequest.n;
+    setDiving(false);
+    const t = setTimeout(() => {
+      if (focusRequest.venueId && VENUE_GEO[focusRequest.venueId]) select(focusRequest.venueId);
+      else {
+        setFocus({ venueId: null, spaceId: null });
+        setQuery('');
+        flyTo({ r: 1900, phi: 0.8 });
+      }
+    }, 350);
+    return () => clearTimeout(t);
+  }, [focusRequest, select, flyTo]);
   const pickSpace = async s => {
     const g = VENUE_GEO[venue.id];
     setFocus(f => ({ ...f, spaceId: s.id }));

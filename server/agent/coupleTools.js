@@ -89,7 +89,15 @@ function budgetCheck({ venueId, tables, lines, budget }) {
     problems,
   };
 }
-export function coupleTools({ store, planId }) {
+export function coupleTools({ store, planId, namedVenueId = null }) {
+  // the couple named a venue: plans must use it, not a cheaper one the model prefers
+  const otherVenue = venueId =>
+    namedVenueId && venueId !== namedVenueId
+      ? {
+          error: 'wrong_venue',
+          message: `The couple asked for ${findVenue(namedVenueId).name} (id ${namedVenueId}). Plan for that venue, or ask them before suggesting another.`,
+        }
+      : null;
   return {
     search_venues: tool({
       description: 'Find demo venues that can host the given number of banquet tables (10 guests each).',
@@ -141,7 +149,7 @@ export function coupleTools({ store, planId }) {
         lines: Lines,
         budget: z.number().optional(),
       }),
-      execute: async a => budgetCheck(a),
+      execute: async a => otherVenue(a.venueId) || budgetCheck(a),
     }),
     place_in_ballroom: tool({
       description: 'Save the plan and show the chosen items in the 3D ballroom.',
@@ -152,6 +160,8 @@ export function coupleTools({ store, planId }) {
         budget: z.number().optional(),
       }),
       execute: async ({ venueId, tables, lines, budget }) => {
+        const wrong = otherVenue(venueId);
+        if (wrong) return wrong;
         for (const l of lines) if (!findItem(l.id)) return { error: 'unknown_item', id: l.id };
         const check = budgetCheck({ venueId, tables, lines, budget });
         if (check.problems.some(p => /tables|Unknown/.test(p)))
@@ -171,6 +181,7 @@ export function coupleTools({ store, planId }) {
         return {
           venueId,
           venueName: findVenue(venueId).name,
+          venueNamed: !!namedVenueId,
           studioPatch: plan.studioPatch,
           totals,
           banquetTotal: check.banquetTotal,

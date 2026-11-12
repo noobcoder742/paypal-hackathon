@@ -116,3 +116,20 @@ export const VENUES = [
 
 export const findVenue = id => VENUES.find(v => v.id === id);
 export const findSpace = (venueId, spaceId) => findVenue(venueId)?.spaces.find(s => s.id === spaceId);
+
+const words = s => s.toLowerCase().replace(/^the\s+/, '');
+/** The venue a message names ("Orchard Grand", "claymore residence"…), or null. */
+export function venueNamedIn(text = '') {
+  const t = text.toLowerCase();
+  return VENUES.find(v => t.includes(words(v.name)))?.id || null;
+}
+/** The most recent venue the couple named in their own messages, or null. */
+export function namedVenue(messages = []) {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m?.role !== 'user') continue;
+    const id = venueNamedIn(typeof m.content === 'string' ? m.content : '');
+    if (id) return id;
+  }
+  return null;
+}

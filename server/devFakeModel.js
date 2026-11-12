@@ -1,3 +1,4 @@
+import { venueNamedIn } from '../src/data/venues.js';
 // A scripted stand-in for the AI model, for local development and tests only (AGENT_FAKE=1).
 // It calls the real tools in the order a good run would, so the whole flow can be exercised
 // without API keys. Never enabled on Vercel.
@@ -28,7 +29,11 @@ function plan(prompt) {
     })();
   const style =
     ['garden', 'classic', 'modern', 'romantic', 'minimal'].find(s => last.includes(s)) || 'garden';
-  const venueId = 'orchard-grand',
+  const venueId =
+      [...users]
+        .reverse()
+        .map(m => venueNamedIn(textOf(m)))
+        .find(Boolean) || 'orchard-grand',
     lines =
       style === 'garden'
         ? [

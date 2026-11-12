@@ -4,7 +4,7 @@
 // First visit opens the venue map. Afterwards Design reopens the last draft,
 // with a link back to the map to choose another venue.
 import React, { useEffect, useState, useCallback } from 'react';
-import { ArrowUpRight, Plus, Columns2, X, Trash2, Map as MapIcon } from 'lucide-react';
+import { ArrowUpRight, Plus, Columns2, X, Trash2, Map as MapIcon, Store } from 'lucide-react';
 import { MapSlot } from './MapHost.jsx';
 import AgentPanel from './agent/AgentPanel.jsx';
 import { pendingPatchKey } from './agent/applyStudioPatch.js';
@@ -15,6 +15,8 @@ const KEY = 'wedding-design-v1';
 const BASE_STORAGE = { 'orchard-grand/grand-ballroom': 'wedding-room-v2' };
 export const MAX_DRAFTS_PER_VENUE = 2;
 const LETTERS = ['A', 'B', 'C'];
+// the assistant's latest plan, waiting for the couple to open a ballroom
+const PLAN_KEY = 'wedding-agent-plan';
 const read = () => {
   try {
     return JSON.parse(localStorage.getItem(KEY)) || {};
@@ -117,7 +119,19 @@ export default function DesignPage({
     ? venue.spaces.reduce((n, sp) => n + (state.drafts?.[sp.studio] || emptyDrafts).list.length, 0)
     : 0;
   const canAddDraft = venueDraftTotal < MAX_DRAFTS_PER_VENUE;
+  const [aiPlanShown, setAiPlanShown] = useState(false);
   const openSpace = (venueId, spaceId) => {
+    const sp = findSpace(venueId, spaceId);
+    try {
+      const plan = localStorage.getItem(PLAN_KEY);
+      if (plan && sp?.studio) {
+        const letter = (state.drafts?.[sp.studio] || emptyDrafts).active;
+        localStorage.setItem(pendingPatchKey(storageFor(sp.studio, letter)), plan);
+        localStorage.removeItem(PLAN_KEY);
+        setAiPlanShown(true);
+        setStudioNonce(n => n + 1);
+      }
+    } catch {}
     setState(s => ({ ...s, venueId, spaceId }));
     setMode('studio');
     window.scrollTo?.(0, 0);
@@ -157,30 +171,25 @@ export default function DesignPage({
       }));
     });
 
-  // a plan from the assistant: save it for the ballroom, fly to the venue, then open the room
+  // a plan from the assistant waits until the couple opens a ballroom. The map shows the venue
+  // they named, or the whole area when they didn't, so they can look around and choose.
   const [studioNonce, setStudioNonce] = useState(0);
+  const [mapFocus, setMapFocus] = useState(null);
   const onPlan = useCallback(
-    ({ venueId, studioPatch }) => {
-      const v = findVenue(venueId),
-        sp = v?.spaces.find(x => x.studio);
-      if (!sp) {
-        setState(s => ({ ...s, venueId, spaceId: null }));
-        setMode('map');
+    ({ venueId, named, studioPatch }) => {
+      try {
+        localStorage.setItem(PLAN_KEY, JSON.stringify(studioPatch));
+      } catch {}
+      if (mode === 'studio' && space && (!named || venueId === state.venueId)) {
+        openSpace(state.venueId, state.spaceId);
         return;
       }
-      const letter = (state.drafts?.[sp.studio] || emptyDrafts).active;
-      try {
-        localStorage.setItem(pendingPatchKey(storageFor(sp.studio, letter)), JSON.stringify(studioPatch));
-      } catch {}
-      const sameRoom = mode === 'studio' && state.venueId === venueId && state.spaceId === sp.id;
-      setState(s => ({ ...s, venueId, spaceId: sp.id }));
-      if (sameRoom) setStudioNonce(n => n + 1);
-      else {
-        setMode('map');
-        setTimeout(() => setMode('studio'), 2600);
-      }
+      const focusId = named ? venueId : null;
+      setState(s => ({ ...s, venueId: focusId, spaceId: null }));
+      setMapFocus(f => ({ venueId: focusId, n: (f?.n || 0) + 1 }));
+      setMode('map');
     },
-    [mode, state]
+    [mode, space, state] // eslint-disable-line react-hooks/exhaustive-deps
   );
   const panel = <AgentPanel onPlan={onPlan} />;
   if (mode === 'map' || !venue || !space)
@@ -188,6 +197,7 @@ export default function DesignPage({
       <>
         <MapSlot
           initialVenueId={state.venueId}
+          focus={mapFocus}
           onOpenSpace={openSpace}
           draftCounts={savedDraftCounts(state)}
         />
@@ -236,6 +246,11 @@ export default function DesignPage({
         )}
       </div>
       <p className="draft-hint">Switching drafts keeps only saved changes.</p>
+      {aiPlanShown && (
+        <button type="button" className="ai-compare" onClick={() => onNavigate?.('market')}>
+          <Store size={14} /> Compare other options
+        </button>
+      )}
     </div>
   );
 

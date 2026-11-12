@@ -359,3 +359,20 @@
 .agent-checkout:hover {
   background: #000;
 }
+.ai-compare {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  justify-self: center;
+  padding: 8px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent);
+  font: 500 0.85rem var(--f-ui);
+  cursor: pointer;
+}
+.ai-compare:hover {
+  background: var(--accent);
+  color: #fff;
+}

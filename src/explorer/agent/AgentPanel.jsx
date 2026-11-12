@@ -131,7 +131,11 @@ export default function AgentPanel({ onPlan, onPaid }) {
         if (handled.current.has(k)) continue;
         handled.current.add(k);
         if (t.toolName === 'place_in_ballroom' && !t.result?.error)
-          onPlan?.({ venueId: t.result.venueId, studioPatch: t.result.studioPatch });
+          onPlan?.({
+            venueId: t.result.venueId,
+            named: !!t.result.venueNamed,
+            studioPatch: t.result.studioPatch,
+          });
         // "secure these vendors": the plan goes into the cart and the payment page opens (all payments happen there)
         if (t.toolName === 'open_checkout' && t.result?.checkout && !replayRef.current) {
           setOpen(false);

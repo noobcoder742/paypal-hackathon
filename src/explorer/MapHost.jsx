@@ -67,7 +67,7 @@ const park = () => {
 };
 
 /** Where the map shows on the Design page. Props go to the shared VenueExplorer. */
-export function MapSlot({ onOpenSpace, initialVenueId = null, draftCounts = {} }) {
+export function MapSlot({ onOpenSpace, initialVenueId = null, focus = null, draftCounts = {} }) {
   const ref = useRef(null),
     open = useRef(onOpenSpace);
   open.current = onOpenSpace;
@@ -76,10 +76,11 @@ export function MapSlot({ onOpenSpace, initialVenueId = null, draftCounts = {} }
     store.props = {
       onOpenSpace: (...a) => open.current?.(...a),
       initialVenueId,
+      focus,
       draftCounts: JSON.parse(counts),
     };
     notify();
-  }, [initialVenueId, counts]);
+  }, [initialVenueId, focus, counts]);
   useLayoutEffect(() => {
     const h = host();
     ref.current.appendChild(h);

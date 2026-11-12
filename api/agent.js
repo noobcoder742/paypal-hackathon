@@ -3,6 +3,7 @@ import { agentErrorMessage } from '../server/agentError.js';
 import { streamText } from 'ai';
 import { fallbackModel, defaultModels } from '../server/models.js';
 import { coupleTools } from '../server/agent/coupleTools.js';
+import { namedVenue } from '../src/data/venues.js';
 import { COUPLE_PROMPT } from '../server/agent/couplePrompt.js';
 import { getStore } from '../server/store.js';
 import { checkRate } from '../server/ratelimit.js';
@@ -46,7 +47,7 @@ export async function POST(request) {
     maxRetries: 0,
     system: COUPLE_PROMPT,
     messages,
-    tools: coupleTools({ store, planId }),
+    tools: coupleTools({ store, planId, namedVenueId: namedVenue(messages) }),
     maxSteps: 8,
     maxTokens: 1200,
     temperature: 0,

@@ -148,3 +148,29 @@ test('every vendor item the AI suggests shows up in the 3D room', () => {
     'cars wait outside the entrance'
   );
 });
+test('a venue the couple named is kept: the planner cannot swap in a cheaper one', async () => {
+  resetMemoryStore();
+  const t = coupleTools({ store: getStore(), planId: 'plan-a1b2c3d4', namedVenueId: VENUE });
+  const lines = [{ id: 'floral-arch', qty: 1 }];
+  const wrong = await run(t, 'place_in_ballroom', { venueId: 'claymore-residence', tables: 16, lines });
+  assert.equal(wrong.error, 'wrong_venue');
+  assert.match(wrong.message, /Orchard Grand/);
+  assert.equal(
+    (await run(t, 'check_budget', { venueId: 'claymore-residence', tables: 16, lines })).error,
+    'wrong_venue'
+  );
+  const ok = await run(t, 'place_in_ballroom', { venueId: VENUE, tables: 16, lines });
+  assert.equal(ok.venueId, VENUE);
+  assert.equal(ok.venueNamed, true);
+});
+test('no venue named: any venue is allowed, and the result says none was named', async () => {
+  resetMemoryStore();
+  const t = coupleTools({ store: getStore(), planId: 'plan-a1b2c3d4' });
+  const r = await run(t, 'place_in_ballroom', {
+    venueId: 'claymore-residence',
+    tables: 16,
+    lines: [{ id: 'floral-arch', qty: 1 }],
+  });
+  assert.equal(r.venueId, 'claymore-residence');
+  assert.equal(r.venueNamed, false);
+});
