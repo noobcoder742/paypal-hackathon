@@ -87,6 +87,9 @@ function replayFetch() {
   );
 }
 
+/** The model sometimes writes **bold**: show it bold instead of the asterisks. */
+const withBold = text =>
+  text.split(/\*\*(.+?)\*\*/g).map((part, i) => (i % 2 ? <b key={i}>{part}</b> : part));
 export default function AgentPanel({ onPlan, onPaid }) {
   const [open, setOpen] = useState(false),
     [replaying, setReplaying] = useState(false),
@@ -209,7 +212,7 @@ export default function AgentPanel({ onPlan, onPaid }) {
               if (p.type === 'text' && p.text.trim())
                 return (
                   <p key={i} className="agent-text">
-                    {p.text}
+                    {withBold(p.text)}
                   </p>
                 );
               if (p.type !== 'tool-invocation') return null;

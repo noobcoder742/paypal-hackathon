@@ -8,7 +8,7 @@ const dataVersion = () =>
   createHash('sha256')
     .update(
       JSON.stringify([
-        'named-venue',
+        'named-venue-2',
         CATALOG.map(i => [i.id, i.price, i.name, i.vendor]),
         VENUES.map(v => [v.id, v.name, v.banquet]),
       ])

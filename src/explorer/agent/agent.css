@@ -340,8 +340,8 @@
   display: contents;
 }
 @media (min-width: 1100px) {
-  body.agent-open .embedded-studio,
-  body.agent-open .explorer {
+  /* only the page wrapper narrows: the map inside it must not take the margin a second time */
+  body.agent-open .embedded-studio {
     margin-right: 424px;
     transition: margin-right 0.25s var(--ease);
   }
