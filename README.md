@@ -52,6 +52,21 @@ Built for the **PayPal AI Hackathon** (started 31 Oct 2026, during the submissio
 - Each agent only has the tools it needs; plan IDs come from the session, not the model.
 - 5 AI runs per visitor per hour; repeated requests come from a 30-day cache, and payment steps are never cached.
 
+## Tools and technologies
+
+| Area | Tools |
+| --- | --- |
+| PayPal (sandbox) | Orders v2 REST API (create, capture), PayPal Agent Toolkit (invoices and reminders) |
+| AI | Claude Haiku (Anthropic) as the main model, Gemini Flash (Google AI Studio) as the automatic fallback, Vercel AI SDK for tool calling and streaming, Zod for tool schemas |
+| Front end | React 18, Vite, three.js, react-three-fiber and drei, lucide-react icons |
+| 3D content | Blender and Cycles (ballroom model, baked lighting), OpenStreetMap data for the Singapore city map |
+| Server and data | Vercel functions, Supabase (Postgres key-value table) |
+| Quality | Node test runner, Playwright (visual and performance checks), ESLint, Prettier |
+| Automation | GitHub Actions: tests on every push, map data builds, a daily keep-alive ping |
+| Development | Claude Code helped write much of the code, from the founder's designs and decisions |
+
+**Sponsor integrations:** PayPal is the only sponsor integration. We did not use APIMatic, Postman or Render.
+
 ## Architecture
 
 ```mermaid
@@ -70,17 +85,27 @@ flowchart LR
 
 ## Run it yourself
 
-You need Node.js 20+, a PayPal developer account (sandbox), and an Anthropic or Google AI Studio key.
+You need Node.js 20+, a [PayPal developer](https://developer.paypal.com) account (free sandbox), and an Anthropic or
+Google AI Studio API key.
 
-```bash
-npm install
-cp .env.example .env.local   # add your own keys (never commit this file)
-npm run dev
-```
+1. Install and copy the settings file:
+   ```bash
+   npm install
+   cp .env.example .env.local   # never commit this file
+   ```
+2. In the PayPal developer dashboard, create a **sandbox** REST app and put its client ID and secret in
+   `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` and `VITE_PAYPAL_CLIENT_ID` (set `PAYPAL_ENV=sandbox`).
+3. Add `ANTHROPIC_API_KEY` and/or `GOOGLE_GENERATIVE_AI_API_KEY`.
+4. Optional, for shared storage: create a Supabase project, run `docs/supabase.sql` once in its SQL editor, then
+   set `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. Without it, data is kept in memory.
+5. Start it:
+   ```bash
+   npm run dev
+   ```
 
 - No model keys? `AGENT_FAKE=1 npm run dev` uses a scripted stand-in model that calls the real tools.
 - `npm test` runs the unit and API tests; `npm run lint` and `npm run format` check the code style.
-- To deploy, import the repo in Vercel and add the variables from `.env.example`.
+- To deploy, import the repo in Vercel and add the same variables in Project Settings → Environment Variables.
 
 ## Licences
 

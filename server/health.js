@@ -25,9 +25,16 @@ export async function aiCheck() {
   const { generateText } = await import('ai');
   const { defaultModels } = await import('./models.js');
   const out = {};
-  for (const model of await defaultModels()) {
+  // all models at once, each with its own time limit, so one slow model can't time out the whole check
+  const check = async model => {
     try {
-      const r = await generateText({ model, prompt: 'Reply with the word ok.', maxTokens: 5, maxRetries: 0 });
+      const r = await generateText({
+        model,
+        prompt: 'Reply with the word ok.',
+        maxTokens: 5,
+        maxRetries: 0,
+        abortSignal: AbortSignal.timeout(15000),
+      });
       out[model.modelId] = { ok: true, reply: r.text.slice(0, 20) };
     } catch (e) {
       const inner = e?.lastError || e;
@@ -40,6 +47,7 @@ export async function aiCheck() {
           .slice(0, 200),
       };
     }
-  }
+  };
+  await Promise.all((await defaultModels()).map(check));
   return out;
 }

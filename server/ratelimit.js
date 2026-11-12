@@ -14,3 +14,12 @@ export async function checkRate(ip, { weight = 1 } = {}) {
     resetSeconds: Math.max(1, expiresIn),
   };
 }
+
+// A ceiling on live model runs per day across all visitors, so a burst of traffic can't use up the
+// AI budget in one go. Answers from the cache don't count. Over the cap, the panel offers the recorded run.
+export const LIVE_RUNS_PER_DAY = Number(process.env.AGENT_DAILY_RUNS) || 40;
+export async function checkDailyBudget() {
+  const day = Math.floor(Date.now() / 86400e3);
+  const { n } = await getStore().incr(`rate:live-runs:${day}`, { ttlSeconds: 86400 });
+  return n <= LIVE_RUNS_PER_DAY;
+}

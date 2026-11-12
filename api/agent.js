@@ -6,7 +6,7 @@ import { coupleTools } from '../server/agent/coupleTools.js';
 import { namedVenue } from '../src/data/venues.js';
 import { COUPLE_PROMPT } from '../server/agent/couplePrompt.js';
 import { getStore } from '../server/store.js';
-import { checkRate } from '../server/ratelimit.js';
+import { checkRate, checkDailyBudget } from '../server/ratelimit.js';
 import { cacheKey, getCachedRun, saveRun, replayStream, UNCACHEABLE } from '../server/agent/cache.js';
 import { sameOrigin, clientIp, json } from '../server/http.js';
 export async function POST(request) {
@@ -35,6 +35,7 @@ export async function POST(request) {
     if (cached.plan) await store.set('plan:' + planId, { ...cached.plan, planId });
     return replayStream(cached.body, { 'x-model-used': cached.model || 'cache' });
   }
+  if (!(await checkDailyBudget())) return json({ error: 'daily_limit' }, 503);
   let model;
   try {
     model = fallbackModel(await defaultModels());
